@@ -9,7 +9,7 @@ Do not assume Claude's private memory was loaded into your context.
 
 Before acting, read the current project instructions and relevant operations guide.
 The research workspace is supplied by the parent, or locally
-C:/Users/tahas/IEEE (GitHub: TahaSabir0/sharing-or-specializing). Read its CLAUDE.md, STATUS.md, the relevant parts of PLAN.md
+C:/Users/tahas/research/IEEE (GitHub: TahaSabir0/sharing-or-specializing). Read its CLAUDE.md, STATUS.md, the relevant parts of PLAN.md
 (especially section 1, the fixed protocol), and the relevant section of ops/cluster-config.md. Code worktrees do not themselves contain the research repo.
 If these files are unavailable, request the required context from the parent.
 

@@ -3,7 +3,7 @@
 Condensed summaries of the journal-study meetings. Raw transcripts are kept next to this
 file as the ground truth; speaker labels in them are unreliable. Append a new block at the
 bottom after each meeting (use the `UGRIP-transcript` skill). Challenge-era meetings are in
-`C:/Users/tahas/UGRIP/transcripts/SUMMARY.md`.
+`C:/Users/tahas/research/UGRIP/transcripts/SUMMARY.md`.
 
 ---
 

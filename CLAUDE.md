@@ -39,7 +39,7 @@ it came from, and who builds what. It was seeded from the challenge code repo
 Look things up there only for history; don't develop in it. Use one topic branch (and one
 worktree) per piece of work, and don't switch a shared checkout's branch.
 
-The old challenge workspace `C:/Users/tahas/UGRIP/` is history: look things up there only
+The old challenge workspace `C:/Users/tahas/research/UGRIP/` is history: look things up there only
 when a specific question needs it (for example its `PROGRESS.md`). Don't load it by
 default.
 

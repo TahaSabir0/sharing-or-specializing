@@ -13,12 +13,13 @@ budget is the trimmed plan in §8. Record later changes in the changelog below.
 - 2026-10-11: one repo for docs and code. Code now lives in `code/` (seeded from
   `Taha/qwen35-sprint` `bec2d1f`). Registry → `results/RUNS.csv`; subsets → `data/subsets/`;
   interface doc → `code/INTERFACE.md`.
+- 2026-10-12: folders moved under C:/Users/tahas/research/ (this repo is now `C:/Users/tahas/research/IEEE`).
 
 **Paths in this folder:**
 - `stats/NN...` citations refer to challenge-era ledgers, now in
   `references/challenge_results/`. The exceptions are `stats/1` and `stats/22`, which are in
   `data/`.
-- `PROGRESS` citations refer to `PROGRESS.md` in the old `C:/Users/tahas/UGRIP` repo.
+- `PROGRESS` citations refer to `PROGRESS.md` in the old `C:/Users/tahas/research/UGRIP` repo.
 - The method papers are in `references/papers/`, with a digest in
   `references/papers/METHOD_DIGEST.md`.
 
