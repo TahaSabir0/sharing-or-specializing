@@ -1,0 +1,542 @@
+AI-generated content may be incorrect
+TS
+
+Tausifa Jan Saleem
+0 minutes 3 seconds0:03
+Tausifa Jan Saleem 0 minutes 3 seconds
+Pacific, then Hyra, Laura, I think Veronica even presented this paper, or Alberto, I don't remember, in the meeting.
+Tausifa Jan Saleem 0 minutes 14 seconds
+And so I want all of you to go through this draft. I have mentioned the list of experiments that we should do and also the research questions that we will answer.
+TS
+
+Taha Sabir
+0 minutes 19 seconds0:19
+Taha Sabir 0 minutes 19 seconds
+Mhm.
+Taha Sabir 0 minutes 25 seconds
+Yep.
+TS
+
+Tausifa Jan Saleem
+0 minutes 26 seconds0:26
+Tausifa Jan Saleem 0 minutes 26 seconds
+And this is just a basic graph, but it would be a good starting point.
+TS
+
+Taha Sabir
+0 minutes 32 seconds0:32
+Taha Sabir 0 minutes 32 seconds
+Sounds good, yeah.
+TS
+
+Tausifa Jan Saleem
+0 minutes 34 seconds0:34
+Tausifa Jan Saleem 0 minutes 34 seconds
+Yeah, so I want Taha, maybe you can do one thing, make a list of experiments and divide among yourselves. I talked to Dr. Yaqub also about this plan for general submissions. He said that you guys can use resources till the end of October. So yeah, so.
+TS
+
+Taha Sabir
+0 minutes 52 seconds0:52
+Taha Sabir 0 minutes 52 seconds
+Nice, okay.
+TS
+
+Tausifa Jan Saleem
+0 minutes 55 seconds0:55
+Tausifa Jan Saleem 0 minutes 55 seconds
+It's better that.
+Tausifa Jan Saleem 0 minutes 58 seconds
+We do each and every experiment till the end of October, and then we can, after that, we can focus on writing.
+TS
+
+Taha Sabir
+1 minute 4 seconds1:04
+Taha Sabir 1 minute 4 seconds
+Yep, sounds good.
+TS
+
+Tausifa Jan Saleem
+1 minute 4 seconds1:04
+Tausifa Jan Saleem 1 minute 4 seconds
+So I think it shouldn't take much time because the foundations are already laid. You guys know each and everything. And so it should not take much time. So that's what I envision. Yeah.
+TS
+
+Taha Sabir
+1 minute 8 seconds1:08
+Taha Sabir 1 minute 8 seconds
+Mhm.
+Taha Sabir 1 minute 13 seconds
+Yep, yep.
+Taha Sabir 1 minute 17 seconds
+Yeah, I can take care of it.
+TS
+
+Tausifa Jan Saleem
+1 minute 20 seconds1:20
+Tausifa Jan Saleem 1 minute 20 seconds
+So, just as...
+Tausifa Jan Saleem 1 minute 33 seconds
+YEONG.
+TS
+
+Taha Sabir
+1 minute 33 seconds1:33
+Taha Sabir 1 minute 33 seconds
+Blackwell 94 GB GPM or.
+TS
+
+Tausifa Jan Saleem
+1 minute 37 seconds1:37
+Tausifa Jan Saleem 1 minute 37 seconds
+I think as of now, the four GPUs with 24 gigabytes, but if there's a need for a bigger one with more.
+TS
+
+Taha Sabir
+1 minute 40 seconds1:40
+Taha Sabir 1 minute 40 seconds
+Okay.
+Taha Sabir 1 minute 42 seconds
+But...
+Taha Sabir 1 minute 47 seconds
+Because the only thing that is quite interesting, actually, that would require maybe more GPU is resolution, right? That's something that we saw in our previous paper. The higher the resolution, the higher the performance, but also the higher the cost and time consumption. So that's also something we might want to make a decision on. Now, the difference is not huge.
+TS
+Tausifa Jan Saleem
+1 minute 54 seconds1:54
+Tausifa Jan Saleem 1 minute 54 seconds
+Yeah.
+Tausifa Jan Saleem 2 minutes 1 second
+Yeah.
+Tausifa Jan Saleem 2 minutes 3 seconds
+Yeah.
+TS
+Taha Sabir
+2 minutes 8 seconds2:08
+Taha Sabir 2 minutes 8 seconds
+But it's still significant enough for us to like ask the question, what do we do with resolution? So, yeah.
+TS
+Tausifa Jan Saleem
+2 minutes 13 seconds2:13
+Tausifa Jan Saleem 2 minutes 13 seconds
+Yeah, yeah, yeah, so, yeah, yeah, so for we can request him that GPU also for some specific amount of time, because, yeah, yeah, for those experiments, we can request him.
+TS
+Taha Sabir
+2 minutes 22 seconds2:22
+Taha Sabir 2 minutes 22 seconds
+For some higher resolution, yeah, experimentation.
+Taha Sabir 2 minutes 26 seconds
+Sure, how about how about this? I'll figure out what what experiments we should do, and then from there we can figure out what resources we do want from, yeah.
+TS
+Tausifa Jan Saleem
+2 minutes 34 seconds2:34
+Tausifa Jan Saleem 2 minutes 34 seconds
+Exactly, and we will plan accordingly, and we need to do experiments with two backbones, so Gwen and I think maybe met Gemma, met Gemma.
+TS
+Taha Sabir
+2 minutes 42 seconds2:42
+Taha Sabir 2 minutes 42 seconds
+Yes.
+Taha Sabir 2 minutes 45 seconds
+Yeah, actually, I noticed, like, everyone, almost everyone in the competition, like, met JUMAH.
+TS
+Tausifa Jan Saleem
+2 minutes 51 seconds2:51
+Tausifa Jan Saleem 2 minutes 51 seconds
+My, I think one group, yeah, yeah.
+TS
+Taha Sabir
+2 minutes 54 seconds2:54
+Taha Sabir 2 minutes 54 seconds
+Yeah, yeah, yeah, which is, which is, I generally think they made a mistake. I think they really slept on Quang, because I think if some of those teams used Quang, they could have beat us.
+TS
+Tausifa Jan Saleem
+2 minutes 59 seconds2:59
+Tausifa Jan Saleem 2 minutes 59 seconds
+Yeah.
+Tausifa Jan Saleem 3 minutes 5 seconds
+I think one of one of the teams had used Quen also, but he had results about Quen, Quen 2.5, I think. He compared it with Met Gemma, but Met Gemma was giving better performance in this case. Maybe he didn't work on pre-processing and other stuff.
+TS
+Taha Sabir
+3 minutes 8 seconds3:08
+Taha Sabir 3 minutes 8 seconds
+Yes, yes, yeah, but...
+Taha Sabir 3 minutes 14 seconds
+Yeah, yeah.
+Taha Sabir 3 minutes 19 seconds
+Do it's.
+Taha Sabir 3 minutes 22 seconds
+Yeah, it's interesting how a lot of times, even if they would test Quen, it would underperform. But I think they messed up something, because objectively, Quen 3.5, 9 billion parameters will always be better than Mejima, all the time. It has to be. Which is, yeah, I don't know.
+TS
+Tausifa Jan Saleem
+3 minutes 37 seconds3:37
+Tausifa Jan Saleem 3 minutes 37 seconds
+Yeah, yeah, I got it.
+TS
+Taha Sabir
+3 minutes 41 seconds3:41
+Taha Sabir 3 minutes 41 seconds
+But also, what do we think of the results, guys? We want those so unexpected, right?
+TS
+Tausifa Jan Saleem
+3 minutes 44 seconds3:44
+Tausifa Jan Saleem 3 minutes 44 seconds
+Amazing. I was so happy. I was expecting maybe we'll get second. We will be second. But when it was amazing and hats off to you guys for all the hard work.
+TS
+Taha Sabir
+3 minutes 46 seconds3:46
+Taha Sabir 3 minutes 46 seconds
+Yes.
+Taha Sabir 3 minutes 49 seconds
+Me too.
+Taha Sabir 3 minutes 54 seconds
+Yeah.
+Taha Sabir 3 minutes 56 seconds
+I also just emailed them asking, what's the timeline now for that summary paper? And yeah, asking a bit more details about sending us the certificates and stuff like that. So I am in contact. So you were there physically, right?
+TS
+Tausifa Jan Saleem
+4 minutes 15 seconds4:15
+Tausifa Jan Saleem 4 minutes 15 seconds
+Sorry?
+TS
+Taha Sabir
+4 minutes 17 seconds4:17
+Taha Sabir 4 minutes 17 seconds
+You were there at the conference, right? Yeah, yeah, yeah, okay, cool.
+TS
+Tausifa Jan Saleem
+4 minutes 18 seconds4:18
+Tausifa Jan Saleem 4 minutes 18 seconds
+Yeah, yeah, I was there. I was there. I think Alex and Veronika were also there, except Alberto. We had a class, so they were also there.
+TS
+Taha Sabir
+4 minutes 27 seconds4:27
+Taha Sabir 4 minutes 27 seconds
+No, I meant like, I meant like physically.
+TS
+Tausifa Jan Saleem
+4 minutes 30 seconds4:30
+Tausifa Jan Saleem 4 minutes 30 seconds
+No, no, I was not in the conference. I joined online. Yeah, yeah, yeah. Dr. Yaqub was in the conference because he was the general chair of MCI this time. We were also in the organizing team, but I was not able to travel because of... So the day I had an appointment, visa appointment, I was really ill that day.
+TS
+Taha Sabir
+4 minutes 32 seconds4:32
+Taha Sabir 4 minutes 32 seconds
+Ohh, okay, got it. Okay, yeah, yeah, I got it.
+Taha Sabir 4 minutes 38 seconds
+Yes, yes, yeah.
+Taha Sabir 4 minutes 42 seconds
+Yeah.
+Mhm.
+TS
+Tausifa Jan Saleem
+4 minutes 50 seconds4:50
+Tausifa Jan Saleem 4 minutes 50 seconds
+So, otherwise, I would have traveled.
+TS
+Taha Sabir
+4 minutes 53 seconds4:53
+Taha Sabir 4 minutes 53 seconds
+Yeah, but yeah, very nice result. Also, I just wanted to ask, so for the summary paper, how does that work? Like, what is going to happen for that?
+TS
+Tausifa Jan Saleem
+4 minutes 53 seconds4:53
+Tausifa Jan Saleem 4 minutes 53 seconds
+So, that's okay.
+Tausifa Jan Saleem 5 minutes 1 second
+So for the summary paper, organizers are going to write that paper, okay? And so they're going to sum up the results from all the teams and for all the tasks, because if you're not, so if you had joined the entire session, there were three tasks for the challenge, like task one, task two, and task three.
+TS
+Taha Sabir
+5 minutes 7 seconds5:07
+Taha Sabir 5 minutes 7 seconds
+Uh-huh.
+Taha Sabir 5 minutes 11 seconds
+Mmh.
+Taha Sabir 5 minutes 20 seconds
+Yes, yes, yeah.
+TS
+Tausifa Jan Saleem
+5 minutes 22 seconds5:22
+Tausifa Jan Saleem 5 minutes 22 seconds
+So they are going to write one paper for all three tasks. And so because the data, their contribution is data set, right? Data set is from their side. They were the ones who consolidated this data. So they'll in the challenge paper, summary paper, they'll discuss about the data set they created. And then they will discuss about that they ran a challenge on these tasks.
+TS
+Taha Sabir
+5 minutes 22 seconds5:22
+Taha Sabir 5 minutes 22 seconds
+Yeah.
+Taha Sabir 5 minutes 25 seconds
+Mhm.
+Taha Sabir 5 minutes 31 seconds
+Right.
+TS
+Tausifa Jan Saleem
+5 minutes 45 seconds5:45
+Tausifa Jan Saleem 5 minutes 45 seconds
+And this was the performance from different teams. Yeah, and they will also talk about different approach.
+TS
+Taha Sabir
+5 minutes 48 seconds5:48
+Taha Sabir 5 minutes 48 seconds
+Got it, got it, so we won't have to re.
+Taha Sabir 5 minutes 53 seconds
+Right, and we we won't have to rewrite everything, or...
+TS
+Tausifa Jan Saleem
+5 minutes 56 seconds5:56
+Tausifa Jan Saleem 5 minutes 56 seconds
+No, we don't have to write anything. It's from their side.
+TS
+Taha Sabir
+5 minutes 58 seconds5:58
+Taha Sabir 5 minutes 58 seconds
+Got it, got it. Okay, sounds good. Cool, cool, cool, cool, cool. Nice. Okay, well, that sounds like a plan.
+TS
+Tausifa Jan Saleem
+6 minutes6:00
+Tausifa Jan Saleem 6 minutes
+Yeah, yeah.
+Tausifa Jan Saleem 6 minutes 2 seconds
+Yay.
+Tausifa Jan Saleem 6 minutes 7 seconds
+So for them, I think they, for the proceedings also. So there are two things. One is like the summary paper and another is proceedings. So all, so they will have a joint proceedings this year because last year they did not have a separate proceedings because of less number of papers. So they are going to have a joint proceedings for both the year papers like 2025 papers and 2026 papers.
+TS
+Taha Sabir
+6 minutes 11 seconds6:11
+Taha Sabir 6 minutes 11 seconds
+Mhm.
+Taha Sabir 6 minutes 30 seconds
+I don't know.
+TS
+Tausifa Jan Saleem
+6 minutes 31 seconds6:31
+Tausifa Jan Saleem 6 minutes 31 seconds
+Paper, so they will be published together. Yeah, and even summary paper will consist of solutions from 2025 and 2026 also.
+TS
+Taha Sabir
+6 minutes 33 seconds6:33
+Taha Sabir 6 minutes 33 seconds
+And what is?
+Taha Sabir 6 minutes 39 seconds
+Wait, wait, you just mentioned another paper now, what is that?
+TS
+Tausifa Jan Saleem
+6 minutes 43 seconds6:43
+Tausifa Jan Saleem 6 minutes 43 seconds
+One is the paper we submitted, right? It will be published in proceedings in the challenge proceedings.
+TS
+Taha Sabir
+6 minutes 46 seconds6:46
+Taha Sabir 6 minutes 46 seconds
+Yeah.
+Taha Sabir 6 minutes 49 seconds
+Oh, and also, where is, because right now, where is the paper published? Is, I mean, is it even published? Was it?
+TS
+Tausifa Jan Saleem
+6 minutes 57 seconds6:57
+Tausifa Jan Saleem 6 minutes 57 seconds
+It's not published as of now. It will undergo review first. If you check the challenge website, they have this timeline for the, so they will send us the reviews. Maybe we need to update something, do some change, and then we'll submit the final CanRAD version.
+TS
+Taha Sabir
+6 minutes 58 seconds6:58
+Taha Sabir 6 minutes 58 seconds
+Right.
+Taha Sabir 7 minutes 1 second
+Poh.
+Taha Sabir 7 minutes 3 seconds
+Yeah.
+Taha Sabir 7 minutes 7 seconds
+Yeah.
+Taha Sabir 7 minutes 12 seconds
+Yes.
+TS
+Tausifa Jan Saleem
+7 minutes 17 seconds7:17
+Tausifa Jan Saleem 7 minutes 17 seconds
+And that will be submitted, then published in the proceedings of Mikai Flair challenge. So every challenge is a particular proceedings. Proceedings is basically a book kind of a thing that's published. Yeah, so all of the papers will be together published in that proceedings. So you can.
+TS
+Taha Sabir
+7 minutes 26 seconds7:26
+Taha Sabir 7 minutes 26 seconds
+Yeah.
+Taha Sabir 7 minutes 35 seconds
+Right.
+TS
+Tausifa Jan Saleem
+7 minutes 36 seconds7:36
+Tausifa Jan Saleem 7 minutes 36 seconds
+included in your resume and it would be available online.
+TS
+Taha Sabir
+7 minutes 38 seconds7:38
+Taha Sabir 7 minutes 38 seconds
+Yeah, I was about to ask. So yeah, if, you know, whatever, by the time it gets actually like confirmed and peer reviewed, is it going to be published in a particular journal? And if yes, what is the name of that journal?
+TS
+Tausifa Jan Saleem
+7 minutes 52 seconds7:52
+Tausifa Jan Saleem 7 minutes 52 seconds
+So for, it won't be a journal. I'll share with you the previous year proceedings. It would be a book. Okay. So for, there are conference proceedings and then there are journal publications. So for conferences, they have proceedings. Okay.
+TS
+Taha Sabir
+7 minutes 55 seconds7:55
+Taha Sabir 7 minutes 55 seconds
+Yeah.
+Taha Sabir 7 minutes 58 seconds
+Got it, got it.
+Taha Sabir 8 minutes 1 second
+Got it, got it.
+Taha Sabir 8 minutes 6 seconds
+Mhm.
+Taha Sabir 8 minutes 8 seconds
+Got it, got it. And for journals, there is public. Yeah, yeah, yeah. Okay, I understand now.
+TS
+Tausifa Jan Saleem
+8 minutes 9 seconds8:09
+Tausifa Jan Saleem 8 minutes 9 seconds
+Yeah, yeah, so because it was a, yeah, yeah, yeah, yeah. So, for this paper, we will we will submit it to IEEE transactions on medical imaging. So, this is already in the format of that journal. I think the page limit is 15. We need to restrict our paper to 15 page and...
+TS
+Taha Sabir
+8 minutes 17 seconds8:17
+Taha Sabir 8 minutes 17 seconds
+Yes.
+Taha Sabir 8 minutes 19 seconds
+Yes, yes, yes.
+Taha Sabir 8 minutes 22 seconds
+Yeah.
+Taha Sabir 8 minutes 26 seconds
+Yeah, we should be, we should be okay. Yeah.
+TS
+Tausifa Jan Saleem
+8 minutes 28 seconds8:28
+Tausifa Jan Saleem 8 minutes 28 seconds
+Yeah, so resources again, till the end of October, we can use the resources and get this paper done, maybe by submitted by 15 November, and then maybe we can plan for some other work afterwards.
+
+Taha Sabir
+8 minutes 32 seconds8:32
+Taha Sabir 8 minutes 32 seconds
+Yes.
+Taha Sabir 8 minutes 34 seconds
+Plus.
+Taha Sabir 8 minutes 45 seconds
+Sounds good. All right.
+TS
+Tausifa Jan Saleem
+8 minutes 47 seconds8:47
+Tausifa Jan Saleem 8 minutes 47 seconds
+Yeah.
+TL
+Thinh Quang Ly
+8 minutes 48 seconds8:48
+Thinh Quang Ly 8 minutes 48 seconds
+I have one question. So can we like get our paper published on our SIF?
+TS
+Tausifa Jan Saleem
+8 minutes 50 seconds8:50
+Tausifa Jan Saleem 8 minutes 50 seconds
+Yeah.
+Tausifa Jan Saleem 8 minutes 56 seconds
+Yeah, we can. Taha, can you upload the paper on archive also?
+TS
+Taha Sabir
+9 minutes 1 second9:01
+Taha Sabir 9 minutes 1 second
+Yes, okay.
+TS
+Tausifa Jan Saleem
+9 minutes 3 seconds9:03
+Tausifa Jan Saleem 9 minutes 3 seconds
+Because I think it's a good practice to.
+Tausifa Jan Saleem 9 minutes 8 seconds
+The uh, upload my personal archive and publish it there also to make it, you know, yeah, open to the.
+TS
+Taha Sabir
+9 minutes 13 seconds9:13
+Taha Sabir 9 minutes 13 seconds
+Career.
+Taha Sabir 9 minutes 15 seconds
+Wait, Alex, you asked where do you want to publish it as well?
+TL
+Thinh Quang Ly
+9 minutes 19 seconds9:19
+Thinh Quang Ly 9 minutes 19 seconds
+archive.
+TS
+Taha Sabir
+9 minutes 21 seconds9:21
+Taha Sabir 9 minutes 21 seconds
+Oh, okay, yeah. So, okay, I can do that, yeah.
+TS
+Tausifa Jan Saleem
+9 minutes 25 seconds9:25
+Tausifa Jan Saleem 9 minutes 25 seconds
+Yeah.
+TS
+Taha Sabir
+9 minutes 25 seconds9:25
+Taha Sabir 9 minutes 25 seconds
+Or to be fair, I mean, okay, yeah, sounds good. Is there anything else?
+TS
+Tausifa Jan Saleem
+9 minutes 31 seconds9:31
+Tausifa Jan Saleem 9 minutes 31 seconds
+So Jess, maybe by the end of tomorrow, if you can share the list of experiments with different team members and they'll start working on their parts. And then after a week, we will have a meeting as useful.
+TS
+Taha Sabir
+9 minutes 38 seconds9:38
+Taha Sabir 9 minutes 38 seconds
+Yes, yes.
+Taha Sabir 9 minutes 41 seconds
+Yes.
+Taha Sabir 9 minutes 45 seconds
+Sounds good.
+TS
+Tausifa Jan Saleem
+9 minutes 46 seconds9:46
+Tausifa Jan Saleem 9 minutes 46 seconds
+Yeah.
+Tausifa Jan Saleem 9 minutes 49 seconds
+So, any questions, anyone?
+TS
+Taha Sabir
+9 minutes 55 seconds9:55
+Taha Sabir 9 minutes 55 seconds
+Not for me. I guess congrats on us.
+TS
+Tausifa Jan Saleem
+10 minutes 3 seconds10:03
+Tausifa Jan Saleem 10 minutes 3 seconds
+Okay, then. Thank you very much, everyone, and many congratulations.
+
+Veronika Dmitrenko
+10 minutes 8 seconds10:08
+Veronika Dmitrenko 10 minutes 8 seconds
+Additional songs.
+TS
+Tausifa Jan Saleem
+10 minutes 10 seconds10:10
+Tausifa Jan Saleem 10 minutes 10 seconds
+Hey, wanna say something, Veronika?
+
+Veronika Dmitrenko
+10 minutes 13 seconds10:13
+Veronika Dmitrenko 10 minutes 13 seconds
+No, just say goodbye.
+TS
+Tausifa Jan Saleem
+10 minutes 16 seconds10:16
+Tausifa Jan Saleem 10 minutes 16 seconds
+Ohh, okay, okay. Take care, everyone. Bye-bye. Gonna see you.
+
+Veronika Dmitrenko
+10 minutes 18 seconds10:18
+Veronika Dmitrenko 10 minutes 18 seconds
+I love this game, girl. I love, I love.
+TS
+Taha Sabir
+10 minutes 19 seconds10:19
+Taha Sabir 10 minutes 19 seconds
+Bye-bye.
+AM
+Alberto Montero Molina
+10 minutes 19 seconds10:19
+Alberto Montero Molina 10 minutes 19 seconds
+Thank you, bye.
+
+Veronika Dmitrenko stopped transcription

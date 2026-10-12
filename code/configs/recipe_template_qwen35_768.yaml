@@ -1,0 +1,59 @@
+# ============================================================================================
+# JOURNAL REPO NOTE (2026-10-11): TEMPLATE copied from experiments/qwen35_sprint @ bec2d1f.
+# Challenge-era values to change for journal runs (PLAN.md §1): lora_dropout 0.05 (absent = 0),
+# per-example loss (W2), bare prompts, journal deck + dataset_dir, output_dir under
+# /share/sda/ugrip/journal/runs/<run_id>/, warmup ≈ 3% of steps for the actual deck.
+# ============================================================================================
+# counting A+B (A-union-B) 768^2 TWIN of qwen35_counting_AB_2048_s1337 (honest resolution ablation, 2026-09-10).
+# Deck flare_final_counting.jsonl (A+B, 900 rows, CoT variant, registered WITH system column per a5df6a8),
+# r8/a16, lr 2e-4, 3 ep, seed 1337, eff. batch 8 (bsz1/ga8 on ws vs bsz2/ga4 on mbz), 768^2
+# (image_max_pixels 589824). 3*ceil(900/8)=339 steps, warmup 10 ~= 3%. Everything else identical
+# to the 2048^2 arm except resolution + batch shape. Env flare-ws-v5, LF v0.9.5 (tf5 patch) at
+# /share/sda/ugrip/LLaMA-Factory-v5. Launched by chain_counting_AB768_ws.sh (train -> true_test eval -> score).
+
+### model
+model_name_or_path: /share/sda/ugrip/models/Qwen3.5-9B
+image_max_pixels: 589824
+quantization_bit: 4
+quantization_method: bnb
+double_quantization: false
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: true
+finetuning_type: lora
+lora_rank: 8
+lora_alpha: 16
+lora_target: all
+
+### dataset
+dataset: flare_final_counting
+dataset_dir: /share/sda/ugrip/taha/worktrees/Taha-qwen35-sprint/llama_factory_internvl/data
+template: qwen3_5
+enable_thinking: false
+cutoff_len: 8192
+overwrite_cache: false
+preprocessing_num_workers: 16
+dataloader_num_workers: 4
+
+### output
+output_dir: /share/sda/ugrip/taha/worktrees/Taha-qwen35-sprint/llama_factory_internvl/saves/qwen35_final/qwen35_counting_AB_768_s1337
+logging_steps: 10
+save_steps: 200
+plot_loss: true
+overwrite_output_dir: true
+save_only_model: false
+report_to: none
+
+### train
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 2.0e-4
+num_train_epochs: 3.0
+lr_scheduler_type: linear
+warmup_steps: 10
+bf16: true
+gradient_checkpointing: true
+ddp_timeout: 180000000
+seed: 1337

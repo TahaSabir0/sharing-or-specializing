@@ -1,0 +1,16 @@
+_junk/
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.safetensors
+*.bin
+*.pt
+*.tar.gz
+.env
+__pycache__/
+*.pyc

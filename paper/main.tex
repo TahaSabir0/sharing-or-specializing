@@ -1,0 +1,1080 @@
+\documentclass[journal,twoside,web]{ieeecolor}
+
+\usepackage{generic}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+\usepackage{hyperref}
+\hypersetup{hidelinks=true}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{enumitem}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\markboth{\hskip25pc IEEE TRANSACTIONS ON MEDICAL IMAGING}
+{Author \MakeLowercase{\textit{et al.}}: Sharing or Specializing?}
+
+\begin{document}
+
+\title{Sharing or Specializing? A Systematic Study of
+Parameter-Efficient Vision--Language Model Adaptation for
+Heterogeneous Medical Image Analysis}
+
+\author{
+First A. Author,
+Second B. Author,
+Third C. Author,
+et al.
+\thanks{Manuscript received Month XX, 2026; revised Month XX, 2026.}
+\thanks{Author affiliations and funding information will be added before
+submission.}
+}
+
+\maketitle
+
+
+% ============================================================
+\begin{abstract}
+
+General-purpose vision--language models (VLMs) provide a unified interface
+for heterogeneous medical image analysis, but adapting a single pretrained
+model to tasks with fundamentally different visual, semantic, and output
+requirements raises an unresolved design question: when should adaptation
+parameters be shared across tasks, and when should they be specialized?
+This study systematically investigates parameter-efficient adaptation across
+classification, multi-label classification, detection, counting, regression,
+and report generation spanning diverse medical imaging domains and
+modalities. We compare fully shared LoRA, task-specific LoRA, partially
+shared HydraLoRA, soft adapter composition, modality-aware adaptation,
+latent LoRA mixture-of-experts, spectral expert methods, and alternative
+specialization locations under controlled experimental settings. We further
+examine cross-task transfer, supervision scaling, routing behavior,
+representation similarity, domain-level specialization, and interactions
+with practical design choices including image resolution, adapter rank,
+preprocessing, augmentation, prompting, multi-image handling, decoding,
+and backbone choice. The objective is to identify the factors associated
+with successful parameter sharing and specialization when general-purpose
+VLMs are adapted to heterogeneous medical imaging tasks. Final conclusions
+and design recommendations will be based only on experimentally verified
+results.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+Medical image analysis, mixture of experts, parameter-efficient fine-tuning,
+task specialization, transfer learning, vision--language models.
+\end{IEEEkeywords}
+
+
+% ============================================================
+\section{Introduction}
+\label{sec:introduction}
+
+\IEEEPARstart{G}{eneral-purpose} vision--language models (VLMs) have emerged
+as a promising unified framework for medical image analysis. A single model
+can potentially support disease classification, multi-label recognition,
+lesion localization, quantitative estimation, counting, and clinical report
+generation through a common image--text interface. This flexibility is
+attractive for developing general-purpose medical artificial intelligence
+systems, but it also introduces substantial heterogeneity in visual
+requirements, output spaces, and supervision regimes.
+
+Parameter-efficient fine-tuning (PEFT), particularly Low-Rank Adaptation
+(LoRA), provides an efficient mechanism for adapting large pretrained VLMs
+without updating the full model. However, heterogeneous medical tasks create
+an important design choice. At one extreme, a single shared adapter can be
+trained across all tasks, maximizing data sharing but potentially increasing
+cross-task interference. At the other extreme, independent task-specific
+adapters can reduce interference but restrict each adapter to task-specific
+supervision. Between these extremes lie partially shared, softly composed,
+modality-aware, and mixture-of-experts formulations.
+
+Existing approaches therefore make different assumptions about how
+specialization should be structured. Some explicitly separate downstream
+tasks, others share low-rank components, some introduce modality-specific
+experts, and others rely on learned routing to discover latent expert
+structure. However, these approaches are generally evaluated independently,
+making it difficult to determine which properties of a medical task favor
+sharing and which favor specialization.
+
+The central question of this study is therefore:
+
+\begin{quote}
+\emph{When adapting a general-purpose VLM to heterogeneous medical imaging
+tasks, which adaptation parameters should be shared and which should be
+specialized?}
+\end{quote}
+
+Rather than assuming that any one specialization mechanism is optimal, this
+work evaluates a spectrum of adaptation strategies under controlled
+experimental conditions. We investigate the roles of task identity,
+task-specific data availability, output structure, imaging modality, medical
+domain, task compatibility, representation similarity, and specialization
+location.
+
+Our experimental setting contains six heterogeneous medical task families:
+classification, multi-label classification, detection, counting, regression,
+and report generation. These tasks provide a useful testbed because they
+differ substantially in output format and visual reasoning requirements.
+
+The study is organized around the following research questions:
+
+\begin{enumerate}[label=\textbf{RQ\arabic*.}]
+    \item Does explicit task specialization outperform shared adaptation?
+
+    \item How does task-specific supervision affect the
+    sharing--specialization trade-off?
+
+    \item Can partially shared or dynamically composed adapters improve over
+    fully shared and fully specialized adaptation?
+
+    \item What should experts specialize on: task, modality, medical domain,
+    or latent representation?
+
+    \item Can learned routers discover meaningful specialization?
+
+    \item What predicts positive or negative transfer between medical tasks?
+
+    \item Where should specialization be introduced within the VLM?
+
+    \item How do practical training and inference choices interact with
+    specialization?
+\end{enumerate}
+
+
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+
+\subsection{General and Medical Vision--Language Models}
+
+This section will review general-purpose VLMs and medically adapted or
+medically pretrained VLMs, with emphasis on their use for heterogeneous
+medical image analysis and medical visual question answering.
+
+A key distinction will be made between general-purpose VLMs that are
+subsequently adapted to medical tasks and models whose pretraining or
+instruction-tuning data are specifically medical.
+
+\subsection{Parameter-Efficient Adaptation}
+
+This section will review LoRA, QLoRA, adapter tuning, task-specific
+adapters, partially shared low-rank adaptation, and related PEFT approaches.
+
+Particular attention will be given to how existing methods distribute
+trainable parameters between shared and specialized components.
+
+\subsection{Multitask Learning and Negative Transfer}
+
+This section will review parameter sharing, task interference, gradient
+conflict, positive transfer, and negative transfer in multitask learning.
+
+These concepts will be related to the heterogeneous output structures
+encountered in medical VLM adaptation.
+
+\subsection{Mixture-of-Experts and Routed LoRA}
+
+This section will review mixture-of-experts architectures, LoRA-MoE,
+sparse expert routing, spectral expert methods, HydraLoRA, and
+medical-domain expert models.
+
+\subsection{Cross-Task and Cross-Modality Generalization}
+
+This section will review prior studies evaluating transfer and
+generalization across medical imaging modalities and clinical task types.
+
+
+% ============================================================
+\section{Problem Formulation}
+\label{sec:problem}
+
+Let a pretrained VLM be parameterized by $\theta_0$. For task
+$t\in\mathcal{T}$, parameter-efficient adaptation introduces an update
+$\Delta\theta_t$ such that
+
+\begin{equation}
+f_t(x,q)=f(x,q;\theta_0+\Delta\theta_t),
+\end{equation}
+
+where $x$ denotes the medical image and $q$ denotes the textual instruction.
+
+For a LoRA-adapted linear transformation,
+
+\begin{equation}
+W_t=W_0+\Delta W_t,
+\end{equation}
+
+with
+
+\begin{equation}
+\Delta W_t=B_tA_t,
+\end{equation}
+
+where $A_t\in\mathbb{R}^{r\times d}$ and
+$B_t\in\mathbb{R}^{d'\times r}$.
+
+The central problem is to determine how the adaptation parameters
+$\Delta W_t$ should be structured and shared across heterogeneous tasks.
+
+
+% ============================================================
+\subsection{The Sharing--Specialization Spectrum}
+
+We organize the evaluated adaptation approaches according to the degree and
+form of parameter sharing.
+
+\subsubsection{Shared LoRA}
+
+A single adapter is trained across all task families:
+
+\begin{equation}
+\Delta W_t=\Delta W_{\mathrm{shared}},
+\qquad \forall t.
+\end{equation}
+
+\subsubsection{Task-Specific LoRA}
+
+Independent low-rank parameters are trained for each task:
+
+\begin{equation}
+\Delta W_t=B_tA_t.
+\end{equation}
+
+\subsubsection{HydraLoRA}
+
+A shared low-rank component is combined with task-specific components:
+
+\begin{equation}
+\Delta W_t=B_tA_s.
+\end{equation}
+
+\subsubsection{Soft Adapter Composition}
+
+Multiple adapters are combined through learned or predefined weights:
+
+\begin{equation}
+\Delta W(x,q)=
+\sum_{k=1}^{K}
+\pi_k(x,q)\Delta W_k.
+\end{equation}
+
+\subsubsection{Modality-Aware Adaptation}
+
+Task and modality-specific adaptation can be combined as
+
+\begin{equation}
+\Delta W(x,q)
+=
+\Delta W_t+\lambda_m\Delta W_m,
+\end{equation}
+
+where $\Delta W_m$ represents a modality-specific update.
+
+\subsubsection{Latent LoRA Mixture-of-Experts}
+
+A learned router selects or combines latent experts:
+
+\begin{equation}
+\Delta W(x,q)=
+\sum_{k\in\mathrm{TopK}(g(h))}
+\pi_k(h)B_kA_k,
+\end{equation}
+
+where $h$ denotes the routing representation and $g(\cdot)$ denotes the
+router.
+
+\subsubsection{Spectral Expert Adaptation}
+
+Spectral expert approaches construct or initialize experts from distinct
+spectral components of pretrained weights and combine them through learned
+sparse routing.
+
+
+% ============================================================
+\section{Experimental Framework}
+\label{sec:framework}
+
+\subsection{Medical Task Families}
+
+We evaluate six heterogeneous medical image-analysis task families.
+
+\begin{table}[!t]
+\caption{Task heterogeneity considered in the study.}
+\label{tab:tasks}
+\centering
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lll}
+\toprule
+Task & Output Structure & Main Capability \\
+\midrule
+Classification & Class label & Recognition \\
+Multi-label & Label set & Recognition/calibration \\
+Detection & Bounding boxes & Localization \\
+Counting & Integer & Quantification \\
+Regression & Continuous scalar & Estimation \\
+Report generation & Free text & Clinical generation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================
+\subsection{Datasets and Medical Domains}
+
+This subsection will describe:
+
+\begin{itemize}
+    \item constituent medical datasets,
+    \item imaging modalities,
+    \item medical domains,
+    \item number of images,
+    \item number of question--answer pairs,
+    \item task distribution,
+    \item class distributions where applicable.
+\end{itemize}
+
+The benchmark will be presented as a heterogeneous medical imaging testbed
+rather than primarily as a challenge dataset.
+
+
+% ============================================================
+\subsection{Primary Backbone}
+
+The final Qwen VLM will serve as the primary experimental platform.
+
+The following implementation details will be reported:
+
+\begin{itemize}
+    \item exact backbone version,
+    \item quantization configuration,
+    \item frozen components,
+    \item trainable components,
+    \item LoRA target layers,
+    \item LoRA rank,
+    \item LoRA scaling,
+    \item dropout,
+    \item optimizer,
+    \item learning rate,
+    \item number of epochs,
+    \item image resolution,
+    \item inference configuration.
+\end{itemize}
+
+
+% ============================================================
+\subsection{Secondary Backbone}
+
+One additional VLM will be used to assess whether the principal observations
+depend on the primary backbone.
+
+The secondary evaluation will focus only on:
+
+\begin{enumerate}
+    \item Shared LoRA versus TaskLoRA,
+    \item TaskLoRA versus HydraLoRA,
+    \item supervision scaling.
+\end{enumerate}
+
+A medically pretrained VLM will be considered if computationally and
+architecturally feasible.
+
+
+% ============================================================
+\subsection{Evaluation Protocol}
+
+Controlled experiments will use fixed image-disjoint
+A$\rightarrow$B and B$\rightarrow$A splits.
+
+Results from organizer-provided validation or test sets, where applicable,
+will be reported separately from internal model-selection experiments.
+
+Historical experiments that were performed using different optimization
+budgets will not be used as direct architectural comparisons unless rerun
+under matched conditions.
+
+
+% ============================================================
+\subsection{Evaluation Metrics}
+
+Task-specific metrics will be used:
+
+\begin{itemize}
+    \item Classification: balanced accuracy;
+    \item Multi-label classification: F1;
+    \item Detection: F1 at the specified intersection-over-union threshold;
+    \item Counting: mean absolute error;
+    \item Regression: mean absolute error;
+    \item Report generation: official report-generation metric.
+\end{itemize}
+
+For principal comparisons, 95\% bootstrap confidence intervals will be
+reported.
+
+
+% ============================================================
+\section{Study 1: Shared Versus Task-Specific Adaptation}
+\label{sec:study1}
+
+The first study will establish the two endpoints of the
+sharing--specialization spectrum.
+
+We will compare:
+
+\begin{enumerate}
+    \item the base VLM,
+    \item a single shared LoRA adapter,
+    \item independent task-specific LoRA adapters.
+\end{enumerate}
+
+The analysis will examine:
+
+\begin{itemize}
+    \item per-task performance,
+    \item aggregate performance,
+    \item cross-task interference,
+    \item output-format errors,
+    \item variation across medical domains.
+\end{itemize}
+
+The purpose of this study is to determine which task families benefit from
+explicit specialization and which can be effectively represented through a
+shared adaptation.
+
+
+% ============================================================
+\section{Study 2: Cross-Task Transfer}
+\label{sec:study2}
+
+To characterize task compatibility directly, each task-specific adapter
+trained on source task $i$ will be evaluated on target task $j$.
+
+We define the transfer score as
+
+\begin{equation}
+C_{ij}
+=
+M_j(\Delta W_i)
+-
+M_j(\Delta W_{\mathrm{base}}),
+\end{equation}
+
+where $M_j$ denotes the target-task metric after orienting metrics such that
+larger values represent better performance.
+
+A complete source--target task transfer matrix will be constructed.
+
+Transfer patterns will be analyzed according to:
+
+\begin{itemize}
+    \item output-structure similarity,
+    \item task family,
+    \item source-task data size,
+    \item target-task data size,
+    \item modality overlap,
+    \item medical-domain overlap.
+\end{itemize}
+
+
+% ============================================================
+\section{Study 3: Data Availability and Parameter Sharing}
+\label{sec:study3}
+
+A controlled supervision-scaling experiment will test whether the relative
+performance of shared and specialized adaptation changes with task-specific
+data availability.
+
+For selected tasks, training subsets will be constructed using
+
+\begin{equation}
+p\in\{1,5,10,25,50,100\}\%
+\end{equation}
+
+of the available training data.
+
+At each data scale, we will compare:
+
+\begin{enumerate}
+    \item Shared LoRA,
+    \item HydraLoRA,
+    \item TaskLoRA.
+\end{enumerate}
+
+The primary experimental question is:
+
+\begin{quote}
+Does the preferred degree of parameter sharing change systematically with
+the amount of task-specific supervision?
+\end{quote}
+
+Multiple random seeds will be used where computationally feasible.
+
+The experiment will first be performed on a high-resource task through
+controlled downsampling and subsequently evaluated on at least one naturally
+lower-resource task.
+
+
+% ============================================================
+\section{Study 4: Partial and Soft Sharing}
+\label{sec:study4}
+
+\subsection{HydraLoRA}
+
+HydraLoRA will be compared with Shared LoRA and TaskLoRA using matched
+training data, optimization settings, parameter budgets where possible, and
+evaluation splits.
+
+The experiment will determine whether sharing only part of the low-rank
+adaptation provides a different trade-off from the two endpoints.
+
+\subsection{Soft-LoRA}
+
+Weighted adapter composition will be evaluated using combinations of
+task-specific adapters.
+
+The analysis will examine whether the benefit of combining experts is
+associated with the direct source--target transfer scores measured in
+Study~\ref{sec:study2}.
+
+
+% ============================================================
+\section{Study 5: Modality and Domain Specialization}
+\label{sec:study5}
+
+\subsection{Modality-Level Specialization}
+
+Modality-specific adapters will be trained independently.
+
+We will compare:
+
+\begin{enumerate}
+    \item task-specific adapter only,
+    \item modality-specific adapter only,
+    \item task + modality adapter composition,
+    \item learned task--modality composition.
+\end{enumerate}
+
+The objective is to test whether imaging modality provides a useful basis
+for parameter specialization.
+
+\subsection{Domain-Level Specialization}
+
+Within classification, we will additionally compare:
+
+\begin{enumerate}
+    \item one global classification adapter,
+    \item domain- or dataset-specific classification adapters,
+    \item routed combinations of global and specialized adapters.
+\end{enumerate}
+
+The analysis will examine whether specialization below the task level is
+useful when datasets share the same output structure but differ in medical
+domain.
+
+
+% ============================================================
+\section{Study 6: Latent Expert Specialization}
+\label{sec:study6}
+
+We will evaluate latent specialization approaches including:
+
+\begin{enumerate}
+    \item LoRA mixture-of-experts,
+    \item spectral expert adaptation.
+\end{enumerate}
+
+The following quantities will be measured:
+
+\begin{itemize}
+    \item expert utilization,
+    \item routing entropy,
+    \item task-conditioned expert probabilities,
+    \item top-$k$ expert selections,
+    \item pairwise distance between task-conditioned routing distributions,
+    \item downstream task performance.
+\end{itemize}
+
+For tasks $t_i$ and $t_j$, routing-distribution distance can be defined as
+
+\begin{equation}
+D_{ij}
+=
+\frac{1}{2}
+\sum_{k=1}^{K}
+\left|
+p(k\mid t_i)-p(k\mid t_j)
+\right|.
+\end{equation}
+
+The study will test whether learned routing produces semantically distinct
+task or capability specialization without explicit task assignment.
+
+
+% ============================================================
+\subsection{Router Perturbation Analysis}
+
+Where applicable, the learned routing distribution $\pi$ will be gradually
+perturbed toward a uniform distribution:
+
+\begin{equation}
+\tilde{\pi}
+=
+(1-\lambda)\pi+\lambda u,
+\end{equation}
+
+where $u$ is the uniform expert distribution and
+$\lambda\in[0,1]$ controls perturbation strength.
+
+This experiment will test how strongly downstream predictions depend on the
+learned routing decisions.
+
+
+% ============================================================
+\section{Study 7: Representation Analysis}
+\label{sec:study7}
+
+To investigate the internal effect of different adaptation strategies,
+hidden representations will be extracted from selected layers of:
+
+\begin{itemize}
+    \item the base VLM,
+    \item Shared LoRA,
+    \item TaskLoRA,
+    \item HydraLoRA,
+    \item Soft-LoRA,
+    \item LoRA-MoE,
+    \item spectral expert models.
+\end{itemize}
+
+Centered Kernel Alignment (CKA) and/or Representational Similarity Analysis
+(RSA) will be used to compare learned representations.
+
+For representation matrices $X$ and $Y$, CKA can be expressed as
+
+\begin{equation}
+\mathrm{CKA}(X,Y)
+=
+\frac{
+\mathrm{HSIC}(X,Y)
+}{
+\sqrt{
+\mathrm{HSIC}(X,X)
+\mathrm{HSIC}(Y,Y)
+}
+}.
+\end{equation}
+
+We will examine whether representation similarity is associated with
+cross-task transfer:
+
+\begin{equation}
+\rho
+=
+\mathrm{corr}
+\left(
+S_{ij},
+C_{ij}
+\right),
+\end{equation}
+
+where $S_{ij}$ denotes representation similarity between tasks $i$ and $j$
+and $C_{ij}$ denotes the corresponding transfer score.
+
+The analysis will address:
+
+\begin{itemize}
+    \item whether transferable tasks have more similar representations,
+    \item whether shared adaptation preserves greater cross-task similarity,
+    \item whether task specialization emerges gradually across layers,
+    \item whether latent experts produce representationally distinct
+    subspaces.
+\end{itemize}
+
+
+% ============================================================
+\section{Study 8: Specialization Location}
+\label{sec:study8}
+
+Specialization will be compared at different locations within the VLM:
+
+\begin{enumerate}
+    \item vision encoder,
+    \item multimodal projection pathway,
+    \item late language-model blocks,
+    \item LoRA adapters.
+\end{enumerate}
+
+Both downstream performance and representation shift will be evaluated.
+
+The primary question is:
+
+\begin{quote}
+Which parts of a pretrained VLM can be specialized while preserving useful
+pretrained multimodal representations?
+\end{quote}
+
+
+% ============================================================
+\section{Study 9: Practical Adaptation Factors}
+\label{sec:study9}
+
+This section will investigate practical factors that may interact with the
+adaptation strategy. Existing experiments will be included only when their
+protocols permit scientifically meaningful comparison.
+
+\subsection{Image Resolution}
+
+Matched training and inference resolutions will be compared across selected
+tasks and domains.
+
+\subsection{LoRA Rank}
+
+Task-specific rank sweeps will be used to investigate adapter-capacity
+requirements.
+
+\subsection{Class Imbalance}
+
+Sampling, rebalancing, and related strategies will be evaluated for
+classification and multi-label classification.
+
+\subsection{Image Preprocessing}
+
+Preprocessing experiments will include medically relevant intensity
+transformations, normalization, cropping, and other domain-specific
+operations where applicable.
+
+\subsection{Data Augmentation}
+
+Augmentation strategies will be evaluated according to whether they
+represent plausible invariances for the corresponding medical imaging
+domain.
+
+\subsection{Multi-Image Handling}
+
+Single-image and multi-view input strategies will be compared for datasets
+containing multiple views or related images.
+
+\subsection{Prompting}
+
+Task-specific prompt formulations will be evaluated under controlled
+settings.
+
+\subsection{Decoding}
+
+Greedy and stochastic decoding strategies will be compared for tasks where
+generation settings may influence quantitative or structured outputs.
+
+
+% ============================================================
+\section{Study 10: Cross-Backbone Validation}
+\label{sec:study10}
+
+The core experimental questions will be evaluated using one secondary VLM.
+
+The secondary-backbone experiments will include:
+
+\begin{enumerate}
+    \item Shared LoRA versus TaskLoRA,
+    \item TaskLoRA versus HydraLoRA,
+    \item a reduced supervision-scaling experiment.
+\end{enumerate}
+
+If the secondary backbone is medically pretrained, an additional analysis
+will examine:
+
+\begin{quote}
+Does medical-domain pretraining change the relative need for downstream
+task specialization?
+\end{quote}
+
+For each backbone $b$, the relative specialization effect can be summarized
+as
+
+\begin{equation}
+\Delta_{\mathrm{spec}}^{(b)}
+=
+M_{\mathrm{TaskLoRA}}^{(b)}
+-
+M_{\mathrm{SharedLoRA}}^{(b)}.
+\end{equation}
+
+The comparison will be interpreted only after accounting for differences in
+backbone architecture, parameter count, and training configuration.
+
+
+% ============================================================
+\section{Statistical Analysis}
+\label{sec:statistics}
+
+For principal experiments, we will report:
+
+\begin{itemize}
+    \item mean performance,
+    \item 95\% bootstrap confidence intervals,
+    \item paired bootstrap intervals for method differences,
+    \item multiple random seeds for newly designed controlled experiments
+    where feasible,
+    \item correction for multiple comparisons where appropriate.
+\end{itemize}
+
+For the supervision-scaling study, the interaction between training-set size
+and adaptation strategy will be tested.
+
+A possible model is
+
+\begin{equation}
+Y
+=
+\beta_0
++
+\beta_1\log N
++
+\beta_2S
++
+\beta_3(\log N\times S)
++
+u_{\mathrm{task}}
++
+\epsilon,
+\end{equation}
+
+where $N$ denotes the number of training samples and $S$ denotes the
+adaptation strategy.
+
+For representation analysis, statistical testing will assess the association
+between representation similarity and cross-task transfer.
+
+
+% ============================================================
+\section{Planned Figures and Tables}
+\label{sec:figures}
+
+\subsection{Main Figures}
+
+\begin{enumerate}
+
+    \item \textbf{Sharing--specialization spectrum.}
+
+    Conceptual organization of Shared LoRA, HydraLoRA, Soft-LoRA,
+    latent experts, TaskLoRA, and domain specialists.
+
+    \item \textbf{Experimental landscape.}
+
+    Overview of datasets, modalities, task families, and output structures.
+
+    \item \textbf{Cross-task transfer matrix.}
+
+    Source adapters on rows and target tasks on columns.
+
+    \item \textbf{Supervision-scaling curves.}
+
+    Shared LoRA, HydraLoRA, and TaskLoRA across different amounts of
+    task-specific supervision.
+
+    \item \textbf{Latent expert routing analysis.}
+
+    Task-conditioned expert-routing heatmaps and utilization statistics.
+
+    \item \textbf{Representation similarity and transfer.}
+
+    CKA/RSA similarity matrices together with their relationship to
+    cross-task transfer.
+
+    \item \textbf{Specialization granularity.}
+
+    Comparison of global, task-, modality-, and domain-level specialization.
+
+\end{enumerate}
+
+
+% ============================================================
+\subsection{Main Tables}
+
+\begin{enumerate}
+
+    \item Dataset, modality, task, sample-count, and evaluation-metric
+    summary.
+
+    \item Shared LoRA versus TaskLoRA versus HydraLoRA.
+
+    \item Partial-sharing and latent-expert methods under matched
+    experimental conditions.
+
+    \item Supervision-scaling results.
+
+    \item Task-, modality-, and domain-level specialization comparison.
+
+    \item Cross-backbone validation.
+
+\end{enumerate}
+
+
+% ============================================================
+\section{Synthesis of Experimental Evidence}
+\label{sec:synthesis}
+
+After completing the controlled studies, the experimental evidence will be
+synthesized to examine whether consistent patterns emerge regarding:
+
+\begin{itemize}
+
+    \item when parameter sharing is beneficial,
+
+    \item when explicit specialization is beneficial,
+
+    \item whether supervision availability affects the relative value of
+    sharing and specialization,
+
+    \item whether output structure is associated with cross-task transfer,
+
+    \item whether modality or medical domain predicts useful specialization,
+
+    \item whether latent routing discovers meaningful expert structure,
+
+    \item whether representation similarity predicts positive or negative
+    transfer,
+
+    \item where specialization can be introduced without adversely affecting
+    pretrained multimodal representations,
+
+    \item how practical model and inference configurations interact with
+    specialization.
+
+\end{itemize}
+
+Any design recommendations will be formulated only from patterns that are
+consistently supported by the controlled experiments.
+
+
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+The discussion will interpret experimentally supported relationships among:
+
+\begin{itemize}
+    \item parameter sharing,
+    \item specialization,
+    \item task compatibility,
+    \item data availability,
+    \item output heterogeneity,
+    \item imaging modality,
+    \item medical domain,
+    \item representation similarity.
+\end{itemize}
+
+The discussion will clearly distinguish empirical observations from possible
+mechanistic explanations.
+
+Potential explanations arising from the experiments will be treated as
+hypotheses unless supported by additional analysis.
+
+
+% ============================================================
+\section{Limitations}
+\label{sec:limitations}
+
+The final paper will discuss limitations including:
+
+\begin{itemize}
+
+    \item dependence on the selected VLM backbones,
+
+    \item variation in task-specific sample sizes,
+
+    \item use of benchmark-derived rather than prospective clinical data,
+
+    \item possible overlap between foundation-model pretraining data and
+    evaluation datasets,
+
+    \item imperfect comparability of historical experiments unless rerun
+    under matched conditions,
+
+    \item computational limitations on repeating every experiment across
+    multiple VLM backbones,
+
+    \item limitations of automated report-generation evaluation,
+
+    \item coarse definitions of modality and medical domain.
+
+\end{itemize}
+
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This study is designed to systematically investigate how parameter sharing
+and specialization should be structured when adapting vision--language
+models to heterogeneous medical image-analysis tasks.
+
+By comparing multiple parameter-efficient adaptation strategies under
+controlled conditions and analyzing cross-task transfer, supervision
+scaling, routing behavior, representation similarity, specialization
+granularity, specialization location, and practical model configuration,
+the study aims to identify the factors associated with successful medical
+VLM adaptation.
+
+The final conclusions and any resulting design recommendations will be
+restricted to experimentally verified results.
+
+
+% ============================================================
+\appendices
+
+\section{Additional Experimental Details}
+
+The appendix will contain:
+
+\begin{itemize}
+    \item complete training hyperparameters,
+    \item full source--target transfer matrices,
+    \item dataset-level results,
+    \item complete routing statistics,
+    \item additional representation analyses,
+    \item complete supervision-scaling results,
+    \item prompt variants,
+    \item preprocessing configurations,
+    \item augmentation experiments,
+    \item rank sweeps,
+    \item additional MoE configurations,
+    \item additional backbone experiments.
+\end{itemize}
+
+
+% ============================================================
+\section*{Acknowledgment}
+
+Funding and acknowledgment information will be added before submission.
+
+
+% ============================================================
+\begin{thebibliography}{00}
+
+% References will be added as the manuscript is developed.
+
+% Examples:
+%
+% \bibitem{b1}
+% E. J. Hu et al.,
+% ``LoRA: Low-rank adaptation of large language models,''
+% in Proc. Int. Conf. Learn. Representations (ICLR), 2022.
+%
+% \bibitem{b2}
+% Y. Lai et al.,
+% ``Med-R1: Reinforcement learning for generalizable medical reasoning
+% in vision-language models,''
+% IEEE Trans. Med. Imag., 2026.
+%
+% Add MedHallTune, Med-MoE, HydraLoRA, LoRAMoE,
+% Spectral LoRA, generalist-vs-specialist VLM papers,
+% and other related work here.
+
+\end{thebibliography}
+
+\end{document}
