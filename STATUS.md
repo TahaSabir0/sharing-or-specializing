@@ -10,13 +10,13 @@
 - **Build first, interface note last** (2026-10-13, PLAN.md changelog): Taha builds the whole
   foundation, launches S1 seed 1337 once W2 passes, builds W3 while it trains, then hands the
   team a half-page plug-in note (`code/INTERFACE.md`) plus a reference plug-in.
-- Foundation work started 2026-10-13. Step 0 done; W1 in progress.
+- Foundation work started 2026-10-13. Step 0 and W1 done; W2 in progress.
 
 ## Foundation progress (Taha)
 | Step | State |
 |---|---|
 | 0 Setup: ws clone, env, 4-bit load, LF dry run, LF version recorded | **done** 2026-10-13 (`code/env/LF_VERSION.md`; P8 = 21,639,168) |
-| W1 Data: decks, dev-select, holdout file, subsets, md5 manifest | — |
+| W1 Data: decks, dev-select, holdout file, subsets, md5 manifest | **done** 2026-10-13 (decks on ws `/share/sda/ugrip/journal/data`; `data/DECK_MANIFEST.json`, `data/subsets/`) |
 | W2 Training: `journal_train`, per-example loss, plug-in plumbing, registry; 50-step gate | — |
 | S1 seed 1337 launch (Shared + 6 TaskLoRA) | — (ask Taha first) |
 | W3 Eval: ZS-bare/ZS-prompt, adapters, oracle sets, composition, plug-ins, scoring, bootstrap | — |
@@ -29,9 +29,11 @@
    modules. Veronika: HydraLoRA oracle mode first. Alex: W6, W7. Alberto: W10, W9, and D12
    (regression vs counting as the low-resource scaling target) with Tausifa.
 
+## Decisions to relay
+- **Tell Tausifa:** A/B include dev; we train on A∪B (40,094) and make selection decisions on
+  the holdout (PLAN.md changelog 2026-10-13). Option: split holdout into select/report halves.
+
 ## Open checks before the first runs
-- Confirm that `A.jsonl`/`B.jsonl` exclude `A_dev`/`B_dev`, and get exact counts (W1).
-- Read the exact Qwen3.5-9B LoRA target-module list and measure P8 (W2).
 - Verify the per-example-loss implementation with a unit test (W2).
 - Measure U (the cost of one full run) with packed one-row-per-question decks (the S1 Shared
   s1337 run gives this).
