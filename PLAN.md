@@ -23,6 +23,15 @@ budget is the trimmed plan in §8. Record later changes in the changelog below.
 - 2026-10-13: step 0 measured **P8 = 21,639,168** (r8 over the 248 language-model linears;
   §1.3's fp32 estimate). Target list frozen in `code/train/target_modules_qwen35.json`. LF v0.9.5
   on ws is not a git checkout; its source-tree hash is recorded in `code/env/LF_VERSION.md`.
+- 2026-10-13: **W1 finding and decision (Taha). Deviation from §1.7 and CLAUDE.md rule 5.**
+  `A.jsonl` = `A_train` ∪ `A_dev` (likewise B), so the A∪B training pool contains the dev set.
+  Decision: **train on A∪B as planned (40,094 questions; §1.5 counts confirmed exactly)**, and
+  **make selection decisions on the holdout** instead of dev. Consequence to state in the
+  paper: holdout numbers for any selected setting (λ grids, router settings, top-k) are
+  optimistically biased; dev numbers are train-seen. Suggested mitigation, not adopted yet:
+  split the holdout into a selection half and a reporting half. Tausifa to be informed.
+  Holdout = 4,447 scored questions (the 4,449 in §1.7 was an arithmetic slip; its per-task
+  table sums to 4,447). Decks: `/share/sda/ugrip/journal/data`, md5s in `data/DECK_MANIFEST.json`.
 
 **Paths in this folder:**
 - `stats/NN...` citations refer to challenge-era ledgers, now in
