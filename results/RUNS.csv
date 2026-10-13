@@ -1,1 +1,2 @@
 run_id,owner,study,backbone,method,data,seed,code_commit,host,gpu,status,started,finished,output_dir,notes
+j26_q35_shared_full_768_s1337_smoke,taha,S0,q35,lora,full (50 steps),1337,d2df95a-dirty,BioMedIA-A5000,1,done,2026-10-13,2026-10-13,/share/sda/ugrip/journal/runs/j26_q35_shared_full_768_s1337_smoke,W2 smoke gate: loss 1.57->0.63; 1.665 s/example; peak 15.5 GB; trainable=P8; holdout50 eval 0 trunc/0 malformed

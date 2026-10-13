@@ -132,6 +132,8 @@ def cmd_decks(a):
         rs = sorted(cells[k], key=lambda r: r["sample_key"])
         sel += rs if len(rs) <= DEV_CAP else random.Random(f"{DEV_SEED}|{k}").sample(rs, DEV_CAP)
     emit("j26_devselect", sel, "eval-dev (train-seen)")
+    for task, short in TASK_SHORT.items():  # per-task slices: dev loss for TaskLoRA runs
+        emit(f"j26_devselect_{short}", [r for r in sel if r["task"] == task], "eval-dev (train-seen)")
     emit("j26_dev_full", dev, "eval-dev (train-seen)")
     emit("j26_holdout", hold, "eval-holdout")
 
