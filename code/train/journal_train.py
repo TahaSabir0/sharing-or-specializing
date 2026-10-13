@@ -311,12 +311,22 @@ def main():
     if a.max_steps:
         smoke["max_steps"] = a.max_steps
         smoke["save_strategy"] = "no"
+        # tokenize only what the smoke run can use (rows are pre-shuffled in the mix deck)
+        smoke["max_samples"] = a.max_steps * lf["per_device_train_batch_size"] * lf["gradient_accumulation_steps"] * 2
     if a.no_eval:
         smoke["eval_strategy"] = "no"
         lf.pop("eval_dataset", None)
     lf.update(smoke)
     if lf.get("eval_strategy", "no") == "no":
         lf.pop("eval_dataset", None)
+    if not smoke:
+        # tokenize each deck once and reuse it across runs (keyed by deck md5 + protocol fields that
+        # change tokenization); built with the routing patches, so the routing column is included
+        key = hashlib.md5(json.dumps({k: lf.get(k) for k in (
+            "dataset", "eval_dataset", "template", "enable_thinking", "cutoff_len", "image_max_pixels",
+            "model_name_or_path")}, sort_keys=True).encode()).hexdigest()[:10]
+        lf["tokenized_path"] = os.path.join(DATA_DIR, "tokenized", f"{lf['dataset']}_{key}")
+        lf["overwrite_cache"] = False
 
     commit, branch, dirty = git_info()
     decks = {"train": deck_record(lf["dataset"])}
