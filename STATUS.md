@@ -1,37 +1,44 @@
 # Status
 
-**Updated 2026-10-11.**
+**Updated 2026-10-13.**
 
 ## Where we are
 - The experiment plan (`PLAN.md`) was **confirmed by Tausifa and the team on 2026-10-11 with
   no changes**. The working budget is the trimmed plan in PLAN.md §8.3 (≈1,450 GPU-h on
   ws, plus ~109 h on Blackwell for 2048²).
 - The team assignment is PLAN.md §7.
-- The repo holds docs and code together. `code/` is seeded with the reusable challenge code
-  (scorer, eval harness, deck builder, LF patch, recipe template; see `code/README.md`). No
-  journal-specific code has been written and no runs have started.
+- **Build first, interface note last** (2026-10-13, PLAN.md changelog): Taha builds the whole
+  foundation, launches S1 seed 1337 once W2 passes, builds W3 while it trains, then hands the
+  team a half-page plug-in note (`code/INTERFACE.md`) plus a reference plug-in.
+- Foundation work started 2026-10-13. Step 0 done; W1 in progress.
 
-## Next steps (week 1)
-1. **Taha:** write and circulate the plug-in interface doc (`code/INTERFACE.md`, PLAN.md
-   §3.2) on day 1.
-2. **Taha:** build the foundation (W1 data, W2 training harness, W3 eval harness) in `code/`,
-   starting from what is already there (`code/README.md`). Run S0 (smoke/calibration,
-   ZS-bare and ZS-prompt).
-3. **Veronika:** HydraLoRA module, **oracle mode first** (S3, S5 and S10 wait on it).
-4. **Alex:** composition and MoLE-gate module (W6) and location target sets (W7).
-5. **Alberto:** practical-factor switches (W10) and MedGemma port (W9). Raise D12
+## Foundation progress (Taha)
+| Step | State |
+|---|---|
+| 0 Setup: ws clone, env, 4-bit load, LF dry run, LF version recorded | **done** 2026-10-13 (`code/env/LF_VERSION.md`; P8 = 21,639,168) |
+| W1 Data: decks, dev-select, holdout file, subsets, md5 manifest | — |
+| W2 Training: `journal_train`, per-example loss, plug-in plumbing, registry; 50-step gate | — |
+| S1 seed 1337 launch (Shared + 6 TaskLoRA) | — (ask Taha first) |
+| W3 Eval: ZS-bare/ZS-prompt, adapters, oracle sets, composition, plug-ins, scoring, bootstrap | — |
+| S0: full zero-shot on holdout + dev; real U | — |
+| Handoff: `code/INTERFACE.md`, reference plug-in, gate + launch/eval commands, queue rules | — |
+
+## Next steps
+1. **Taha:** finish step 0, then W1 → W2 → launch S1 s1337 → W3 → S0 → handoff note.
+2. **Teammates (until the handoff note lands):** read your method papers and design your
+   modules. Veronika: HydraLoRA oracle mode first. Alex: W6, W7. Alberto: W10, W9, and D12
    (regression vs counting as the low-resource scaling target) with Tausifa.
-6. When W1–W3 pass the smoke gate, launch S1 seed 1337 (Shared + TaskLoRA).
 
 ## Open checks before the first runs
 - Confirm that `A.jsonl`/`B.jsonl` exclude `A_dev`/`B_dev`, and get exact counts (W1).
 - Read the exact Qwen3.5-9B LoRA target-module list and measure P8 (W2).
 - Verify the per-example-loss implementation with a unit test (W2).
-- Measure U (the cost of one full run) with packed one-row-per-question decks in S0.
+- Measure U (the cost of one full run) with packed one-row-per-question decks (the S1 Shared
+  s1337 run gives this).
 
 ## Open requests
 - Ask Dr. Yaqub, through Tausifa, for Blackwell GPU 0 for the whole window (PLAN.md §8.5).
   It is the largest available lever on the budget.
 
 ## Active runs
-None.
+None. (ws GPUs 0, 2, 3 were busy with other users' jobs on 2026-10-13; GPU 1 free.)

@@ -1,0 +1,18 @@
+{
+  "_doc": "Frozen LoRA target set for Qwen3.5-9B (PLAN.md §1.2). Equals what LF `lora_target: all` resolves to: every Linear4bit in model.language_model.layers (248 modules); vision tower (110 linears), merger and lm_head excluded. Matches the target_modules of all 18 challenge Qwen3.5 adapters. Recorded 2026-10-13.",
+  "model": "Qwen/Qwen3.5-9B",
+  "scope_prefix": "model.language_model.layers",
+  "n_modules": 248,
+  "layers": {"total": 32, "linear_attention": 24, "full_attention": 8},
+  "target_modules": ["in_proj_qkv", "in_proj_z", "in_proj_a", "in_proj_b", "out_proj",
+                     "q_proj", "k_proj", "v_proj", "o_proj",
+                     "gate_proj", "up_proj", "down_proj"],
+  "shapes_in_x_out": {
+    "in_proj_qkv": [24, "4096x8192"], "in_proj_z": [24, "4096x4096"],
+    "in_proj_a": [24, "4096x32"], "in_proj_b": [24, "4096x32"], "out_proj": [24, "4096x4096"],
+    "q_proj": [8, "4096x8192"], "k_proj": [8, "4096x1024"], "v_proj": [8, "4096x1024"], "o_proj": [8, "4096x4096"],
+    "gate_proj": [32, "4096x12288"], "up_proj": [32, "4096x12288"], "down_proj": [32, "12288x4096"]
+  },
+  "P8": 21639168,
+  "P8_note": "Exact trainable-parameter count of one r=8 LoRA on this set (LF dry run, 2026-10-13); equals 8*sum(in+out) over the 248 modules."
+}

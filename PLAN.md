@@ -14,6 +14,15 @@ budget is the trimmed plan in §8. Record later changes in the changelog below.
   `Taha/qwen35-sprint` `bec2d1f`). Registry → `results/RUNS.csv`; subsets → `data/subsets/`;
   interface doc → `code/INTERFACE.md`.
 - 2026-10-12: folders moved under C:/Users/tahas/research/ (this repo is now `C:/Users/tahas/research/IEEE`).
+- 2026-10-13: **build first, interface note last** (Taha's decision). There is no day-1
+  interface doc. Taha builds W1–W3 end to end, launches S1 seed 1337 once W2 passes its gate
+  (W3 is built while S1 trains), and writes `code/INTERFACE.md` as a half-page plug-in note,
+  with a reference plug-in, once the harness works. Teammates start module code against that
+  note. Smoke-gate item 4 for the S1 launch is met with a ~50-question `eval_arm.py` check on
+  the 50-step adapter, before the full W3 harness exists. §3.2, §7.1, §7.2 and §7.3 updated.
+- 2026-10-13: step 0 measured **P8 = 21,639,168** (r8 over the 248 language-model linears;
+  §1.3's fp32 estimate). Target list frozen in `code/train/target_modules_qwen35.json`. LF v0.9.5
+  on ws is not a git checkout; its source-tree hash is recorded in `code/env/LF_VERSION.md`.
 
 **Paths in this folder:**
 - `stats/NN...` citations refer to challenge-era ledgers, now in
@@ -499,10 +508,10 @@ uses the same version.
 **Critical path to first GPU use:** W1 + W2 + a minimal W3, about 3–4 days. S1 starts as
 soon as they pass the gate in §3.3; nothing else needs to exist for it.
 
-### 3.2 Plug-in interface (write on day 1, before the foundation is finished)
+### 3.2 Plug-in interface (written once the harness works; changelog 2026-10-13)
 
-Freeze these in a short doc (`code/INTERFACE.md`) so teammates can
-build their modules in parallel against them:
+Freeze these in a short note (`code/INTERFACE.md`), written after W1–W3 work, so teammates
+build their modules against a harness that already runs:
 
 - **Deck row format:** the fields every training/eval row carries: `id`, `image_group`,
   `images[]`, `question`, `answer`, `task`, `modality`, `dataset`.
@@ -1300,7 +1309,7 @@ queue that Taha coordinates (§7.3), not split one GPU per person.
 **Taha — foundation and core comparison**
 - **Setup and plumbing:**
   - W1 data; W2 training harness; W3 eval harness;
-  - the plug-in interface (§3.2), written on day 1;
+  - the plug-in interface note (§3.2), written once the harness works;
   - the smoke gate (§3.3), reviewing every method before it gets a full GPU slot.
 - **Experiments:**
   - S0: calibration and both zero-shot protocols;
@@ -1352,7 +1361,7 @@ budget remains at the end, each method owner tunes their own methods.
 
 | What | From | To | Needed for |
 |---|---|---|---|
-| Interface doc (§3.2) | Taha | everyone | starting any module code |
+| Interface note + reference plug-in (§3.2) | Taha | everyone | starting any module code |
 | W1–W3 passing the gate | Taha | everyone | any full training run |
 | S1 TaskLoRA seed 1337 | Taha | Alex (S4b, S5), Taha (S2) | composition and transfer |
 | S1 Shared/TaskLoRA, all seeds | Taha | Alberto (S3 100% points), Alex (S7) | scaling, representations |
@@ -1363,14 +1372,15 @@ budget remains at the end, each method owner tunes their own methods.
 
 ### 7.3 Timeline (9–31 Oct)
 
-**Week 1 (9–15 Oct): code, no full runs yet**
-- **Day 1:** Taha writes and circulates the interface doc. Everyone starts their module
-  against it, testing on a handful of examples.
-- **Days 2–4:** Taha builds W1–W3 and runs S0. In parallel:
-  - Veronika: HydraLoRA oracle mode, then Hydra-L;
-  - Alex: W6 and W7;
-  - Alberto: W10 and W9, and the D12 question to Tausifa.
-- **When W1–W3 pass the gate:** launch S1 seed 1337 (Shared + TaskLoRA) immediately.
+**Week 1 (9–15 Oct): foundation first** (changelog 2026-10-13)
+- Taha builds W1 (data) and W2 (training), then launches S1 seed 1337 (Shared + TaskLoRA)
+  as soon as W2 passes its gate.
+- Taha builds W3 (eval) while S1 trains, then runs S0.
+- Taha then writes the plug-in note (`code/INTERFACE.md`) with a reference plug-in, the
+  smoke-gate command and the launch/eval commands, and hands it to the team.
+- Until then, teammates read their method papers and design their modules (Veronika:
+  HydraLoRA oracle mode first; Alex: W6, W7; Alberto: W10, W9, and D12 with Tausifa), and
+  start coding against the note when it lands.
 
 **Week 2 (16–22 Oct): first wave of runs**
 - Taha: S1 seeds 2026 and 42; S2 once TaskLoRA seed 1337 lands.
