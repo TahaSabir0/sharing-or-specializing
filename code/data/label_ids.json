@@ -1,0 +1,39 @@
+{
+ "_doc": "Frozen routing-label ids (task_id / modality_id / dataset_id), PLAN.md \u00a73.2. Never renumber; append only. iugc is one dataset id across its cls/det/reg tasks.",
+ "task": {
+  "classification": 0,
+  "multi-label classification": 1,
+  "detection": 2,
+  "counting": 3,
+  "regression": 4,
+  "report_generation": 5
+ },
+ "modality": {
+  "Clinical": 0,
+  "Dermatology": 1,
+  "Mammography": 2,
+  "Microscopy": 3,
+  "Retinography": 4,
+  "Ultrasound": 5,
+  "Xray": 6
+ },
+ "dataset": {
+  "bcn20000": 0,
+  "bone_marrow": 1,
+  "boneresorption": 2,
+  "BUS-UCLM": 3,
+  "BUS-UCLM-det": 4,
+  "BUSI": 5,
+  "BUSI-det": 6,
+  "chestdr": 7,
+  "CMMD": 8,
+  "dental": 9,
+  "fundus": 10,
+  "IU_XRay": 11,
+  "iugc": 12,
+  "neojaundice": 13,
+  "neurips22cell": 14,
+  "periapical": 15,
+  "retino": 16
+ }
+}
