@@ -10,16 +10,16 @@
 - **Build first, interface note last** (2026-10-13, PLAN.md changelog): Taha builds the whole
   foundation, launches S1 seed 1337 once W2 passes, builds W3 while it trains, then hands the
   team a half-page plug-in note (`code/INTERFACE.md`) plus a reference plug-in.
-- Foundation work started 2026-10-13. Step 0 and W1 done; W2 in progress.
+- Foundation work started 2026-10-13. Step 0, W1, W2 done. S1 seed 1337 launch awaiting Taha's OK; W3 code written, testing next.
 
 ## Foundation progress (Taha)
 | Step | State |
 |---|---|
 | 0 Setup: ws clone, env, 4-bit load, LF dry run, LF version recorded | **done** 2026-10-13 (`code/env/LF_VERSION.md`; P8 = 21,639,168) |
 | W1 Data: decks, dev-select, holdout file, subsets, md5 manifest | **done** 2026-10-13 (decks on ws `/share/sda/ugrip/journal/data`; `data/DECK_MANIFEST.json`, `data/subsets/`) |
-| W2 Training: `journal_train`, per-example loss, plug-in plumbing, registry; 50-step gate | — |
+| W2 Training: `journal_train`, per-example loss, plug-in plumbing, registry; 50-step gate | **done** 2026-10-13: unit test PASS, template gate 14/14, smoke loss 1.57→0.63, trainable = P8, 1.665 s/example, 15.5 GB peak |
 | S1 seed 1337 launch (Shared + 6 TaskLoRA) | — (ask Taha first) |
-| W3 Eval: ZS-bare/ZS-prompt, adapters, oracle sets, composition, plug-ins, scoring, bootstrap | — |
+| W3 Eval: ZS-bare/ZS-prompt, adapters, oracle sets, composition, plug-ins, scoring, bootstrap | code written (branch `taha/w3-eval`), untested |
 | S0: full zero-shot on holdout + dev; real U | — |
 | Handoff: `code/INTERFACE.md`, reference plug-in, gate + launch/eval commands, queue rules | — |
 

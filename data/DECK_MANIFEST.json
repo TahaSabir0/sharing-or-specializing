@@ -127,6 +127,73 @@
     "report_generation/IU_XRay": 200
    }
   },
+  "j26_devselect_cls": {
+   "kind": "eval-dev (train-seen)",
+   "rows": 1162,
+   "md5": "59dbe442065d1ed3a2770ed6e10887f9",
+   "truncated_gt4_images": 38,
+   "census": {
+    "classification/BUS-UCLM": 46,
+    "classification/BUSI": 56,
+    "classification/CMMD": 200,
+    "classification/bcn20000": 200,
+    "classification/bone_marrow": 64,
+    "classification/dental": 200,
+    "classification/fundus": 124,
+    "classification/iugc": 118,
+    "classification/neojaundice": 54,
+    "classification/retino": 100
+   }
+  },
+  "j26_devselect_ml": {
+   "kind": "eval-dev (train-seen)",
+   "rows": 400,
+   "md5": "671eb12ff5c7d00d47f91c026375ab97",
+   "truncated_gt4_images": 0,
+   "census": {
+    "multi-label classification/chestdr": 200,
+    "multi-label classification/periapical": 200
+   }
+  },
+  "j26_devselect_det": {
+   "kind": "eval-dev (train-seen)",
+   "rows": 265,
+   "md5": "1078788683e5123e3cdd1ce598da1b0a",
+   "truncated_gt4_images": 0,
+   "census": {
+    "detection/BUS-UCLM-det": 19,
+    "detection/BUSI-det": 46,
+    "detection/iugc": 200
+   }
+  },
+  "j26_devselect_count": {
+   "kind": "eval-dev (train-seen)",
+   "rows": 90,
+   "md5": "568fc05990ce559c0ef2bdfa12e831dd",
+   "truncated_gt4_images": 0,
+   "census": {
+    "counting/neurips22cell": 90
+   }
+  },
+  "j26_devselect_reg": {
+   "kind": "eval-dev (train-seen)",
+   "rows": 263,
+   "md5": "a7983c0a2dff03b499123ee3fb69c6f8",
+   "truncated_gt4_images": 0,
+   "census": {
+    "regression/boneresorption": 63,
+    "regression/iugc": 200
+   }
+  },
+  "j26_devselect_report": {
+   "kind": "eval-dev (train-seen)",
+   "rows": 200,
+   "md5": "d5364cd9d9b9aa72b906a17671fa50c9",
+   "truncated_gt4_images": 0,
+   "census": {
+    "report_generation/IU_XRay": 200
+   }
+  },
   "j26_dev_full": {
    "kind": "eval-dev (train-seen)",
    "rows": 3987,
