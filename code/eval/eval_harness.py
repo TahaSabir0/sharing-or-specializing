@@ -1,348 +1,306 @@
-# ============================================================================================
-# JOURNAL REPO NOTE (2026-10-11): copied from the challenge code (experiments/qwen35_zeroshot/zeroshot_truetest.py, uncommitted, Sep 22).
-# It still holds CHALLENGE settings: TASK_CONFIG uses medical_cot/cot prompts, answer seeds and 2048² caps;
-#   protocol v2 is the old format-assisted run (different budget/extractor), NOT ZS-prompt.
-# Adapt it to PLAN.md §1 (bare prompts, 768² cap, max_new_tokens 512, both zero-shot protocols)
-# before using it for any journal run. That is part of W3 (PLAN.md §3.1).
-# ============================================================================================
-"""Zero-shot (NO adapter) Qwen3.5-9B over the frozen true_test split, all scored tasks, batched.
+#!/usr/bin/env python3
+"""W3: batched journal evaluation harness (PLAN.md §1.6, §3.1 W3).
 
-Two protocols (see PROGRESS 2026-09-20 / stats/26):
-  v1  "pipeline zero-shot"  = the shipped hexapus container with adapters disabled: same per-route
-      prompt variant + image cap (TASK_CONFIG below mirrors docker_qwen35/inference.py), same answer
-      seeds, same deployed parser (strip_think_block -> parse_answer). Comparable to ME-VLIP's "base".
-  v2  "format-assisted zero-shot" = v1 prompt + an explicit 'Final answer: ...' suffix, NO answer
-      seed (the model may reason), and a forgiving extractor that reads the final-answer line
-      (fallback: deployed parser). Lower bound on base capability. Report generation is skipped
-      (free text: v2 == v1 by construction).
+Rewritten from the challenge zeroshot_truetest.py (batched, left-padded greedy generation,
+resumable per-task checkpoints). Journal protocol: bare prompts rendered by journal_render.py
+(identical to training), 768² cap, max_new_tokens 512 for every task, greedy, EOS pinned to
+[<|im_end|>, <|endoftext|>], enable_thinking=False, no answer seeds, the repo parser.
 
-Decode: greedy, enable_thinking=False, eos pinned to {<|im_end|>, eos}, max_new_tokens 512,
-nf4 double_quant=False (matches the sprint evals). Batched generation with LEFT padding; identical
-greedy tokens per sequence up to padding numerics. Resumable: per-task jsonl checkpoints.
+Modes
+  --mode zs --protocol bare|prompt         zero-shot base (ZS-bare / ZS-prompt)
+  --mode adapter --adapter <dir>           one LoRA adapter on every task (e.g. Shared)
+  --mode oracle --adapter_set <json>       {task: adapter_dir}; the known task picks the adapter
+                                           (TaskLoRA; also S2 rows via --tasks)
+  --mode compose --compose <json>          {"adapters": {name: dir}, "weights": {name: w}}
+                                           runtime weighted sum of LoRA deltas, nothing merged
+                                           into the 4-bit base: out = base(x) + Σ w_i·ΔW_i x
+  --mode plugin --run_dir <dir>            a method plug-in trained by journal_train
+                                           (method_config.json + method_state.safetensors);
+                                           routing ids set per batch; routing_stats.npz saved
 
-  CUDA_VISIBLE_DEVICES=2 python zeroshot_truetest.py --protocol v1 --out_dir /data/ugrip2026/zeroshot/v1
+  CUDA_VISIBLE_DEVICES=1 python code/eval/eval_harness.py --mode zs --protocol bare \
+      --data /share/sda/ugrip/journal/data/j26_holdout.jsonl --surface holdout --out_dir <dir>
+Then: python code/eval/score_run.py --out_dir <dir>   (+ CRIMSON: code/eval/crimson_ws.sh <dir>)
+
+Outputs in --out_dir: <task>.jsonl (resumable), all_predictions.json, run_meta.json.
+Every prediction carries raw_output, Answer (parsed), n_new_tokens and truncated (hit the cap
+without EOS).
 """
-import os, sys, json, time, math, argparse, re, ast, collections, traceback
+import argparse
+import collections
+import datetime
+import json
+import os
+import socket
+import subprocess
+import sys
+import time
+import traceback
 from pathlib import Path
+
 import torch
-from PIL import Image
-from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
+from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
 
-# journal repo: helper modules (vlm_prompt, infer_single_adapter, prompt_variants, format_templates) sit next to this file
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from vlm_prompt import strip_think_block                      # noqa: E402
-from infer_single_adapter import parse_answer, subsample      # noqa: E402
-from prompt_variants import get_variant                       # noqa: E402
-from format_templates import normalize_task_type, question_has_letter_options  # noqa: E402
+HERE = Path(__file__).resolve().parent
+CODE = HERE.parent
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(CODE))
+from infer_single_adapter import parse_answer  # noqa: E402  (repo parser, not re-implemented)
+from journal_render import (IMAGE_MAX_PIXELS, ZS_PROMPT_SYSTEM, capped_images, chat_text,  # noqa: E402
+                            eos_ids as pinned_eos, load_images)
+from vlm_prompt import strip_think_block  # noqa: E402
+from methods import base as mb  # noqa: E402
 
-PIX_2048 = 4194304
-PIX_768 = 589824
-# task (split spelling) -> (prompt variant, image cap)  == shipped hexapus:latest routes (stats/26 §4)
-TASK_CONFIG = {
-    "classification":            ("none",        PIX_2048),
-    "multi-label classification": ("medical_cot", PIX_2048),
-    "counting":                  ("cot",         PIX_2048),
-    "detection":                 ("none",        PIX_2048),
-    "regression":                ("none",        PIX_2048),
-    "report_generation":         ("none",        PIX_768),
-}
+MAX_NEW_TOKENS = 512
 TASK_ORDER = ["counting", "detection", "regression", "multi-label classification",
               "classification", "report_generation"]
-
-FA = "Final answer:"
-
-
-def v2_suffix(task, question):
-    t = normalize_task_type(task)
-    lead = "\n\nYou may reason briefly first. End your response with one final line of the form "
-    if t == "classification":
-        if question_has_letter_options(question):
-            return lead + f"'{FA} X' where X is the option letter only."
-        return lead + f"'{FA} X' where X is the exact class name copied from the question."
-    if t == "multi-label classification":
-        return (lead + f"'{FA} label1; label2' listing only the findings that are present, copied "
-                "exactly from the options in the question and separated by semicolons. If no listed "
-                "finding is present, use the option that denotes a normal study if one is listed, "
-                f"otherwise write '{FA} None'.")
-    if t in ("counting", "cell counting"):
-        return lead + f"'{FA} N' where N is a single integer."
-    if t == "regression":
-        return lead + f"'{FA} N' where N is a single number without units."
-    if t in ("detection", "instance detection"):
-        return (lead + f"'{FA} [[x_min, y_min, x_max, y_max], ...]' with one box per detected object "
-                f"in pixel coordinates of the original image. Write '{FA} []' if there is none.")
-    return ""
+TASK_SHORT = {"classification": "cls", "multi-label classification": "ml", "detection": "det",
+              "counting": "count", "regression": "reg", "report_generation": "report"}
+SHORT_TASK = {v: k for k, v in TASK_SHORT.items()}
 
 
-def _clean(s):
-    s = s.strip().strip("*_` ").strip()
-    s = re.sub(r"^\*+|\*+$", "", s).strip()
-    return s.rstrip(".").strip()
+# ------------------------------------------------------------------------------------ model
+def load_base(base):
+    bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                             bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=False)
+    return AutoModelForImageTextToText.from_pretrained(base, quantization_config=bnb, dtype=torch.bfloat16,
+                                                       device_map="cuda:0", local_files_only=True)
 
 
-def _first_balanced_list(s):
-    i = s.find("[")
-    if i < 0:
-        return None
-    depth = 0
-    for j in range(i, len(s)):
-        if s[j] == "[":
-            depth += 1
-        elif s[j] == "]":
-            depth -= 1
-            if depth == 0:
-                return s[i:j + 1]
-    return None
+def load_peft_named(model, adapters):
+    """Load several LoRA adapters into one PeftModel under their names (nothing merged)."""
+    from peft import PeftModel
+    names = list(adapters)
+    model = PeftModel.from_pretrained(model, adapters[names[0]], adapter_name=names[0], is_trainable=False)
+    for n in names[1:]:
+        model.load_adapter(adapters[n], adapter_name=n, is_trainable=False)
+    return model
 
 
-def v2_extract(raw, task, question):
-    """Read the last 'Final answer:' line; normalise per task; fallback = deployed parser."""
-    text = strip_think_block(raw)
-    hits = list(re.finditer(re.escape(FA), text, flags=re.I))
-    if not hits:
-        return parse_answer(text, task), False
-    tail = text[hits[-1].end():].strip()
-    line = _clean(tail.splitlines()[0]) if tail else ""
-    t = normalize_task_type(task)
-    if t == "classification":
-        if question_has_letter_options(question):
-            m = re.match(r"\(?([A-G])(?:[).:\s]|$)", line)
-            if m:
-                return m.group(1), True
-            m = re.search(r"\b([A-G])\b", line)
-            return (m.group(1) if m else line), True
-        return line, True
-    if t == "multi-label classification":
-        labels = [_clean(x) for x in re.split(r"[;,]", line) if _clean(x)]
-        labels = [x for x in labels if x.lower() not in ("none", "no findings", "n/a")]
-        return "; ".join(labels), True
-    if t in ("counting", "cell counting", "regression"):
-        m = re.search(r"[-+]?\d[\d,]*\.?\d*", line.replace(",", ""))
-        return (m.group(0) if m else "0"), True
-    if t in ("detection", "instance detection"):
-        blob = _first_balanced_list(tail)
-        if blob is None:
-            return "[]", True
-        try:
-            v = ast.literal_eval(blob)
-            if isinstance(v, list) and v and all(isinstance(x, (int, float)) for x in v) and len(v) == 4:
-                v = [v]
-            return json.dumps(v), True
-        except Exception:
-            return "[]", True
-    return line, True
+def lora_layers(model):
+    from peft.tuners.lora import LoraLayer
+    return [m for m in model.modules() if isinstance(m, LoraLayer)]
 
 
-def cap_pixels(im, mx):
-    w, h = im.size
-    if mx and w * h > mx:
-        f = math.sqrt(mx / (w * h))
-        im = im.resize((max(1, int(w * f)), max(1, int(h * f))))
-    return im
+class Composer:
+    """Runtime weighted composition: activate several adapters and scale each one's delta by w_i."""
+
+    def __init__(self, model, weights):
+        self.model, self.weights = model, dict(weights)
+        self.layers = lora_layers(model)
+        self.base_scaling = [{n: l.scaling[n] for n in self.weights} for l in self.layers]
+
+    def apply(self):
+        self.model.base_model.set_adapter(list(self.weights))  # LoraModel accepts a list
+        for l, base in zip(self.layers, self.base_scaling):
+            for n, w in self.weights.items():
+                l.scaling[n] = base[n] * float(w)
+        active = self.model.base_model.active_adapters
+        assert sorted(active) == sorted(self.weights), active
 
 
-def build(proc, variant, task, question, n_imgs, protocol):
-    parts = ["\n".join(f"Image-{i+1}: <image>" for i in range(n_imgs))]
-    seed = ""
-    if variant is not None:
-        fi = variant.get_format_instruction(task, question)
-        if fi:
-            parts.append(fi)
-        seed = variant.answer_seeds.get(normalize_task_type(task), "")
-    q = question + (v2_suffix(task, question) if protocol == "v2" else "")
-    parts.append(q)
-    human = "\n".join(parts)
-    content = []
-    segs = human.split("<image>")
-    for i, seg in enumerate(segs):
-        if seg:
-            content.append({"type": "text", "text": seg})
-        if i < len(segs) - 1:
-            content.append({"type": "image"})
-    messages = []
-    if variant is not None and variant.system_prompt:
-        messages.append({"role": "system", "content": variant.system_prompt})
-    messages.append({"role": "user", "content": content})
-    text = proc.apply_chat_template(messages, tokenize=False, add_generation_prompt=True,
-                                    enable_thinking=False)
-    if protocol == "v1" and seed:
-        text += seed
-    return text, (seed if protocol == "v1" else "")
+def build_model(a):
+    """Returns (model, select_fn(task) -> None, meta dict)."""
+    model = load_base(a.base_model)
+    meta = {"mode": a.mode}
+    select = lambda task: None  # noqa: E731
+    if a.mode == "zs":
+        meta["protocol"] = a.protocol
+    elif a.mode == "adapter":
+        model = load_peft_named(model, {"a": a.adapter})
+        meta["adapter"] = a.adapter
+    elif a.mode == "oracle":
+        aset = json.load(open(a.adapter_set))
+        aset = {SHORT_TASK.get(k, k): v for k, v in aset.items()}
+        names = {t: TASK_SHORT[t] for t in aset}
+        model = load_peft_named(model, {names[t]: p for t, p in aset.items()})
+        meta["adapter_set"] = aset
+
+        def select(task):  # noqa: F811
+            if task not in names:
+                raise KeyError(f"no adapter for task {task!r} in the oracle set")
+            model.set_adapter(names[task])
+    elif a.mode == "compose":
+        spec = json.load(open(a.compose))
+        model = load_peft_named(model, spec["adapters"])
+        comp = Composer(model, spec["weights"])
+        comp.apply()
+        meta["compose"] = spec
+    elif a.mode == "plugin":
+        mcfg = json.load(open(os.path.join(a.run_dir, mb.METHOD_CONFIG)))
+        import importlib
+        plugin = importlib.import_module(f"methods.{mcfg['method']}")
+        model.requires_grad_(False)
+        model = plugin.apply_method(model, mcfg["cfg"])
+        mb.load_method_state(model, a.run_dir)
+        meta.update(method=mcfg["method"], method_cfg=mcfg["cfg"], run_dir=a.run_dir)
+    return model.eval(), select, meta
 
 
+# ---------------------------------------------------------------------------------- batching
 def make_batches(rows, max_rows, max_imgs):
-    # group by image count so padding stays small; cap total images per batch
-    rows = sorted(rows, key=lambda r: (len(subsample(r["image"])), len(r["question"])))
+    rows = sorted(rows, key=lambda r: (len(capped_images({"image": r["images"]})), len(r["question"])))
     batches, cur, cur_imgs = [], [], 0
     for r in rows:
-        n = len(subsample(r["image"]))
+        n = len(capped_images({"image": r["images"]}))
         if cur and (len(cur) >= max_rows or cur_imgs + n > max_imgs):
-            batches.append(cur); cur, cur_imgs = [], 0
-        cur.append(r); cur_imgs += n
+            batches.append(cur)
+            cur, cur_imgs = [], 0
+        cur.append(r)
+        cur_imgs += n
     if cur:
         batches.append(cur)
     return batches
 
 
-def run_batch(model, proc, eos_ids, pad_id, texts, imgs_flat, max_new_tokens):
-    inputs = proc(text=texts, images=imgs_flat, padding=True, return_tensors="pt").to("cuda:0")
-    n_in = inputs["input_ids"].shape[1]
-    with torch.inference_mode():
-        gen = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False,
-                             eos_token_id=eos_ids, pad_token_id=pad_id)
-    return proc.batch_decode(gen[:, n_in:], skip_special_tokens=True)
+def count_new(gen_row, eos):
+    """Generated length up to and including the first EOS; truncated = no EOS within the cap."""
+    ids = gen_row.tolist()
+    for i, t in enumerate(ids):
+        if t in eos:
+            return i + 1, False
+    return len(ids), len(ids) >= MAX_NEW_TOKENS
 
 
+def git_commit():
+    r = subprocess.run(f"git -C {CODE.parent} rev-parse HEAD", shell=True, capture_output=True, text=True)
+    d = subprocess.run(f"git -C {CODE.parent} status --porcelain --untracked-files=no", shell=True,
+                       capture_output=True, text=True)
+    return r.stdout.strip() + ("-dirty" if d.stdout.strip() else "")
+
+
+# --------------------------------------------------------------------------------------- main
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--protocol", required=True, choices=["v1", "v2"])
-    ap.add_argument("--base_model", default="/data/ugrip2026/models/Qwen3.5-9B")
-    ap.add_argument("--data_path", default="/data/ugrip2026/splits/internal_splits_v2/true_test.jsonl")
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--mode", required=True, choices=["zs", "adapter", "oracle", "compose", "plugin"])
+    ap.add_argument("--protocol", choices=["bare", "prompt"], default="bare", help="zero-shot only")
+    ap.add_argument("--adapter")
+    ap.add_argument("--adapter_set")
+    ap.add_argument("--compose")
+    ap.add_argument("--run_dir")
+    ap.add_argument("--base_model", default=os.environ.get("QWEN35_MODEL", "/share/sda/ugrip/models/Qwen3.5-9B"))
+    ap.add_argument("--data", required=True, help="journal eval deck (j26_holdout.jsonl, j26_devselect.jsonl)")
+    ap.add_argument("--surface", required=True, choices=["holdout", "dev", "devselect", "valpub"],
+                    help="label of the evaluation surface (PLAN rule: always labelled)")
     ap.add_argument("--out_dir", required=True)
-    ap.add_argument("--tasks", default="", help="comma list; default = all scored tasks")
+    ap.add_argument("--tasks", default="", help="comma list of tasks or short names; default all")
+    ap.add_argument("--per_task", type=int, default=0, help="first N rows per task (smoke)")
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--max_images_per_batch", type=int, default=12)
-    ap.add_argument("--max_new_tokens", type=int, default=512)
-    ap.add_argument("--limit", type=int, default=0, help="smoke: first N rows per task")
-    ap.add_argument("--image_max_pixels", type=int, default=0,
-                    help="override the per-route image cap (e.g. 589824 for a 768-trained adapter); "
-                         "0 = use the shipped TASK_CONFIG cap")
-    ap.add_argument("--adapter_path", default="", help="optional LoRA adapter (PEFT dir) -> fine-tuned pipeline eval "
-                    "with the same batched harness; use with --protocol v1 (shipped prompts/seeds/parser)")
-    args = ap.parse_args()
-
+    a = ap.parse_args()
+    if a.mode != "zs" and a.protocol == "prompt":
+        raise SystemExit("ZS-prompt is zero-shot only; adapters are evaluated bare (PLAN.md §1.6)")
     for v in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_HUB_DISABLE_TELEMETRY"):
         os.environ.setdefault(v, "1")
-    os.makedirs(args.out_dir, exist_ok=True)
+    out_dir = Path(a.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    tasks = [t.strip() for t in args.tasks.split(",") if t.strip()] or list(TASK_ORDER)
-    if args.protocol == "v2" and "report_generation" in tasks and not args.tasks:
-        tasks.remove("report_generation")   # free text: identical to v1, don't pay for it twice
-
-    proc = AutoProcessor.from_pretrained(args.base_model, local_files_only=True)
-    proc.tokenizer.padding_side = "left"
-    bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
-                             bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=False)
-    model = AutoModelForImageTextToText.from_pretrained(
-        args.base_model, quantization_config=bnb, dtype=torch.bfloat16, device_map="cuda:0",
-        local_files_only=True)
-    if args.adapter_path:
-        from peft import PeftModel
-        model = PeftModel.from_pretrained(model, args.adapter_path, is_trainable=False)
-    model.eval()
+    tasks = [SHORT_TASK.get(t.strip(), t.strip()) for t in a.tasks.split(",") if t.strip()] or list(TASK_ORDER)
+    proc = AutoProcessor.from_pretrained(a.base_model, local_files_only=True)
     tok = proc.tokenizer
-    im_end = tok.convert_tokens_to_ids("<|im_end|>")
-    eos_ids = sorted({im_end, tok.eos_token_id, tok.convert_tokens_to_ids("<|endoftext|>")} - {None})
-    pad_id = tok.pad_token_id if tok.pad_token_id is not None else im_end
-    print(f"[{args.protocol}] adapter={args.adapter_path or 'NONE (zero-shot)'}; eos_token_id={eos_ids} pad={pad_id} "
-          f"padding_side={tok.padding_side}", flush=True)
+    tok.padding_side = "left"
+    eos = pinned_eos(tok)
+    pad_id = tok.pad_token_id if tok.pad_token_id is not None else eos[0]
+    model, select, meta = build_model(a)
+    system = ZS_PROMPT_SYSTEM if (a.mode == "zs" and a.protocol == "prompt") else None
+    stats = getattr(model, "journal_routing_stats", None)
+    if stats is None and a.mode == "plugin":
+        stats = getattr(getattr(model, "base_model", None), "journal_routing_stats", None)
 
-    all_rows = [json.loads(l) for l in open(args.data_path) if l.strip()]
-    all_rows = [r for r in all_rows if not r.get("flagged_bug")]
+    meta.update({"surface": a.surface, "data": a.data, "tasks": tasks, "per_task": a.per_task,
+                 "system_prompt": system, "max_new_tokens": MAX_NEW_TOKENS, "image_max_pixels": IMAGE_MAX_PIXELS,
+                 "eos_token_id": eos, "decoding": "greedy (do_sample=False, num_beams=1)",
+                 "enable_thinking": False, "batch_size": a.batch_size, "host": socket.gethostname(),
+                 "gpu": os.environ.get("CUDA_VISIBLE_DEVICES", ""), "code_commit": git_commit(),
+                 "started": datetime.datetime.now().isoformat(timespec="seconds")})
+    json.dump(meta, open(out_dir / "run_meta.json", "w"), indent=1)
+    print(f"[eval] {json.dumps({k: meta[k] for k in ('mode', 'surface', 'system_prompt', 'eos_token_id')})}", flush=True)
 
-    grand_t0 = time.time()
+    rows_all = [json.loads(l) for l in open(a.data) if l.strip()]
+    t_grand = time.time()
+    timings = {}
     for task in tasks:
-        variant_name, max_pix = TASK_CONFIG[task]
-        if args.image_max_pixels:
-            max_pix = args.image_max_pixels
-        variant = None if variant_name == "none" else get_variant(variant_name)
-        rows = [r for r in all_rows if r["task"].strip().lower() == task.lower()]
-        if args.limit:
-            rows = rows[:args.limit]
-        ckpt = Path(args.out_dir) / f"{task.replace(' ', '_')}.jsonl"
-        done = {}
+        rows = [r for r in rows_all if r["task"] == task]
+        if a.per_task:
+            rows = rows[:a.per_task]
+        if not rows:
+            continue
+        select(task)
+        ckpt = out_dir / f"{TASK_SHORT[task]}.jsonl"
+        done = set()
         if ckpt.exists():
-            for l in open(ckpt):
-                if l.strip():
-                    d = json.loads(l); done[d["sample_key"]] = d
-        todo = [r for r in rows if r["sample_key"] not in done]
-        print(f"\n=== task {task!r}: {len(rows)} rows, {len(done)} done, {len(todo)} to run | "
-              f"variant={variant_name} cap={max_pix}", flush=True)
-        batches = make_batches(todo, args.batch_size, args.max_images_per_batch)
+            done = {json.loads(l)["id"] for l in open(ckpt) if l.strip()}
+        todo = [r for r in rows if r["id"] not in done]
+        print(f"\n=== {task}: {len(rows)} rows, {len(done)} done, {len(todo)} to run", flush=True)
         t0, n_done, fails = time.time(), 0, 0
         fout = open(ckpt, "a")
 
-        def process(batch, bs_note=""):
-            nonlocal n_done, fails
-            texts, imgs_flat, metas = [], [], []
-            for r in batch:
-                paths = subsample(r["image"])
-                ims = [Image.open(p).convert("RGB") for p in paths]
-                scales = []
-                capped = []
-                for im in ims:
-                    w0, h0 = im.size
-                    c = cap_pixels(im, max_pix)
-                    scales.append(round(c.size[0] / w0, 6))
-                    capped.append(c)
-                text, seed = build(proc, variant, r["task"], r["question"], len(capped), args.protocol)
-                texts.append(text); imgs_flat.extend(capped)
-                metas.append((r, seed, scales))
-            tb = time.time()
-            raws = run_batch(model, proc, eos_ids, pad_id, texts, imgs_flat, args.max_new_tokens)
-            dt = time.time() - tb
-            for (r, seed, scales), raw in zip(metas, raws):
-                full = seed + raw
-                stripped = strip_think_block(full)
-                if args.protocol == "v1":
-                    ans, hit = parse_answer(stripped, r["task"]), None
-                else:
-                    ans, hit = v2_extract(full, r["task"], r["question"])
-                rec = dict(sample_key=r["sample_key"], ImageName=r["image"], Question=r["question"],
-                           TaskType=r["task"], dataset=r["dataset"], gt_answer=r.get("answer", ""),
-                           raw_output=full, Answer=ans, final_answer_line_found=hit,
-                           n_new_tokens=len(tok(raw)["input_ids"]), image_scale=scales,
-                           batch_seconds=round(dt, 3), batch_size=len(batch))
-                fout.write(json.dumps(rec) + "\n")
-            fout.flush()
-            n_done += len(batch)
+        def write(r, raw, n_new, trunc, err=None):
+            ans = f"Error: {err}" if err else parse_answer(strip_think_block(raw), r["task"])
+            fout.write(json.dumps(dict(
+                id=r["id"], ImageName=r["images"], Question=r["question"], TaskType=r["task"],
+                dataset=r["dataset"], modality=r["modality"], gt_answer=r["answer"], raw_output=raw,
+                Answer=ans, n_new_tokens=n_new, truncated=trunc), ensure_ascii=False) + "\n")
 
-        for bi, batch in enumerate(batches):
+        def process(batch):
+            texts, imgs = [], []
+            for r in batch:
+                paths = capped_images({"image": r["images"]})
+                texts.append(chat_text(proc, r["question"], len(paths), system=system))
+                imgs.extend(load_images(paths))
+            inputs = proc(text=texts, images=imgs, padding=True, return_tensors="pt").to("cuda:0")
+            n_in = inputs["input_ids"].shape[1]
+            ids = {k: torch.tensor([r[k] for r in batch], device="cuda:0") for k in mb.ROUTING_KEYS}
+            with mb.routing.use(**ids), torch.inference_mode():
+                gen = model.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS, do_sample=False, num_beams=1,
+                                     temperature=None, top_p=None, top_k=None,
+                                     eos_token_id=eos, pad_token_id=pad_id)
+                if stats is not None:
+                    stats.end_batch([r["id"] for r in batch])
+            for r, g in zip(batch, gen[:, n_in:]):
+                n_new, trunc = count_new(g, eos)
+                write(r, tok.decode(g[:n_new], skip_special_tokens=True), n_new, trunc)
+
+        for bi, batch in enumerate(make_batches(todo, a.batch_size, a.max_images_per_batch)):
             try:
                 process(batch)
             except torch.cuda.OutOfMemoryError:
                 torch.cuda.empty_cache()
-                print(f"  OOM on batch of {len(batch)} -> retry singly", flush=True)
+                print(f"  OOM on batch of {len(batch)}; retrying one at a time", flush=True)
                 for r in batch:
                     try:
                         process([r])
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001
                         fails += 1
-                        fout.write(json.dumps(dict(sample_key=r["sample_key"], ImageName=r["image"],
-                                   Question=r["question"], TaskType=r["task"], dataset=r["dataset"],
-                                   gt_answer=r.get("answer", ""), raw_output="", Answer=f"Error: {e}",
-                                   final_answer_line_found=None)) + "\n"); fout.flush()
+                        write(r, "", 0, False, err=e)
                         torch.cuda.empty_cache()
-            except Exception as e:
-                fails += len(batch)
+            except Exception as e:  # noqa: BLE001
                 traceback.print_exc()
+                fails += len(batch)
                 for r in batch:
-                    fout.write(json.dumps(dict(sample_key=r["sample_key"], ImageName=r["image"],
-                               Question=r["question"], TaskType=r["task"], dataset=r["dataset"],
-                               gt_answer=r.get("answer", ""), raw_output="", Answer=f"Error: {e}",
-                               final_answer_line_found=None)) + "\n"); fout.flush()
-            if (bi + 1) % 5 == 0 or bi == len(batches) - 1:
+                    write(r, "", 0, False, err=e)
+            fout.flush()
+            n_done += len(batch)
+            if (bi + 1) % 10 == 0 or n_done == len(todo):
                 el = time.time() - t0
-                rate = el / max(n_done, 1)
-                eta = rate * (len(todo) - n_done)
-                print(f"  [{task}] {n_done}/{len(todo)}  {rate:.2f}s/case  elapsed {el/60:.1f}m  "
-                      f"ETA {eta/60:.1f}m  fails {fails}  peak {torch.cuda.max_memory_allocated()/2**30:.1f}GiB",
-                      flush=True)
+                print(f"  [{task}] {n_done}/{len(todo)} {el / max(n_done, 1):.2f}s/q fails {fails} "
+                      f"peak {torch.cuda.max_memory_allocated() / 2**30:.1f}GiB", flush=True)
         fout.close()
-        # materialise the per-task predictions json (score_single format)
-        recs = [json.loads(l) for l in open(ckpt) if l.strip()]
-        json.dump(recs, open(Path(args.out_dir) / f"{task.replace(' ', '_')}_predictions.json", "w"), indent=1)
-        print(f"  [{task}] DONE {len(recs)} rows in {(time.time()-t0)/60:.1f} min", flush=True)
+        timings[task] = {"seconds": round(time.time() - t0, 1), "rows_run": len(todo)}
 
-    # combined predictions for the non-reportgen scorer
     combined = []
     for task in tasks:
-        p = Path(args.out_dir) / f"{task.replace(' ', '_')}.jsonl"
+        p = out_dir / f"{TASK_SHORT[task]}.jsonl"
         if p.exists():
             combined += [json.loads(l) for l in open(p) if l.strip()]
-    json.dump(combined, open(Path(args.out_dir) / "all_predictions.json", "w"), indent=1)
-    print(f"\nALL DONE [{args.protocol}] {len(combined)} rows, {(time.time()-grand_t0)/3600:.2f} h -> "
-          f"{args.out_dir}/all_predictions.json", flush=True)
+    json.dump(combined, open(out_dir / "all_predictions.json", "w"), indent=1, ensure_ascii=False)
+    if stats is not None:
+        stats.save(str(out_dir / "routing_stats.npz"))
+    meta.update(finished=datetime.datetime.now().isoformat(timespec="seconds"),
+                hours=round((time.time() - t_grand) / 3600, 3), timings=timings, n_predictions=len(combined),
+                peak_mem_gb=round(torch.cuda.max_memory_allocated() / 2**30, 2))
+    json.dump(meta, open(out_dir / "run_meta.json", "w"), indent=1)
+    print(f"\nDONE {len(combined)} predictions in {meta['hours']} h -> {out_dir}/all_predictions.json", flush=True)
 
 
 if __name__ == "__main__":
