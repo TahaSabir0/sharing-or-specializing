@@ -1,145 +1,115 @@
-# ============================================================================================
-# JOURNAL REPO NOTE (2026-10-11): copied from the challenge code (experiments/qwen35_sprint/eval_qwen35_arm.py @ bec2d1f).
-# It still holds CHALLENGE settings: default model/data paths and per-task prompt variants follow the sprint.
-# Adapt it to PLAN.md §1 (bare prompts, 768² cap, max_new_tokens 512, both zero-shot protocols)
-# before using it for any journal run. That is part of W3 (PLAN.md §3.1).
-# ============================================================================================
-"""Qwen3.5-9B single-adapter true_test eval (v5 stack) — matched to the 768^2 ws training arms.
+"""Simple one-at-a-time journal evaluator (smoke gate item 4; quick checks).
 
-Renders eval prompts EXACTLY as the training deck export does (Image-i markers -> variant format
-instruction -> question), then routes through processor.apply_chat_template(enable_thinking=False,
-add_generation_prompt=True) — byte-identity to the LF qwen3_5 training render is gate-verified
-(template_gate.py at 2048^2 cls; /tmp one-offs 2026-08-31 at 768^2 for the ML deck WITH system
-column and the regmix bare deck: GATE_PASS, ids identical, pads equal).
+Adapted from the challenge eval_qwen35_arm.py: same model loading and Qwen3.5 traps pinned, but
+journal rows (code/data/journal_format.py) rendered by code/eval/journal_render.py, bare prompts,
+no answer seeds, no prompt variants. The batched full evaluator is eval_harness.py (W3).
 
-Matched-to-training knobs: 768^2 cap (image_max_pixels=589824, gate cap_pixels int-rounding),
-4-bit nf4 double_quant=False (training YAML double_quantization: false), greedy do_sample=False,
-enable_thinking=False, MAX_IMAGES=4 + Image-i: markers.
-Parsing: strip_think_block FIRST, then parse_answer (docker-path convention — the 08-20 rule).
+  CUDA_VISIBLE_DEVICES=1 python code/eval/eval_arm.py --data_path /share/sda/ugrip/journal/data/j26_holdout.jsonl \
+      --adapter_path <run_dir> --per_task 50 --output_file preds.json
+  --adapter_path none                  ZS-bare (base model)
+  --adapter_path none --zs_prompt      ZS-prompt (generic system prompt, PLAN.md §1.6)
 
-Usage (env flare-ws-v5):
-  CUDA_VISIBLE_DEVICES=<n> python eval_qwen35_arm.py --adapter_path ... --data_path true_test.jsonl       --only_task 'multi-label classification' --prompt_variant medical_cot --output_file preds.json
+Output: a predictions list in score_single.py's format, plus raw_output, n_new_tokens, truncated.
 """
-import os, sys, json, time, math, argparse
-from pathlib import Path
+import argparse
+import collections
+import json
+import os
+import sys
+import time
+
 import torch
-from PIL import Image
 from tqdm import tqdm
-from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
+from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
 
-_SCRIPTS = Path(__file__).resolve().parent  # journal repo: helpers sit next to this file (code/eval/)
-sys.path.insert(0, str(_SCRIPTS))
-from vlm_prompt import strip_think_block
-from infer_single_adapter import parse_answer, subsample
-from prompt_variants import get_variant, list_variants
-from format_templates import normalize_task_type
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from infer_single_adapter import parse_answer  # noqa: E402  (the repo parser; not re-implemented)
+from journal_render import (IMAGE_MAX_PIXELS, ZS_PROMPT_SYSTEM, capped_images, chat_text,  # noqa: E402
+                            eos_ids, load_images)
+from vlm_prompt import strip_think_block  # noqa: E402
 
-def cap_pixels(im, mx):
-    # gate-verified resize (template_gate.py convention: int() rounding, matches LF pad counts)
-    w, h = im.size
-    if mx and w * h > mx:
-        f = math.sqrt(mx / (w * h))
-        im = im.resize((max(1, int(w * f)), max(1, int(h * f))))
-    return im
+MAX_NEW_TOKENS = 512
+
+
+def load_model(base, adapter_path):
+    bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                             bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=False)
+    model = AutoModelForImageTextToText.from_pretrained(base, quantization_config=bnb, dtype=torch.bfloat16,
+                                                        device_map="cuda:0", local_files_only=True)
+    if adapter_path and adapter_path != "none":
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False)
+    return model.eval()
+
+
+def select_rows(path, per_task, only_task):
+    rows, n = [], collections.Counter()
+    for line in open(path):
+        r = json.loads(line)
+        if only_task and r["task"] != only_task:
+            continue
+        if per_task and n[r["task"]] >= per_task:
+            continue
+        n[r["task"]] += 1
+        rows.append(r)
+    return rows
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--base_model', default='/share/sda/ugrip/models/Qwen3.5-9B')
-    ap.add_argument('--adapter_path', required=True)
-    ap.add_argument('--data_path', required=True, help='split jsonl (true_test.jsonl)')
-    ap.add_argument('--only_task', required=True)
-    ap.add_argument('--prompt_variant', default='none', choices=['none', *list_variants()])
-    ap.add_argument('--image_max_pixels', type=int, default=589824)
-    ap.add_argument('--max_new_tokens', type=int, default=512)
-    ap.add_argument('--limit', type=int, default=0, help='smoke: first N rows only')
-    ap.add_argument('--output_file', required=True)
-    args = ap.parse_args()
+    ap.add_argument("--base_model", default="/share/sda/ugrip/models/Qwen3.5-9B")
+    ap.add_argument("--adapter_path", required=True, help="LoRA adapter dir, or 'none' for zero-shot")
+    ap.add_argument("--zs_prompt", action="store_true", help="add the ZS-prompt system prompt")
+    ap.add_argument("--data_path", required=True, help="journal deck jsonl (e.g. j26_holdout.jsonl)")
+    ap.add_argument("--per_task", type=int, default=0, help="first N rows per task (0 = all)")
+    ap.add_argument("--only_task", default=None)
+    ap.add_argument("--output_file", required=True)
+    a = ap.parse_args()
+    if a.zs_prompt and a.adapter_path != "none":
+        raise SystemExit("ZS-prompt is a zero-shot protocol; adapters are always evaluated bare")
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
-    for v in ('HF_HUB_OFFLINE', 'TRANSFORMERS_OFFLINE', 'HF_HUB_DISABLE_TELEMETRY'):
-        os.environ.setdefault(v, '1')
-    from peft import PeftModel
-    proc = AutoProcessor.from_pretrained(args.base_model, local_files_only=True)
-    bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type='nf4',
-                             bnb_4bit_compute_dtype=torch.bfloat16,
-                             bnb_4bit_use_double_quant=False)  # training: double_quantization false
-    model = AutoModelForImageTextToText.from_pretrained(
-        args.base_model, quantization_config=bnb, dtype=torch.bfloat16,
-        device_map='cuda:0', local_files_only=True)
-    model = PeftModel.from_pretrained(model, args.adapter_path, is_trainable=False)
-    model.eval()
-    # Qwen3.5-9B ships NO generation_config.json -> generate() does not stop at <|im_end|>
-    # (smoke 2026-08-31: correct first-line answer, then a babbled fake 'user' turn to the token
-    # budget). Pin the stop token explicitly (pin-decode-params doctrine); training targets end
-    # with <|im_end|> (LF qwen3_5), so this matches training.
+    proc = AutoProcessor.from_pretrained(a.base_model, local_files_only=True)
     tok = proc.tokenizer
-    im_end = tok.convert_tokens_to_ids('<|im_end|>')
-    eos_ids = sorted({im_end, tok.eos_token_id} - {None})
-    print(f'loaded base + adapter {args.adapter_path}; eos_token_id={eos_ids}')
+    model = load_model(a.base_model, a.adapter_path)
+    eos = eos_ids(tok)
+    system = ZS_PROMPT_SYSTEM if a.zs_prompt else None
+    rows = select_rows(a.data_path, a.per_task, a.only_task)
+    print(f"adapter={a.adapter_path} zs_prompt={a.zs_prompt} eos={eos} rows={len(rows)} "
+          f"cap={IMAGE_MAX_PIXELS} max_new_tokens={MAX_NEW_TOKENS}")
 
-    variant = None if args.prompt_variant == 'none' else get_variant(args.prompt_variant)
-
-    ot = args.only_task.strip().lower()
-    rows = []
-    for line in open(args.data_path):
-        line = line.strip()
-        if not line: continue
-        s = json.loads(line)
-        if s.get('flagged_bug'): continue
-        if s['task'].strip().lower() != ot: continue
-        rows.append(s)
-    if args.limit: rows = rows[:args.limit]
-    print(f'rows for task {ot!r}: {len(rows)}')
-
-    out, gen_secs = [], []
-    for s in tqdm(rows):
+    out = []
+    for r in tqdm(rows):
+        paths = capped_images({"image": r["images"]})
         try:
-            paths = subsample(s['image'])
-            imgs = [cap_pixels(Image.open(p).convert('RGB'), args.image_max_pixels) for p in paths]
-            parts = ['\n'.join(f'Image-{i+1}: <image>' for i in range(len(imgs)))]
-            seed = ''
-            if variant is not None:
-                fi = variant.get_format_instruction(s['task'], s['question'])
-                if fi: parts.append(fi)
-                seed = variant.answer_seeds.get(normalize_task_type(s['task']), '')
-            parts.append(s['question'])
-            human = '\n'.join(parts)
-            content = []
-            segs = human.split('<image>')
-            for i, seg in enumerate(segs):
-                if seg: content.append({'type': 'text', 'text': seg})
-                if i < len(segs) - 1: content.append({'type': 'image'})
-            messages = []
-            if variant is not None and variant.system_prompt:
-                messages.append({'role': 'system', 'content': variant.system_prompt})
-            messages.append({'role': 'user', 'content': content})
-            text = proc.apply_chat_template(messages, tokenize=False,
-                                            add_generation_prompt=True, enable_thinking=False)
-            if seed: text += seed
-            inputs = proc(text=[text], images=imgs, return_tensors='pt').to('cuda:0')
+            text = chat_text(proc, r["question"], len(paths), system=system)
+            inputs = proc(text=[text], images=load_images(paths), return_tensors="pt").to("cuda:0")
             t0 = time.time()
             with torch.inference_mode():
-                gen = model.generate(**inputs, max_new_tokens=args.max_new_tokens, do_sample=False, eos_token_id=eos_ids, pad_token_id=tok.pad_token_id or im_end)
-            dt = time.time() - t0
-            raw = proc.batch_decode(gen[:, inputs['input_ids'].shape[1]:],
-                                    skip_special_tokens=True)[0]
-            full = seed + raw
-            stripped = strip_think_block(full)   # strip FIRST, then parse (08-20 rule)
-            ans = parse_answer(stripped, s['task'])
-            gen_secs.append(dt)
-            out.append(dict(ImageName=s['image'], Question=s['question'], TaskType=s['task'],
-                            dataset=s['dataset'], gt_answer=s.get('answer', ''),
-                            raw_output=full, Answer=ans, gen_seconds=round(dt, 3)))
-        except Exception as e:
-            print(f'sample fail: {e}')
-            out.append(dict(ImageName=s.get('image'), Question=s.get('question'),
-                            TaskType=s.get('task'), dataset=s.get('dataset'),
-                            gt_answer=s.get('answer', ''), raw_output='',
-                            Answer=f'Error: {e}', gen_seconds=None))
-    os.makedirs(os.path.dirname(os.path.abspath(args.output_file)), exist_ok=True)
-    json.dump(out, open(args.output_file, 'w'), indent=2)
-    if gen_secs:
-        print(f'gen s/case mean={sum(gen_secs)/len(gen_secs):.2f} n={len(gen_secs)}')
-    print(f'saved {len(out)} -> {args.output_file}')
+                gen = model.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS, do_sample=False,
+                                     num_beams=1, temperature=None, top_p=None, top_k=None,
+                                     eos_token_id=eos, pad_token_id=tok.pad_token_id or eos[0])
+            new = gen[0, inputs["input_ids"].shape[1]:]
+            raw = tok.decode(new, skip_special_tokens=True)
+            n_new = int(new.numel())
+            truncated = n_new >= MAX_NEW_TOKENS and int(new[-1]) not in eos
+            ans = parse_answer(strip_think_block(raw), r["task"])  # strip first, then parse
+            dt = round(time.time() - t0, 3)
+        except Exception as e:  # noqa: BLE001
+            raw, ans, n_new, truncated, dt = "", f"Error: {e}", 0, False, None
+        out.append(dict(id=r["id"], ImageName=r["images"], Question=r["question"], TaskType=r["task"],
+                        dataset=r["dataset"], gt_answer=r["answer"], raw_output=raw, Answer=ans,
+                        n_new_tokens=n_new, truncated=truncated, gen_seconds=dt))
+    os.makedirs(os.path.dirname(os.path.abspath(a.output_file)), exist_ok=True)
+    json.dump(out, open(a.output_file, "w"), indent=1)
+    by = collections.defaultdict(list)
+    for o in out:
+        by[o["TaskType"]].append(o)
+    for t, os_ in sorted(by.items()):
+        print(f"{t}: n={len(os_)} truncated={sum(o['truncated'] for o in os_)} "
+              f"errors={sum(str(o['Answer']).startswith('Error:') for o in os_)}")
+    print(f"saved {len(out)} -> {a.output_file}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

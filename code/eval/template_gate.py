@@ -1,96 +1,105 @@
-"""Template identity gate (Qwen3.5 sprint, gate 3).
+"""Template identity gate (smoke gate item 3, PLAN.md §3.3), journal version.
 
-Renders ONE exported deck sample through (a) LLaMA-Factory v0.9.5 qwen3_5 template
-exactly as training will see it (mm_plugin.process_messages + ReasoningTemplate.
-encode_oneturn, enable_thinking=False -> empty think block appended to PROMPT ids,
-no loss), and (b) the inference path (processor.apply_chat_template,
-add_generation_prompt=True, enable_thinking=False -- as in the Day-1 smoke/probe).
-Byte-compares token ids and decoded strings (also with image_pad runs collapsed,
-so a pad-count difference is reported separately from a template-text difference).
+For sample rows of each journal deck, renders the prompt two ways and byte-compares token ids:
+  (a) training: LLaMA-Factory v0.9.5 `qwen3_5` template exactly as SFT sees it
+      (mm_plugin.process_messages + encode_oneturn, enable_thinking=False, 768² cap);
+  (b) inference: code/eval/journal_render.py (what every journal evaluator uses), built from the
+      row's raw question and image paths, not from the deck's rendered text.
+Rows checked per deck: the first row of every task present, plus the first multi-image row and
+the first row whose question had more than 4 images.
+
+  python code/eval/template_gate.py /share/sda/ugrip/journal/data/j26_train_mix.jsonl [more decks]
+Prints GATE_PASS only if every checked row has identical prompt ids, identical image-pad counts,
+the empty think block in the prompt, and no think block in the training target.
+(Adapted from the challenge template_gate.py: same two render paths, now journal-format rows.)
 """
+import argparse
 import json
 import os
-import math
 import re
 import sys
 
-from PIL import Image
 from transformers import AutoProcessor
 
-from llamafactory.data.template import TEMPLATES
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from journal_render import IMAGE_MAX_PIXELS, capped_images, chat_text, load_images  # noqa: E402
 
-MODEL = os.environ.get("QWEN35_MODEL", "/data/ugrip2026/models/Qwen3.5-9B")
-DECK = sys.argv[1] if len(sys.argv) > 1 else (
-    "/data/ugrip2026/worktrees/Taha-qwen35-sprint/llama_factory_internvl/"
-    "data/flare_final_cls_rebal.jsonl")
-IMAGE_MAX_PIXELS = 4194304  # 2048^2, the flagship knob
+MODEL = os.environ.get("QWEN35_MODEL", "/share/sda/ugrip/models/Qwen3.5-9B")
 
-row = json.loads(open(DECK).readline())
-human = row["conversations"][0]["value"]
-gpt = row["conversations"][1]["value"]
-img_path = row["images"][0]
-print(f"sample: image={img_path}\nhuman[:120]={human[:120]!r}\ngpt={gpt!r}\n")
 
-processor = AutoProcessor.from_pretrained(MODEL)
-tokenizer = processor.tokenizer
+def pick_rows(path, max_scan=50000):
+    chosen, tasks, multi, over4 = [], set(), False, False
+    with open(path) as f:
+        for i, line in enumerate(f):
+            if i >= max_scan:
+                break
+            r = json.loads(line)
+            take = False
+            if r["task"] not in tasks:
+                tasks.add(r["task"]); take = True
+            if not multi and len(r["images"]) > 1:
+                multi = True; take = True
+            if not over4 and r.get("n_images_orig", 0) > 4:
+                over4 = True; take = True
+            if take:
+                chosen.append(r)
+    return chosen
 
-# ---- (a) LF training render (SupervisedDatasetProcessor path) ----
-template = TEMPLATES["qwen3_5"]
-template.enable_thinking = False           # YAML enable_thinking: false
-processor.image_max_pixels = IMAGE_MAX_PIXELS  # patcher.py:302 (model_args.image_max_pixels)
-messages = [{"role": "user", "content": human},
-            {"role": "assistant", "content": gpt}]
-mm_messages = template.mm_plugin.process_messages(
-    messages, [img_path], [], [], processor)
-prompt_ids, response_ids = template.encode_oneturn(tokenizer, mm_messages, None, None)
-lf_prompt = tokenizer.decode(prompt_ids)
-lf_response = tokenizer.decode(response_ids)
 
-# ---- (b) inference render (Day-1 probe convention) ----
-content = []
-parts = human.split("<image>")
-for i, part in enumerate(parts):
-    if part:
-        content.append({"type": "text", "text": part})
-    if i < len(parts) - 1:
-        content.append({"type": "image"})
-text = processor.apply_chat_template(
-    [{"role": "user", "content": content}], tokenize=False,
-    add_generation_prompt=True, enable_thinking=False)
-
-def cap_pixels(im, mx):
-    w, h = im.size
-    if w * h > mx:
-        f = math.sqrt(mx / (w * h))
-        im = im.resize((max(1, int(w * f)), max(1, int(h * f))))
-    return im
-
-img = cap_pixels(Image.open(img_path).convert("RGB"), IMAGE_MAX_PIXELS)
-enc = processor(text=[text], images=[img], return_tensors="pt")
-inf_ids = enc.input_ids[0].tolist()
-inf_prompt = tokenizer.decode(inf_ids)
-
-# ---- compare ----
 def collapse(s):
     return re.sub(r"(<\|image_pad\|>)+", "<|image_pad|>xN", s)
 
-exact_ids = prompt_ids == inf_ids
-exact_str = lf_prompt == inf_prompt
-norm_str = collapse(lf_prompt) == collapse(inf_prompt)
-lf_pads = lf_prompt.count("<|image_pad|>")
-inf_pads = inf_prompt.count("<|image_pad|>")
 
-print("=== VERDICT ===")
-print(f"prompt token ids identical: {exact_ids}")
-print(f"prompt strings identical:   {exact_str}")
-print(f"identical after collapsing image_pad runs: {norm_str}")
-print(f"image_pad counts: LF={lf_pads}  inference={inf_pads}")
-print(f"think block in LF PROMPT (no loss): {'<think>' in lf_prompt}")
-print(f"think block in LF RESPONSE (loss): {'<think>' in lf_response}")
-print("\n=== LF prompt (pads collapsed) ===")
-print(collapse(lf_prompt))
-print("\n=== LF response (training target) ===")
-print(repr(lf_response))
-print("\n=== inference prompt (pads collapsed) ===")
-print(collapse(inf_prompt))
-print("\nGATE_" + ("PASS" if (exact_ids or (norm_str and lf_pads == inf_pads)) else "FAIL"))
+def check_row(r, processor, template):
+    tok = processor.tokenizer
+    human, gpt = r["conversations"][0]["value"], r["conversations"][1]["value"]
+    imgs = r["images"]
+    # (a) LF training render
+    processor.image_max_pixels = IMAGE_MAX_PIXELS
+    msgs = [{"role": "user", "content": human}, {"role": "assistant", "content": gpt}]
+    mm = template.mm_plugin.process_messages(msgs, imgs, [], [], processor)
+    p_ids, r_ids = template.encode_oneturn(tok, mm, None, None)
+    lf_prompt, lf_resp = tok.decode(p_ids), tok.decode(r_ids)
+    # (b) journal inference render from the raw question + paths
+    paths = capped_images({"image": r["images"]})  # deck rows are already capped; idempotent
+    text = chat_text(processor, r["question"], len(paths), system=None)
+    enc = processor(text=[text], images=load_images(paths), return_tensors="pt")
+    inf_ids = enc.input_ids[0].tolist()
+    inf_prompt = tok.decode(inf_ids)
+    ok = {
+        "ids_identical": p_ids == inf_ids,
+        "pads_equal": lf_prompt.count("<|image_pad|>") == inf_prompt.count("<|image_pad|>"),
+        "think_in_prompt": "<think>" in lf_prompt,
+        "no_think_in_target": "<think>" not in lf_resp,
+        "target_ends_im_end": lf_resp.rstrip().endswith("<|im_end|>"),
+    }
+    return ok, collapse(lf_prompt), collapse(inf_prompt), lf_resp
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("decks", nargs="+")
+    ap.add_argument("--verbose", action="store_true")
+    a = ap.parse_args()
+    from llamafactory.data.template import TEMPLATES
+    processor = AutoProcessor.from_pretrained(MODEL)
+    template = TEMPLATES["qwen3_5"]
+    template.enable_thinking = False
+    all_ok = True
+    for deck in a.decks:
+        for r in pick_rows(deck):
+            ok, lf_p, inf_p, resp = check_row(r, processor, template)
+            passed = all(ok.values())
+            all_ok &= passed
+            tag = f"{os.path.basename(deck)} | {r['task']}/{r['dataset']} | images={len(r['images'])}"
+            print(("PASS " if passed else "FAIL ") + tag + " | " + json.dumps(ok))
+            if a.verbose or not passed:
+                print("  LF prompt :", repr(lf_p[-400:]))
+                print("  INF prompt:", repr(inf_p[-400:]))
+                print("  LF target :", repr(resp))
+    print("GATE_PASS" if all_ok else "GATE_FAIL")
+    sys.exit(0 if all_ok else 1)
+
+
+if __name__ == "__main__":
+    main()
