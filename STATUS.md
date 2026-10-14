@@ -28,8 +28,7 @@
 
 ## Next steps
 1. **GPU:** we use **GPU 1** (free on 2026-10-14). Check `nvidia-smi -i 1` before each launch.
-2. ~~Smoke gate on the box~~ passed 2026-10-14. Optional: a short test with 2 smoke runs on
-   GPU 1 at once, to measure throughput when sharing the card.
+2. ~~Smoke gate on the box~~ passed 2026-10-14; 3-at-once test done (2.0× throughput). Use 3 slots on GPU 1.
 3. **Scope review (coming, with Tausifa)**: the fundamental experiments stay. Budget input:
    one card until **13 Nov** (≤ ~720 h ≈ 1,000 A5000-equivalent h at 1.4×, minus final evals
    before the ~15 Nov submission), vs ~1,450 A5000 GPU-h planned. At 1.196 s/example, S1 s1337
@@ -59,8 +58,13 @@
 - Consequence: **every arm we compare must be trained and evaluated on the same box.**
   All journal runs from now on are on Blackwell GPU 1. The ws smoke numbers are not comparable
   to box numbers. (Holdout50 here is a format check, not a result.)
-- Throughput: one Blackwell card ≈ 1.4 A5000s for our recipe (GPU ~53% busy). Running 2–3 runs
-  on the card at once might raise total throughput; untested.
+- Throughput: one run alone ≈ 1.4 A5000s (1.196 s/example, GPU ~53% busy). **3 runs at once
+  (tested 2026-10-14): 1.75–1.76 s/example each, ≈ 1.70 examples/s in total = 2.0× one run ≈
+  2.8 A5000s.** Peak 16.95 GB reserved each (~51 GB of 96). Budget to 13 Nov at 3 slots ≈
+  2,000 A5000-equivalent GPU-h. 4 at once is untested.
+- The 3 runs had the same config and seed, but their final losses differed slightly (0.6376 /
+  0.6424 / 0.6401; alone: 0.6417). So training isn't bit-deterministic even on one box: run-to-run
+  noise at the ~1% loss level, on top of seed variance.
 
 ## Decisions to relay (Tausifa)
 - A/B include dev; we train on A∪B (40,094) and make selection decisions on the holdout
