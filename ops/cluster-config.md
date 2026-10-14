@@ -1,5 +1,27 @@
 # Compute operations guide (journal study)
 
+> # ★ 2026-10-14: ONE BACKEND — `mbz-yaqub` (Blackwell) GPU 0. `ws` IS NOT OURS ANY MORE.
+>
+> - All journal training **and** evaluation run on `mbz-yaqub`, **GPU 0 only** (assignment confirmed
+>   2026-10-14). Never use GPUs 1–7. `ws` is used by others: no jobs there. Its copies of the decks
+>   and env are a read-only reference.
+> - Outside user `mostafasalem` also had a job on GPU 0 on 2026-10-14 (~12.4 GB). Run
+>   `nvidia-smi -i 0` before each launch. We need ~17 GB per training run.
+> - Journal setup on the box (all verified 2026-10-14):
+>   - env `flare-blackwell-v5`: package versions identical to ws `flare-ws-v5`; see `code/env/LF_VERSION.md`.
+>   - LF v0.9.5 at `/data/ugrip2026/LLaMA-Factory-v5`: release commit `7af9095` + tf5 patch;
+>     source byte-identical to ws.
+>   - model `/data/ugrip2026/models/Qwen3.5-9B`.
+>   - repo clone `/data/ugrip2026/journal/repo`. The box can't pull from GitHub: update it with a
+>     git bundle copied to `/data/ugrip2026/relay/`, then `git fetch` from it.
+>   - decks `/data/ugrip2026/journal/data`: identical to the ws decks once image paths are remapped;
+>     md5s in `data/DECK_MANIFEST_blackwell.json`.
+>   - runs `/data/ugrip2026/journal/runs/<run_id>/`.
+> - Launch: `nohup bash code/train/run_chain.sh <cfg.yaml ...> > /data/ugrip2026/journal/runs/chain_gpu0.log 2>&1 &`
+>   (`run_chain.sh` defaults to GPU 0 and refuses other GPUs).
+> - Everything below is the pre-2026-10-14 guide. §B is still valid for access, storage and
+>   hardware; the `flare-blackwell` env (Qwen3-VL) is challenge-era.
+
 > Extracted on 2026-10-11 from the UGRIP challenge repo's `cluster-config.md`: section A (`ws`)
 > and section B (`mbz-yaqub` Blackwell) only. The retired `flare` SLURM material was left behind.
 > Old "idle", "running", storage and capacity statements are dated observations, not live checks.
