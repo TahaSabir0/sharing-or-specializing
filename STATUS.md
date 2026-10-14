@@ -31,8 +31,9 @@
 2. **Smoke gate on the box** (GPU 1, ~15 min): 50-step `journal_train` run on the mix
    deck + the ~50-question `eval_arm.py` check. Compare loss with the ws smoke run (1.57→0.63)
    and measure s/example and peak memory.
-3. **Re-plan with Tausifa** using the measured speed: one card ≤ ~400 h until 31 Oct, vs
-   ~1,450 A5000 GPU-h planned. Options: one seed for most arms, three only for the headline
+3. **Scope review (coming, with Tausifa)**: the fundamental experiments stay. Budget input:
+   one card until **13 Nov** (≤ ~720 h, minus final evals before the ~15 Nov submission), vs
+   ~1,450 A5000 GPU-h planned, at the box's measured speed. Options: one seed for most arms, three only for the headline
    comparison; subsets for some studies; merge or drop studies.
 4. S1 seed 1337 (Shared, then the 6 TaskLoRAs, back to back on GPU 1) after Taha's OK.
 5. W3 test and S0 share GPU 1 with training: one queue for everyone (`run_chain.sh`).
@@ -40,6 +41,7 @@
 7. **Teammates:** read papers and design modules. All GPU jobs go through the GPU 1 queue.
 
 ## Compute (2026-10-14)
+- GPU access until **13 Nov 2026**.
 - Only box: `mbz-yaqub`, **GPU 1** (first assigned GPU 0; switched to the free GPU 1 the same day). Setup and paths: banner of
   `ops/cluster-config.md`. Launch with `code/train/run_chain.sh` (defaults to GPU 1).
 - On 2026-10-14, GPU 1 was empty; `mostafasalem` has jobs on GPUs 0, 2 and 5.

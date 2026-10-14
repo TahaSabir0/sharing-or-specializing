@@ -41,6 +41,10 @@ budget is the trimmed plan in §8. Record later changes in the changelog below.
   numerics may differ slightly from the ws smoke run; the smoke gate is re-run on the box.
   **§8's budget (~1,450 A5000 GPU-h on 4 cards) no longer fits.** One card until 31 Oct gives
   ≤ ~400 h; the cut is decided once the box's speed per example is measured.
+- 2026-10-14: **GPU access runs until 13 Nov 2026** (was 31 Oct on ws). One card from 14 Oct to
+  13 Nov is ≤ ~720 h, and final evals must also fit before the ~15 Nov submission. A **review of
+  the paper's scope** is coming; the fundamental experiments stay. §8's cut is redone after it,
+  using the box's measured speed.
 - 2026-10-14 (later): **our card is GPU 1, not GPU 0** (GPU 1 was free; GPU 0 had an outside
   job). All launchers and docs now point to GPU 1.
 
@@ -54,7 +58,8 @@ budget is the trimmed plan in §8. Record later changes in the changelog below.
 
 **This plan is not cut to fit the budget.** It assumes unlimited compute.
 - The training window ends **31 Oct 2026**, on the 4× RTX A5000 (24 GB) GPUs of `ws`.
-  Blackwell time for 2048² is requested separately.
+  Blackwell time for 2048² is requested separately. *(Superseded 2026-10-14: one Blackwell card,
+  GPU 1, until 13 Nov 2026; see the changelog.)*
 - Usable training capacity is about **1,400–1,500 GPU-hours** (§2.2).
 - The full plan needs about **8,700 core GPU-hours plus about 1,850 optional**.
 - The scope must therefore be cut by roughly **6×**. Section 5 lists the costs and the

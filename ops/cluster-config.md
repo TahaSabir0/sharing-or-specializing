@@ -5,6 +5,7 @@
 > - All journal training **and** evaluation run on `mbz-yaqub`, **GPU 1 only** (2026-10-14: first
 >   assigned GPU 0, switched to GPU 1 the same day because GPU 1 was free). Never use any other GPU. `ws` is used by others: no jobs there. Its copies of the decks
 >   and env are a read-only reference.
+> - Access runs until **13 Nov 2026**.
 > - GPU 1 was empty on 2026-10-14 (`mostafasalem` has jobs on GPUs 0, 2, 5). Run
 >   `nvidia-smi -i 1` before each launch. We need ~17 GB per training run.
 > - Journal setup on the box (all verified 2026-10-14):
