@@ -21,7 +21,7 @@
 | W2 Training: `journal_train`, per-example loss, plug-in plumbing, registry; 50-step gate | **done** 2026-10-13: unit test PASS, template gate 14/14, smoke loss 1.57→0.63, trainable = P8, 1.665 s/example, 15.5 GB peak |
 | Move to Blackwell (no-GPU part): env/LF/splits/decks verified identical to ws, code defaults → box, repo clone, docs | **done** 2026-10-14 (branch `taha/blackwell-move`; PLAN.md changelog) |
 | Smoke gate on Blackwell GPU 1 (50 steps; measures s/example on the box) | **passed** 2026-10-14: loss 1.563→0.642 (ws 1.573→0.634), **1.196 s/example** (ws 1.665, ≈1.4×), peak 15.5 GB, trainable = P8; holdout50 eval 0 truncated / 0 malformed |
-| S1 seed 1337 launch (Shared + 6 TaskLoRA) | — (ask Taha first) |
+| S1 seed 1337 launch (Shared + 6 TaskLoRA) | **running** since 2026-10-14 14:27 (box time), 3 chains on GPU 1; see Active runs |
 | W3 Eval: ZS-bare/ZS-prompt, adapters, oracle sets, composition, plug-ins, scoring, bootstrap | code written (branch `taha/w3-eval`), untested |
 | S0: full zero-shot on holdout + dev; real U | — |
 | Handoff: `code/INTERFACE.md`, reference plug-in, gate + launch/eval commands, queue rules | — |
@@ -77,4 +77,18 @@
 - Full-deck tokenization takes ~35–40 min (cached per deck after the first run).
 
 ## Active runs
-None.
+S1 seed 1337, launched 2026-10-14 14:27 (box time, +04), `mbz-yaqub` GPU 1, commit `5199a58`,
+repo `/data/ugrip2026/journal/repo`, logs in `/data/ugrip2026/journal/runs/`:
+| Chain | PID | Runs, in order | ETA |
+|---|---|---|---|
+| A | 670039 | `j26_q35_shared_full_768_s1337` | ~17 Oct |
+| B | 670040 | `taskcls` → `taskdet` | ~15–16 Oct |
+| C | 670041 | `taskcount` → `taskreport` → `taskml` → `taskreg` | ~15–16 Oct (count ~15:30 on 14 Oct) |
+
+Collect: `ssh blackwell 'cat /data/ugrip2026/journal/runs/chain_{A,B,C}.log'`; per run:
+`<run_id>.log` and `<run_id>/runtime.json`.
+
+Incident (2026-10-14 14:11): the first launch had no thread cap. Each of the 48 tokenizer workers
+started ~one thread per core (512 cores) → ~9k threads, ~400 cores, box load 2,800. Stopped by
+Taha at ~14:25 (still tokenizing, nothing lost; logs `chain_*_aborted_threads.log`). Relaunched
+with `run_chain.sh` capping OMP/MKL/BLAS at 4 threads per process: 168 threads, ~41 cores.
