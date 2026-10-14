@@ -15,6 +15,9 @@ RUNS="${JOURNAL_RUNS:-/data/ugrip2026/journal/runs}"
 mkdir -p "$RUNS"
 source "${CONDA_SH:-/data/ugrip2026/miniconda3/etc/profile.d/conda.sh}"
 conda activate "${CONDA_ENV:-flare-blackwell-v5}"
+# mbz-yaqub has 512 cores: uncapped, every tokenizer/dataloader worker starts ~one thread per core
+# (3 runs x 16 workers -> ~9k threads, ~400 cores on a shared box, 2026-10-14). Cap them.
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}" MKL_NUM_THREADS="${MKL_NUM_THREADS:-4}"        OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-4}" NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-4}"
 cd "$REPO"
 for CFG in "$@"; do
   RID=$(python -c "import yaml,sys;print(yaml.safe_load(open(sys.argv[1]))['run_id'])" "$CFG")
