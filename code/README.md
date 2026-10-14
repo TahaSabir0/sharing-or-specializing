@@ -56,12 +56,15 @@ and `train/target_modules_qwen35.json` (the frozen LoRA target list).
   `experiments.qwen3_matched_border_crop` from the old repo. If S9.4 needs the crop, copy that
   module here.
 
-## Environment (ws)
-- Conda env `flare-ws-v5` (transformers 5.x, torch 2.11 cu128), with LLaMA-Factory v0.9.5 at
-  `/share/sda/ugrip/LLaMA-Factory-v5` and `env/lf_v095_tf5_compat.patch` applied. Record the
-  exact LLaMA-Factory commit in `env/` (W2).
-- Data, splits and base models stay on ws under `/share/sda/ugrip/`. Run outputs go to
-  `/share/sda/ugrip/journal/runs/<run_id>/`, and each run gets a row in `results/RUNS.csv`.
+## Environment (Blackwell `mbz-yaqub`, GPU 0; since 2026-10-14)
+- Conda env `flare-blackwell-v5` (same package versions as ws `flare-ws-v5`), with LLaMA-Factory
+  v0.9.5 at `/data/ugrip2026/LLaMA-Factory-v5` and `env/lf_v095_tf5_compat.patch` applied. Both
+  are recorded in `env/LF_VERSION.md`.
+- Base model `/data/ugrip2026/models/Qwen3.5-9B`; decks `/data/ugrip2026/journal/data`; run outputs
+  `/data/ugrip2026/journal/runs/<run_id>/`, and each run gets a row in `results/RUNS.csv`.
+  Code defaults point here; override with `JOURNAL_DATA`, `JOURNAL_RUNS`, `MODELS_DIR`,
+  `QWEN35_MODEL`, `CONDA_SH`, `CONDA_ENV`.
+- `train/launch_template_ws.sh` is the old ws launcher, kept for reference only.
 - On Windows, scripts that print `∪` need `PYTHONIOENCODING=utf-8`; Linux is fine.
 
 ## Rules

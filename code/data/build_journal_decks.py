@@ -15,10 +15,10 @@ Subcommands
              (seeds 20261010, 20261011 at 5/10/25%) -> data/subsets/<task>_seed<seed>.json
   subset-deck  mixture deck in which only the target task is shrunk to a subset (PLAN.md §1.9, D5)
 
-  python build_journal_decks.py decks --splits_dir .../internal_splits_v2 --out_dir /share/sda/ugrip/journal/data
+  python build_journal_decks.py decks --splits_dir .../internal_splits_v2 --out_dir /data/ugrip2026/journal/data
   python build_journal_decks.py subsets --splits_dir ... --out_dir <repo>/data/subsets
   python build_journal_decks.py subset-deck --splits_dir ... --subsets_dir <repo>/data/subsets \
-      --task classification --seed 20261009 --pct 10 --out_dir /share/sda/ugrip/journal/data
+      --task classification --seed 20261009 --pct 10 --out_dir /data/ugrip2026/journal/data
 """
 import argparse
 import collections

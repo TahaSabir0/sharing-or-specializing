@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """W2: journal_train, the training wrapper around LLaMA-Factory v0.9.5 (PLAN.md §1.2–§1.5, §1.10, §3).
 
-  CUDA_VISIBLE_DEVICES=1 python code/train/journal_train.py --config code/configs/s1/shared_s1337.yaml
+  CUDA_VISIBLE_DEVICES=0 python code/train/journal_train.py --config code/configs/s1/shared_s1337.yaml
   ... --max_steps 50 --no_eval --run_suffix smoke      # smoke gate item 1
 
 What it adds on top of `llamafactory-cli train`:
@@ -13,7 +13,7 @@ What it adds on top of `llamafactory-cli train`:
 - Plug-in hook: `method: <name>` other than `lora` replaces LF's LoRA setup with
   methods/<name>.py::apply_method(model, method_cfg). Only trainable parameters are saved.
 - aux_loss: summed from modules and added to the loss.
-- Run registry: /share/sda/ugrip/journal/runs/<run_id>/ with config.yaml, git_commit.txt,
+- Run registry: $JOURNAL_RUNS (default /data/ugrip2026/journal/runs)/<run_id>/ with config.yaml, git_commit.txt,
   decks.json, trainer_log.jsonl (LF), task_loss.jsonl, runtime.json, registry_row.csv.
 
 Run config (YAML):
@@ -52,9 +52,9 @@ sys.path.insert(0, HERE)
 
 from methods import base as mb  # noqa: E402
 
-RUNS_ROOT = os.environ.get("JOURNAL_RUNS", "/share/sda/ugrip/journal/runs")
-DATA_DIR = os.environ.get("JOURNAL_DATA", "/share/sda/ugrip/journal/data")
-MODELS_DIR = os.environ.get("MODELS_DIR", "/share/sda/ugrip/models")
+RUNS_ROOT = os.environ.get("JOURNAL_RUNS", "/data/ugrip2026/journal/runs")
+DATA_DIR = os.environ.get("JOURNAL_DATA", "/data/ugrip2026/journal/data")
+MODELS_DIR = os.environ.get("MODELS_DIR", "/data/ugrip2026/models")
 TARGETS = mb.load_targets()
 
 # PLAN.md §1.1–§1.4. Every value pinned explicitly, including framework defaults.

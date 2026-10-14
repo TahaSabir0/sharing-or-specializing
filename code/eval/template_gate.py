@@ -8,7 +8,7 @@ For sample rows of each journal deck, renders the prompt two ways and byte-compa
 Rows checked per deck: the first row of every task present, plus the first multi-image row and
 the first row whose question had more than 4 images.
 
-  python code/eval/template_gate.py /share/sda/ugrip/journal/data/j26_train_mix.jsonl [more decks]
+  python code/eval/template_gate.py /data/ugrip2026/journal/data/j26_train_mix.jsonl [more decks]
 Prints GATE_PASS only if every checked row has identical prompt ids, identical image-pad counts,
 the empty think block in the prompt, and no think block in the training target.
 (Adapted from the challenge template_gate.py: same two render paths, now journal-format rows.)
@@ -24,7 +24,7 @@ from transformers import AutoProcessor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from journal_render import IMAGE_MAX_PIXELS, capped_images, chat_text, load_images  # noqa: E402
 
-MODEL = os.environ.get("QWEN35_MODEL", "/share/sda/ugrip/models/Qwen3.5-9B")
+MODEL = os.environ.get("QWEN35_MODEL", "/data/ugrip2026/models/Qwen3.5-9B")
 
 
 def pick_rows(path, max_scan=50000):
