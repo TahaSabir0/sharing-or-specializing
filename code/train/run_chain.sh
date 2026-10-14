@@ -1,13 +1,13 @@
 #!/bin/bash
 # Run journal_train configs one after another on ONE GPU (durable queue for a card).
-# Default box: mbz-yaqub (Blackwell); our allocation is GPU 0 only (ops/cluster-config.md §B).
+# Default box: mbz-yaqub (Blackwell); our allocation is GPU 1 only (ops/cluster-config.md §B).
 #   nohup bash code/train/run_chain.sh code/configs/s1/shared_s1337.yaml [more.yaml ...] \
-#       > /data/ugrip2026/journal/runs/chain_gpu0.log 2>&1 &
+#       > /data/ugrip2026/journal/runs/chain_gpu1.log 2>&1 &
 # Each run logs to <runs>/<run_id>.log. A failed run is recorded and the chain moves on.
 set -uo pipefail
-GPU="${GPU:-0}"
-if [ "$GPU" != "0" ] && [ -z "${ALLOW_OTHER_GPU:-}" ]; then
-  echo "refusing GPU $GPU: our Blackwell allocation is GPU 0 (set ALLOW_OTHER_GPU=1 on another box)" >&2
+GPU="${GPU:-1}"
+if [ "$GPU" != "1" ] && [ -z "${ALLOW_OTHER_GPU:-}" ]; then
+  echo "refusing GPU $GPU: our Blackwell allocation is GPU 1 (set ALLOW_OTHER_GPU=1 on another box)" >&2
   exit 2
 fi
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"

@@ -61,9 +61,9 @@ default.
 8. **Preserve negative results** and uncertainties; don't invent completion.
 
 ## Compute and execution
-- Since 2026-10-14 all training and evaluation run on `mbz-yaqub` (Blackwell, **GPU 0 only**).
+- Since 2026-10-14 all training and evaluation run on `mbz-yaqub` (Blackwell, **GPU 1 only**).
   `ws` is used by others: don't run jobs there. See the banner in `ops/cluster-config.md`.
-  Check `nvidia-smi -i 0` before launching.
+  Check `nvidia-smi -i 1` before launching.
 - Delegate remote GPU/data work to the `cluster-executor` agent (`ops/cluster-executor.toml`)
   with a concrete task, branch/commit, GPU and budget.
 - Long jobs: launch durably (nohup + log), report PID, log path, ETA and the collection

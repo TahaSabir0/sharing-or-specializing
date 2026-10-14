@@ -4,7 +4,7 @@ Adapted from the challenge eval_qwen35_arm.py: same model loading and Qwen3.5 tr
 journal rows (code/data/journal_format.py) rendered by code/eval/journal_render.py, bare prompts,
 no answer seeds, no prompt variants. The batched full evaluator is eval_harness.py (W3).
 
-  CUDA_VISIBLE_DEVICES=0 python code/eval/eval_arm.py --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl \
+  CUDA_VISIBLE_DEVICES=1 python code/eval/eval_arm.py --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl \
       --adapter_path <run_dir> --per_task 50 --output_file preds.json
   --adapter_path none                  ZS-bare (base model)
   --adapter_path none --zs_prompt      ZS-prompt (generic system prompt, PLAN.md §1.6)

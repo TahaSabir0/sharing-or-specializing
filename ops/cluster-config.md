@@ -1,12 +1,12 @@
 # Compute operations guide (journal study)
 
-> # ★ 2026-10-14: ONE BACKEND — `mbz-yaqub` (Blackwell) GPU 0. `ws` IS NOT OURS ANY MORE.
+> # ★ 2026-10-14: ONE BACKEND — `mbz-yaqub` (Blackwell) GPU 1. `ws` IS NOT OURS ANY MORE.
 >
-> - All journal training **and** evaluation run on `mbz-yaqub`, **GPU 0 only** (assignment confirmed
->   2026-10-14). Never use GPUs 1–7. `ws` is used by others: no jobs there. Its copies of the decks
+> - All journal training **and** evaluation run on `mbz-yaqub`, **GPU 1 only** (2026-10-14: first
+>   assigned GPU 0, switched to GPU 1 the same day because GPU 1 was free). Never use any other GPU. `ws` is used by others: no jobs there. Its copies of the decks
 >   and env are a read-only reference.
-> - Outside user `mostafasalem` also had a job on GPU 0 on 2026-10-14 (~12.4 GB). Run
->   `nvidia-smi -i 0` before each launch. We need ~17 GB per training run.
+> - GPU 1 was empty on 2026-10-14 (`mostafasalem` has jobs on GPUs 0, 2, 5). Run
+>   `nvidia-smi -i 1` before each launch. We need ~17 GB per training run.
 > - Journal setup on the box (all verified 2026-10-14):
 >   - env `flare-blackwell-v5`: package versions identical to ws `flare-ws-v5`; see `code/env/LF_VERSION.md`.
 >   - LF v0.9.5 at `/data/ugrip2026/LLaMA-Factory-v5`: release commit `7af9095` + tf5 patch;
@@ -17,8 +17,8 @@
 >   - decks `/data/ugrip2026/journal/data`: identical to the ws decks once image paths are remapped;
 >     md5s in `data/DECK_MANIFEST_blackwell.json`.
 >   - runs `/data/ugrip2026/journal/runs/<run_id>/`.
-> - Launch: `nohup bash code/train/run_chain.sh <cfg.yaml ...> > /data/ugrip2026/journal/runs/chain_gpu0.log 2>&1 &`
->   (`run_chain.sh` defaults to GPU 0 and refuses other GPUs).
+> - Launch: `nohup bash code/train/run_chain.sh <cfg.yaml ...> > /data/ugrip2026/journal/runs/chain_gpu1.log 2>&1 &`
+>   (`run_chain.sh` defaults to GPU 1 and refuses other GPUs).
 > - Everything below is the pre-2026-10-14 guide. §B is still valid for access, storage and
 >   hardware; the `flare-blackwell` env (Qwen3-VL) is challenge-era.
 
@@ -202,6 +202,7 @@ See memory [[project_blackwell_training_box]]. **Use: flagship 2048² training o
 ### B.2 Hardware / allocation
 - **8× NVIDIA RTX PRO 6000 Blackwell Server Edition, ~96 GB each** (97,887 MiB), driver 590.48.01 /
   CUDA 13.1, compute capability **sm_120 (Blackwell)**.
+- **(Superseded 2026-10-14: the journal uses GPU 1 only; see the banner at the top.)**
 - **★ WE ARE ALLOCATED GPU 0 ONLY** (Ahmed's rule; GPUs 1–7 belong to other researchers). **Always
   `CUDA_VISIBLE_DEVICES=0`.** Never launch on 1–7. No SLURM. **No Docker** on this box.
 

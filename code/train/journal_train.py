@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """W2: journal_train, the training wrapper around LLaMA-Factory v0.9.5 (PLAN.md §1.2–§1.5, §1.10, §3).
 
-  CUDA_VISIBLE_DEVICES=0 python code/train/journal_train.py --config code/configs/s1/shared_s1337.yaml
+  CUDA_VISIBLE_DEVICES=1 python code/train/journal_train.py --config code/configs/s1/shared_s1337.yaml
   ... --max_steps 50 --no_eval --run_suffix smoke      # smoke gate item 1
 
 What it adds on top of `llamafactory-cli train`:

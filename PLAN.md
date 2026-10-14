@@ -32,7 +32,7 @@ budget is the trimmed plan in §8. Record later changes in the changelog below.
   split the holdout into a selection half and a reporting half. Tausifa to be informed.
   Holdout = 4,447 scored questions (the 4,449 in §1.7 was an arithmetic slip; its per-task
   table sums to 4,447). Decks: `/share/sda/ugrip/journal/data`, md5s in `data/DECK_MANIFEST.json`.
-- 2026-10-14: **compute moved to one card: `mbz-yaqub` (Blackwell) GPU 0; `ws` is no longer
+- 2026-10-14: **compute moved to one card on `mbz-yaqub` (Blackwell); `ws` is no longer
   ours.** Training and evaluation both run there. Verified identical to ws: package versions
   (`flare-blackwell-v5`; the only differences are LF API-server extras and a missing protobuf),
   LF source (release commit `7af9095` + tf5 patch), splits and all 18 decks (byte-identical once
@@ -41,6 +41,8 @@ budget is the trimmed plan in §8. Record later changes in the changelog below.
   numerics may differ slightly from the ws smoke run; the smoke gate is re-run on the box.
   **§8's budget (~1,450 A5000 GPU-h on 4 cards) no longer fits.** One card until 31 Oct gives
   ≤ ~400 h; the cut is decided once the box's speed per example is measured.
+- 2026-10-14 (later): **our card is GPU 1, not GPU 0** (GPU 1 was free; GPU 0 had an outside
+  job). All launchers and docs now point to GPU 1.
 
 **Paths in this folder:**
 - `stats/NN...` citations refer to challenge-era ledgers, now in
@@ -93,7 +95,7 @@ journal-plan document.
 | P8 | active parameter count of one rank-8 LoRA on the target modules (§1.3) |
 | U | cost of one full A∪B training run (3 epochs, Qwen, 768²), ≈ 68 GPU-h (§2.2) |
 | E | cost of one full holdout evaluation, ≈ 2.1 GPU-h (§2.2) |
-| GPU-h / BW | A5000 GPU-hours on `ws` / Blackwell GPU-hours on `mbz-yaqub` (GPU 0 only) |
+| GPU-h / BW | A5000 GPU-hours on `ws` / Blackwell GPU-hours on `mbz-yaqub` (GPU 1 only since 2026-10-14) |
 | C_ij | transfer score: how adapter i changes target task j relative to the base model (S2) |
 | μ / PGF | normalised task score, the "perfection gap factor" from Sachdeva et al. (§1.8) |
 | LF | LLaMA-Factory v0.9.5, our training framework |

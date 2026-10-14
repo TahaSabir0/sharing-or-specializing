@@ -56,7 +56,7 @@ and `train/target_modules_qwen35.json` (the frozen LoRA target list).
   `experiments.qwen3_matched_border_crop` from the old repo. If S9.4 needs the crop, copy that
   module here.
 
-## Environment (Blackwell `mbz-yaqub`, GPU 0; since 2026-10-14)
+## Environment (Blackwell `mbz-yaqub`, GPU 1; since 2026-10-14)
 - Conda env `flare-blackwell-v5` (same package versions as ws `flare-ws-v5`), with LLaMA-Factory
   v0.9.5 at `/data/ugrip2026/LLaMA-Factory-v5` and `env/lf_v095_tf5_compat.patch` applied. Both
   are recorded in `env/LF_VERSION.md`.
