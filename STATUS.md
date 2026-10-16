@@ -83,6 +83,15 @@ repo `/data/ugrip2026/journal/repo`, logs in `/data/ugrip2026/journal/runs/`:
 | A | 670039 | `j26_q35_shared_full_768_s1337` | 89% (13,321/15,036 steps), ETA ~15:00 16 Oct |
 | B | 670040 | `taskcls` (26.9 h) → `taskdet` (4.5 h) | **done** 15 Oct 21:52, rc=0 |
 | C | 670041 | `taskcount` (1.2 h) → `taskreport` (10.0 h) → `taskml` (9.0 h) → `taskreg` (6.0 h) | **done** 15 Oct 16:38, rc=0 |
+| D | 826593 | `j26_q35_shared48_full_768_s1337` (E1 control, r48 α96; commit `a0ff450`) | started 16 Oct 11:16; trainable 129,835,008 = 6·P8 ✓; step-10 loss 3.05 (Shared r8: 3.13). ~18 s/it while 4 jobs share the card; ~3 days |
+| eval E1 | 826594 | `code/eval/jobs/v2_e1_s1337_holdout.txt`: 6 TaskLoRAs on their own holdout slice, then (after chain A) Shared on the full holdout | started 16 Oct 11:16; cls at 1.7 s/q |
+| eval E0 | 826595 | `code/eval/jobs/v2_e0_qwen_zeroshot.txt`: ZS-prompt, then ZS-bare, full holdout | started 16 Oct 11:16; ~2 h each |
+
+The evals use `eval_arm.py` (one question at a time; it was the smoke-gate check) via the new queue
+`code/eval/run_eval_chain.sh`, not the untested W3 harness. Predictions only, written at the end of
+each job to `<run_dir>/predictions_holdout.json`; scoring (`score_single.py`, CRIMSON) comes next.
+With 4 jobs on the card, Shared s1337 slowed from ~9 to ~17 s/it; its ETA moved to ~18:00 16 Oct.
+Eval logs: `<runs>/eval_<name>.log`, queues: `<runs>/evalchain_{E1s1337,E0qwen}.log`, `chain_D.log`.
 
 Collect: `ssh blackwell 'cat /data/ugrip2026/journal/runs/chain_{A,B,C}.log'`; per run:
 `<run_id>.log` and `<run_id>/runtime.json`.
