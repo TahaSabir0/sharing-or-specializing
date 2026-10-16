@@ -1,13 +1,14 @@
 # Status
 
-**Updated 2026-10-14.**
+**Updated 2026-10-16.**
 
 ## Where we are
-- The experiment plan (`PLAN.md`) was **confirmed by Tausifa and the team on 2026-10-11 with
-  no changes**. Its budget (PLAN.md §8.3, ≈1,450 GPU-h on ws) **no longer fits**: since
-  2026-10-14 we have **one card, Blackwell `mbz-yaqub` GPU 1**, for training and eval; `ws` is
-  not ours. A cut is needed (next steps).
-- The team assignment is PLAN.md §7.
+- **New plan, v2 (`PLAN.md`, 2026-10-16)**, from the 14 Oct research update
+  (`references/plan_updates/research_update_2026-10-14.pdf`). Five main arms (Shared, Hydra-T,
+  Reversed Hydra, TaskLoRA, Shared r48) × 3 seeds × Qwen and MedGemma run first (Phase A); the
+  additional experiments follow (Phase B); scaling (RQ2) is last and over budget (Phase C).
+  v1 is archived in `PLAN_v1_2026-10-11.md`.
+- Team roles under v2: to be agreed separately (PLAN.md §7). v1's assignment no longer applies.
 - **Build first, interface note last** (2026-10-13, PLAN.md changelog): Taha builds the whole
   foundation, launches S1 seed 1337 once W2 passes, builds W3 while it trains, then hands the
   team a half-page plug-in note (`code/INTERFACE.md`) plus a reference plug-in.
@@ -21,23 +22,20 @@
 | W2 Training: `journal_train`, per-example loss, plug-in plumbing, registry; 50-step gate | **done** 2026-10-13: unit test PASS, template gate 14/14, smoke loss 1.57→0.63, trainable = P8, 1.665 s/example, 15.5 GB peak |
 | Move to Blackwell (no-GPU part): env/LF/splits/decks verified identical to ws, code defaults → box, repo clone, docs | **done** 2026-10-14 (branch `taha/blackwell-move`; PLAN.md changelog) |
 | Smoke gate on Blackwell GPU 1 (50 steps; measures s/example on the box) | **passed** 2026-10-14: loss 1.563→0.642 (ws 1.573→0.634), **1.196 s/example** (ws 1.665, ≈1.4×), peak 15.5 GB, trainable = P8; holdout50 eval 0 truncated / 0 malformed |
-| S1 seed 1337 launch (Shared + 6 TaskLoRA) | **running** since 2026-10-14 14:27 (box time), 3 chains on GPU 1; see Active runs |
+| S1 seed 1337 (Shared + 6 TaskLoRA; v2 E1) | 6 TaskLoRAs **done** 2026-10-15 (all rc=0); Shared at 89% on 16 Oct 10:41, ETA ~15:00 box time; see Active runs |
 | W3 Eval: ZS-bare/ZS-prompt, adapters, oracle sets, composition, plug-ins, scoring, bootstrap | code written (branch `taha/w3-eval`), untested |
 | S0: full zero-shot on holdout + dev; real U | — |
 | Handoff: `code/INTERFACE.md`, reference plug-in, gate + launch/eval commands, queue rules | — |
 
-## Next steps
-1. **GPU:** we use **GPU 1** (free on 2026-10-14). Check `nvidia-smi -i 1` before each launch.
-2. ~~Smoke gate on the box~~ passed 2026-10-14; 3-at-once test done (2.0× throughput). Use 3 slots on GPU 1.
-3. **Scope review (coming, with Tausifa)**: the fundamental experiments stay. Budget input:
-   one card until **13 Nov** (≤ ~720 h ≈ 1,000 A5000-equivalent h at 1.4×, minus final evals
-   before the ~15 Nov submission), vs ~1,450 A5000 GPU-h planned. At 1.196 s/example, S1 s1337
-   (Shared + 6 TaskLoRAs) ≈ 80 h on its own. Options: one seed for most arms, three only for the headline
-   comparison; subsets for some studies; merge or drop studies.
-4. S1 seed 1337 (Shared, then the 6 TaskLoRAs, back to back on GPU 1) after Taha's OK.
-5. W3 test and S0 share GPU 1 with training: one queue for everyone (`run_chain.sh`).
-6. Handoff: `code/INTERFACE.md` + reference plug-in, rewritten for the box.
-7. **Teammates:** read papers and design modules. All GPU jobs go through the GPU 1 queue.
+## Next steps (order: PLAN.md §5.1)
+1. **Fill the 2 idle slots on GPU 1** (idle since the TaskLoRAs finished, 15 Oct ~22:00): E0
+   Qwen zero-shot, holdout evals of the s1337 TaskLoRAs (W3's first test), Shared r48 s1337
+   after its smoke gate.
+2. Seeds 2026 and 42 of Shared, TaskLoRA and Shared r48.
+3. W4 HydraLoRA module (`hydraT` + `hydraR` modes) → gate → Hydra arms × 3 seeds.
+4. W9 MedGemma port → gate → E0 MedGemma + E2.
+5. Handoff: `code/INTERFACE.md` + reference plug-in.
+6. Agree v2 team roles.
 
 ## Compute (2026-10-14)
 - GPU access until **13 Nov 2026**.
@@ -68,8 +66,9 @@
 
 ## Decisions to relay (Tausifa)
 - A/B include dev; we train on A∪B (40,094) and make selection decisions on the holdout
-  (PLAN.md changelog 2026-10-13). Option: split holdout into select/report halves.
-- Compute is one Blackwell card: the plan needs a cut (step 3 above).
+  (v1 changelog 2026-10-13; PLAN.md v2 §1.7). v2 needs no selection decisions.
+- v2 decisions N1–N8 (PLAN.md §6): total-parameter counting with Shared r48 (α 96) as control;
+  3 seeds and MedGemma everywhere; additional experiments after the main ones; RQ2 last.
 
 ## Open checks
 - Measure U with the packed decks: the S1 Shared s1337 run gives it (smoke implies ≈ 56 GPU-h
@@ -79,11 +78,11 @@
 ## Active runs
 S1 seed 1337, launched 2026-10-14 14:27 (box time, +04), `mbz-yaqub` GPU 1, commit `5199a58`,
 repo `/data/ugrip2026/journal/repo`, logs in `/data/ugrip2026/journal/runs/`:
-| Chain | PID | Runs, in order | ETA |
+| Chain | PID | Runs, in order | State (16 Oct 10:41) |
 |---|---|---|---|
-| A | 670039 | `j26_q35_shared_full_768_s1337` | ~17 Oct |
-| B | 670040 | `taskcls` → `taskdet` | ~15–16 Oct |
-| C | 670041 | `taskcount` → `taskreport` → `taskml` → `taskreg` | ~15–16 Oct (count ~15:30 on 14 Oct) |
+| A | 670039 | `j26_q35_shared_full_768_s1337` | 89% (13,321/15,036 steps), ETA ~15:00 16 Oct |
+| B | 670040 | `taskcls` (26.9 h) → `taskdet` (4.5 h) | **done** 15 Oct 21:52, rc=0 |
+| C | 670041 | `taskcount` (1.2 h) → `taskreport` (10.0 h) → `taskml` (9.0 h) → `taskreg` (6.0 h) | **done** 15 Oct 16:38, rc=0 |
 
 Collect: `ssh blackwell 'cat /data/ugrip2026/journal/runs/chain_{A,B,C}.log'`; per run:
 `<run_id>.log` and `<run_id>/runtime.json`.

@@ -1,1604 +1,581 @@
-# Journal paper experiment plan — "Sharing or Specializing?"
+# Experiment plan v2: "Sharing or Specializing?"
 
-Working plan for the IEEE TMI paper (submission target ~15 Nov 2026). It covers every
-experiment in Tausifa's proposal, the technical defaults needed to run each one, and a
-compute breakdown per experiment so that we can decide what to cut.
+The working plan for the IEEE TMI paper (submission ~15 Nov 2026; GPU access until 13 Nov).
+It says what we run, in what order, with which settings, and what each run is for. It follows
+the research update of 14 Oct 2026 (`references/plan_updates/research_update_2026-10-14.pdf`).
 
-**Status: confirmed by Tausifa and the team on 2026-10-11, with no changes.** The working
-budget is the trimmed plan in §8. Record later changes in the changelog below.
+**v1 is archived** in `PLAN_v1_2026-10-11.md` (frozen). It holds Tausifa's 12 protocol answers
+(its Appendix A) and the full designs of the studies v2 dropped. §1 below is v1's protocol with
+the changes marked **(v2)**.
 
 **Changelog**
-- 2026-10-11: plan confirmed without changes; moved into its own folder (local `C:/Users/tahas/IEEE`, repo `TahaSabir0/sharing-or-specializing`).
-  Tausifa's 12 protocol answers added as Appendix A.
-- 2026-10-11: one repo for docs and code. Code now lives in `code/` (seeded from
-  `Taha/qwen35-sprint` `bec2d1f`). Registry → `results/RUNS.csv`; subsets → `data/subsets/`;
-  interface doc → `code/INTERFACE.md`.
-- 2026-10-12: folders moved under C:/Users/tahas/research/ (this repo is now `C:/Users/tahas/research/IEEE`).
-- 2026-10-13: **build first, interface note last** (Taha's decision). There is no day-1
-  interface doc. Taha builds W1–W3 end to end, launches S1 seed 1337 once W2 passes its gate
-  (W3 is built while S1 trains), and writes `code/INTERFACE.md` as a half-page plug-in note,
-  with a reference plug-in, once the harness works. Teammates start module code against that
-  note. Smoke-gate item 4 for the S1 launch is met with a ~50-question `eval_arm.py` check on
-  the 50-step adapter, before the full W3 harness exists. §3.2, §7.1, §7.2 and §7.3 updated.
-- 2026-10-13: step 0 measured **P8 = 21,639,168** (r8 over the 248 language-model linears;
-  §1.3's fp32 estimate). Target list frozen in `code/train/target_modules_qwen35.json`. LF v0.9.5
-  on ws is not a git checkout; its source-tree hash is recorded in `code/env/LF_VERSION.md`.
-- 2026-10-13: **W1 finding and decision (Taha). Deviation from §1.7 and CLAUDE.md rule 5.**
-  `A.jsonl` = `A_train` ∪ `A_dev` (likewise B), so the A∪B training pool contains the dev set.
-  Decision: **train on A∪B as planned (40,094 questions; §1.5 counts confirmed exactly)**, and
-  **make selection decisions on the holdout** instead of dev. Consequence to state in the
-  paper: holdout numbers for any selected setting (λ grids, router settings, top-k) are
-  optimistically biased; dev numbers are train-seen. Suggested mitigation, not adopted yet:
-  split the holdout into a selection half and a reporting half. Tausifa to be informed.
-  Holdout = 4,447 scored questions (the 4,449 in §1.7 was an arithmetic slip; its per-task
-  table sums to 4,447). Decks: `/share/sda/ugrip/journal/data`, md5s in `data/DECK_MANIFEST.json`.
-- 2026-10-14: **compute moved to one card on `mbz-yaqub` (Blackwell); `ws` is no longer
-  ours.** Training and evaluation both run there. Verified identical to ws: package versions
-  (`flare-blackwell-v5`; the only differences are LF API-server extras and a missing protobuf),
-  LF source (release commit `7af9095` + tf5 patch), splits and all 18 decks (byte-identical once
-  image paths are remapped), and deck image sizes (33,378 files). Deck md5s on the box:
-  `data/DECK_MANIFEST_blackwell.json`. Hardware differs (RTX PRO 6000 sm_120 vs A5000), so
-  numerics may differ slightly from the ws smoke run; the smoke gate is re-run on the box.
-  **§8's budget (~1,450 A5000 GPU-h on 4 cards) no longer fits.** One card until 31 Oct gives
-  ≤ ~400 h; the cut is decided once the box's speed per example is measured.
-- 2026-10-14: **GPU access runs until 13 Nov 2026** (was 31 Oct on ws). One card from 14 Oct to
-  13 Nov is ≤ ~720 h, and final evals must also fit before the ~15 Nov submission. A **review of
-  the paper's scope** is coming; the fundamental experiments stay. §8's cut is redone after it,
-  using the box's measured speed.
-- 2026-10-14 (later): **our card is GPU 1, not GPU 0** (GPU 1 was free; GPU 0 had an outside
-  job). All launchers and docs now point to GPU 1.
-
-**Paths in this folder:**
-- `stats/NN...` citations refer to challenge-era ledgers, now in
-  `references/challenge_results/`. The exceptions are `stats/1` and `stats/22`, which are in
-  `data/`.
-- `PROGRESS` citations refer to `PROGRESS.md` in the old `C:/Users/tahas/research/UGRIP` repo.
-- The method papers are in `references/papers/`, with a digest in
-  `references/papers/METHOD_DIGEST.md`.
-
-**This plan is not cut to fit the budget.** It assumes unlimited compute.
-- The training window ends **31 Oct 2026**, on the 4× RTX A5000 (24 GB) GPUs of `ws`.
-  Blackwell time for 2048² is requested separately. *(Superseded 2026-10-14: one Blackwell card,
-  GPU 1, until 13 Nov 2026; see the changelog.)*
-- Usable training capacity is about **1,400–1,500 GPU-hours** (§2.2).
-- The full plan needs about **8,700 core GPU-hours plus about 1,850 optional**.
-- The scope must therefore be cut by roughly **6×**. Section 5 lists the costs and the
-  cost-reduction levers side by side to help with that decision.
-
-**Built from:** Tausifa's proposal (LaTeX draft), her 12 answers (2026-10-02 meeting
-follow-up), the 2026-10-02 meeting transcript, the 11 papers in `references/papers/`,
-and measured results in `stats/`. It was built from scratch and does not use any earlier
-journal-plan document.
+- 2026-10-16: v2 written from the 14 Oct research update and Taha's decisions of 16 Oct:
+  - the five arms of the update's table are the **main experiments**, run first;
+  - 3 seeds and both backbones (Qwen3.5-9B, MedGemma) for **every** experiment;
+  - the **additional experiments** (transfer matrix, modality and dataset adapters,
+    predicted routing, representations) run only **after** the main experiments' training
+    runs are done;
+  - RQ2 (scaling) runs **last**, as designed in v1 S3. It does not fit the budget; its scope
+    is decided once the earlier phases are done;
+  - parameters are counted as **total stored parameters**. The arms are deliberately
+    unbalanced, and Shared r48 is the control for that;
+  - dropped: adapter composition (fixed and learned), Hydra-L, latent experts (v1 S6),
+    location (v1 S8), practical factors (v1 S9), method tuning (v1 S11);
+  - team roles are to be agreed separately (§7).
 
 ---
 
-## 0. Contents and glossary
+## The study in one page
 
-1. Fixed protocol (applies to every experiment unless the experiment says otherwise)
-2. Compute model (the constants every estimate below uses)
-3. Shared foundation (W1–W3, plug-in interface, smoke gate, index of study-specific code)
-4. Experiments S0–S11 (each opens with its own "Code to build")
-5. Master compute table, dependency graph, and cost levers
-6. Decisions still needed from Tausifa
-7. Team assignment, hand-offs and timeline
-8. Compute budget discussion (proposed trimmed plan and add-back order)
+**Question.** When one VLM is adapted to many heterogeneous medical tasks, which adaptation
+parameters should be shared, and which should be specialized?
+
+**Research questions**
+- **RQ1.** Does task-specific adaptation outperform shared adaptation, and for which task
+  families?
+- **RQ2.** How does the amount of task-specific supervision change the optimal degree of
+  sharing?
+- **RQ3.** What determines whether tasks help or hurt each other: output format, imaging
+  modality, or dataset?
+- **RQ4.** Which measurable task characteristics predict whether tasks benefit from shared or
+  specialized adaptation?
+
+**Backbones:** Qwen3.5-9B and MedGemma-1.5-4B. **Data:** FLARE 2026 Task 3 (17 datasets,
+7 modalities, 6 task families).
+
+**Main arms: the degree of sharing.** LoRA learns ΔW = B·A. A (rank × input width) projects
+the input down; B (output width × rank) maps it back up.
+
+| Arm | Run-ID tag | A (input projection) | B (output projection) | Sharing | Parameters per layer | What it tells us |
+|---|---|---|---|---|---|---|
+| Shared LoRA | `shared` | shared | shared | full | 1A + 1B | Can one adapter serve all tasks? |
+| HydraLoRA, task heads | `hydraT` | shared | per task | partial | 1A + 6B | Do tasks share input features but need their own output mapping? |
+| Reversed HydraLoRA | `hydraR` | per task | shared | partial | 6A + 1B | Does it matter *which* matrix is shared, or only how much? |
+| TaskLoRA | `task{cls,…}` | per task | per task | none | 6A + 6B | Is full specialization worth six times the parameters? |
+| Shared LoRA, rank 48 (control) | `shared48` | shared | shared | full | ≈ 6A + 6B | Is a TaskLoRA gain due to specialization, or only to more parameters? |
+
+**Plan at a glance (execution order, §5)**
+
+| Phase | What | Answers |
+|---|---|---|
+| **A. Main experiments** | E0 zero-shot anchors; E1 the five arms on Qwen; E2 the five arms on MedGemma | RQ1 |
+| **B. Additional experiments** (after Phase A training) | E3 transfer matrix; E4 modality adapters; E5 dataset adapters; E6 predicted routing; E7 representations; E8 RQ4 synthesis | RQ3, RQ4, RQ1 robustness |
+| **C. Supervision scaling** (last; over budget) | E9 = v1 S3 on both backbones | RQ2 |
 
 **Glossary**
 
 | Term | Meaning |
 |---|---|
-| A∪B | the training pool: `internal_splits_v2/A.jsonl ∪ B.jsonl` |
-| Dev / dev-select | `A_dev ∪ B_dev`, used only for selection decisions; dev-select is a fixed, capped subset of it (§1.7) |
-| Holdout | `internal_splits_v2/true_test.jsonl`, the final evaluation set |
-| Question / row | one question–answer pair with all its images; the unit of training and evaluation (§1.5) |
-| Shared LoRA | one LoRA adapter trained on all tasks |
-| TaskLoRA | 6 separate LoRA adapters, one per task; the correct one is selected by the known task (oracle route) |
-| Hydra-T / Hydra-L | HydraLoRA with task-selected heads (T) or with a learned router (L), §4 S4a |
-| MoLE | Mixture of LoRA Experts (Wu et al. 2024): learned gates over frozen, already-trained adapters |
-| Oracle route | choosing an adapter from the known task/modality label rather than a predicted one |
+| A∪B | the training pool, `internal_splits_v2/A.jsonl ∪ B.jsonl` (40,094 questions; contains dev, §1.7) |
+| Holdout | `internal_splits_v2/true_test.jsonl`, 4,447 scored questions; the reporting surface |
+| Question / row | one question–answer pair with all its images; the unit of training and evaluation |
+| Cell | one (task, dataset) pair of the holdout; there are 19 |
+| Oracle route | picking the head/adapter from the known task (or modality, dataset) label |
 | ZS-bare / ZS-prompt | zero-shot base model without / with one generic system prompt (§1.6) |
-| P8 | active parameter count of one rank-8 LoRA on the target modules (§1.3) |
-| U | cost of one full A∪B training run (3 epochs, Qwen, 768²), ≈ 68 GPU-h (§2.2) |
-| E | cost of one full holdout evaluation, ≈ 2.1 GPU-h (§2.2) |
-| GPU-h / BW | A5000 GPU-hours on `ws` / Blackwell GPU-hours on `mbz-yaqub` (GPU 1 only since 2026-10-14) |
-| C_ij | transfer score: how adapter i changes target task j relative to the base model (S2) |
-| μ / PGF | normalised task score, the "perfection gap factor" from Sachdeva et al. (§1.8) |
+| P8 | parameter count of one rank-8 LoRA on the Qwen target modules: 21,639,168 |
+| Slot-hour | one hour of one of the 3 concurrent run slots on GPU 1 (§2) |
+| C_ij | transfer score: how task i's adapter changes task j's metric relative to the base model (E3) |
+| μ / PGF | normalised task score, Sachdeva et al.'s "perfection gap factor" (§1.8) |
 | LF | LLaMA-Factory v0.9.5, our training framework |
-| iugc | the ultrasound dataset whose images carry classification, detection and regression questions |
-| W1…W11 | code work packages (§3, and inside each study) |
+| iugc | the ultrasound dataset whose images carry cls, detection and regression questions |
+| W-numbers | code work packages (§3), named as in v1 |
 
 ---
 
 ## 1. Fixed protocol
 
-Every main comparison uses this protocol. A study may change **one** of these settings
-only when that setting is the study's subject (for example, resolution in S9.1).
+Every experiment follows this protocol. An experiment may change **one** setting, and only
+when that setting is its subject (the grouping level in E4/E5, the data amount in E9). Any
+other change is a logged deviation.
 
-### 1.1 Backbones and loading (Tausifa Q1)
-
-- **Primary:** `Qwen/Qwen3.5-9B` (ws: `/share/sda/ugrip/models/Qwen3.5-9B`).
-  - Template: LF `qwen3_5` with `enable_thinking: false` (the empty `<think>` block sits in
-    the prompt, not the target).
-  - Env: `flare-ws-v5` (transformers 5.x, LF v0.9.5 + tf5 patch).
+### 1.1 Backbones and loading
+- **Qwen3.5-9B** (`/data/ugrip2026/models/Qwen3.5-9B` on the box; paths in
+  `ops/cluster-config.md`).
+  - Template: LF `qwen3_5`, `enable_thinking: false` (the empty `<think>` block sits in the
+    prompt, not the target).
   - Image budget: **768² area cap** (`image_max_pixels: 589824`).
-- **Secondary:** `google/medgemma-1.5-4b-it` (ws: `/share/sda/ugrip/models/medgemma-1.5-4b-it`).
+- **MedGemma-1.5-4B** (`google/medgemma-1.5-4b-it`).
   - Template: LF `gemma3`.
-  - Env: verify that Gemma3 runs in `flare-ws-v5`; otherwise use `flare-gemma26`.
-  - Image budget: **native fixed 896×896 (256 tokens)**. The Gemma3 SigLIP input size is
-    fixed, so the 768² cap cannot be applied. Document this as backbone-intrinsic.
+  - Image budget: **native fixed 896² (256 tokens)**. The SigLIP input size is fixed, so the
+    768² cap cannot apply. This is a backbone-intrinsic difference, stated in the paper.
 - **Both:**
-  - 4-bit bnb **NF4**, BF16 compute, `double_quantization: false` (the challenge setting).
-  - Frozen: all base weights, the **vision encoder**, and the **multimodal
-    projector/merger**.
-  - Trainable: PEFT parameters only, plus routers/gates where the method has them.
+  - 4-bit bnb NF4, BF16 compute, `double_quantization: false`;
+  - frozen: all base weights, the vision encoder, the multimodal projector;
+  - trainable: LoRA parameters (and Hydra heads) only.
+- Qwen3.5 traps, pinned in training **and** evaluation:
+  - `enable_thinking=False`;
+  - `eos_token_id=[<|im_end|>, <|endoftext|>]` (without it the model babbles a fake user turn);
+  - `do_sample=False`.
 
-Known Qwen3.5 traps (`stats/26 §0`). Pin all three in both training and evaluation:
-- `enable_thinking=False`.
-- An explicit `eos_token_id=[<|im_end|>, <|endoftext|>]`. Without it, the model babbles a
-  fake user turn.
-- `do_sample=False`.
+### 1.2 LoRA defaults
+- `r = 8`, `alpha = 16` (scale α/r = 2), `lora_dropout = 0.05`, for every arm **except
+  Shared r48** (§1.3).
+- **Target modules:** every linear of the language model, i.e. what LF `lora_target: all`
+  resolves to. Frozen list: `code/train/target_modules_qwen35.json` (248 linears). Vision
+  tower and projector excluded. Every arm wraps exactly this set.
+- **MedGemma:** the equivalent set on the Gemma3 language model, frozen into a JSON file by the
+  MedGemma port (W9). Gemma 4 needed an explicit regex because PEFT could not wrap its vision
+  layers; check whether Gemma3 does too.
 
-### 1.2 LoRA defaults (Tausifa Q2)
+### 1.3 Parameter counting (v2: replaces v1's active-parameter matching)
+- Arms are compared **as designed**, with their total stored parameters as in the table
+  below. The imbalance is intended: the degree of sharing *is* the variable.
+- **Shared r48 is the control** for TaskLoRA's 6× parameters: it has about as many
+  parameters as six r8 adapters (48 = 6 × 8), but they are all shared.
+  - **α = 96** for r48, so that α/r = 2 as in every other arm. With α = 16 the update would be
+    scaled by 0.33 instead of 2, i.e. 6× weaker, and the control could lose for that reason
+    alone.
+- Every results table lists, per arm, both the **stored** parameters and the parameters
+  **active per example**.
 
-- `r = 8`, `alpha = 16` (scaling 2.0), `lora_dropout = 0.05`.
-  - The challenge used dropout 0, and the cls and ML specialists used r32/r64. **No
-    challenge adapter is therefore reusable as a main-comparison arm**; every arm is
-    retrained.
-- **Target modules:** the set that LF `lora_target: all` resolves to on Qwen3.5-9B. This is
-  every linear layer of the language model; the vision tower and projector are excluded
-  because LF's `freeze_vision_tower` and `freeze_multi_modal_projector` default to true
-  (`stats/21 §1`).
-  - Qwen3.5 has hybrid Gated-DeltaNet layers, so the module names are not just q/k/v/o
-    and gate/up/down.
-  - **Action (W2):** read the authoritative list from the `target_modules` field of a
-    challenge 9B adapter's `adapter_config.json`, or by dumping `named_modules()`. Freeze
-    it in `code/train/target_modules_qwen35.json`.
-  - **Every** method (Shared, Task, Hydra, MoE, spectral) wraps exactly this set, unless
-    the experiment is about location (S8).
-  - We deliberately do not copy paper-specific target sets (HydraLoRA q/v; LoRAMoE FFN
-    only; MedQwen q, k, v, up, down). Location is held constant across methods, as
-    Tausifa Q10 asks; each deviation is listed in §4.
-- **MedGemma:** the equivalent `all` set on the Gemma3 language model. Gemma 4 needed an
-  explicit regex for this, because PEFT could not wrap its vision layers
-  (`PROGRESS` 2026-07-06). Check whether Gemma3 needs one too.
-
-### 1.3 Parameter matching (Tausifa Q3: match active parameters per example)
-
-Let `P8` be the active parameter count of one r=8 LoRA on the target set. From the 9B r32
-cls adapter size (346 MB), P8 ≈ 21.6 M if the file is stored in fp32, or ≈ 43 M if it is
-bf16. W2 measures the exact value.
-
-Every jointly trained method is configured so that the **rank active per token is 8**:
-
-| Method | Configuration | Active per token | Stored |
+| Arm | Configuration | Active per example | Stored |
 |---|---|---|---|
-| Shared LoRA | 1 × r8 | P8 | P8 |
-| TaskLoRA | 6 × r8; oracle task selects one | P8 | 6·P8 |
-| Hydra-T (proposal definition: shared A, task-indexed B_t) | A r8 + B_t r8; oracle task | P8 | A + 6 B |
-| Hydra-L (paper: shared A + N B heads, dense router) | rank r_H solved per module from r_H(d_in + N·d_out) = 8(d_in + d_out). With N=6 and d_in ≈ d_out, r_H ≈ 2. | ≈P8 | ≈P8 + router |
-| LoRAMoE (dense, N experts) | N=4 experts × r2 (total dense rank 8) | P8 | P8 + router |
-| Top-k MoE-LoRA (random init) / spectral (MedQwen) | N=8 experts, top-2, rank 4 per expert. This is exactly MedQwen's 2-of-8, total-rank-32 setup. | P8 | 4·P8 + router |
+| Shared | A r8, B r8 | P8 | P8 |
+| Hydra-T | shared A r8; 6 heads B_t r8; oracle task picks B_t | P8 | 1A + 6B |
+| Reversed Hydra | 6 heads A_t r8; shared B r8; oracle task picks A_t | P8 | 6A + 1B |
+| TaskLoRA | 6 independent r8 adapters; oracle task picks one | P8 | 6 · P8 |
+| Shared r48 | A r48, B r48, α 96 | 6 · P8 | 6 · P8 |
+| Modality adapters (E4) | 7 independent r8 adapters; oracle modality picks one | P8 | 7 · P8 |
+| Dataset adapters (E5) | 10 independent r8 cls adapters; oracle dataset picks one | P8 | 10 · P8 |
 
-- **Not matchable by construction:** methods that reuse already-trained, frozen adapters.
-  Fixed composition has 2 adapters active (2·P8); MoLE has 6 or 13 active, plus gates.
-  Report their parameter counts in every table instead.
-- **Small ranks per expert.** Matching gives the dense mixtures very small ranks per
-  expert (Hydra-L ≈ 2, LoRAMoE 2). Each therefore gets **one "paper-native budget" run**
-  (1 seed), and it should be read as a main result, not a footnote:
-  - Hydra-L with r8 per head;
-  - LoRAMoE with 6 experts at r4.
+For Qwen, A and B are close in size on most target modules, so 1A + 6B and 6A + 1B are each
+about 3.5 · P8. The exact counts are printed at load and recorded in `runtime.json`.
 
-### 1.4 Common training recipe (Tausifa Q4)
+### 1.4 Common training recipe
+- AdamW, weight decay 0; lr **2e-4**, linear decay, 3% warmup; **3 epochs**.
+- Effective batch 8 as `per_device_train_batch_size=1` × `gradient_accumulation_steps=8`
+  (needed for the per-example loss, §1.5).
+- bf16, gradient checkpointing, `cutoff_len 8192`.
+- The **final** checkpoint after 3 epochs; no early stopping. End-of-epoch checkpoints are kept
+  for diagnostics only.
+- Equal epochs = equal exposure to every example. Step counts therefore differ per adapter;
+  that is expected and recorded.
+- **Seeds: 1337, 2026, 42, for every arm of every experiment, on both backbones.** The seed
+  sets the LoRA initialisation and the data order. Data subsets are fixed separately (§1.9).
+- No per-method tuning: every arm uses this recipe.
 
-This is the challenge recipe (template: `code/configs/recipe_template_qwen35_768.yaml`, copied
-from code branch `Taha/qwen35-sprint` `bec2d1f`) plus Tausifa's changes:
+### 1.5 Data unit, sampling and loss
+- **One row = one question** with all its images (up to 4). Multi-image questions are not split.
+- **Sampler:** the natural A∪B distribution: concatenate the task decks and shuffle uniformly.
+  No task or dataset balancing.
 
-- **Optimizer:** AdamW (LF/HF default), weight decay 0.
-- **Learning rate:** 2e-4, linear decay, warmup 3% of steps.
-- **Epochs:** 3.
-- **Effective batch:** 8, as `per_device_train_batch_size=1` ×
-  `gradient_accumulation_steps=8` **everywhere, including Blackwell** (see §1.5).
-- **Precision/memory:** bf16, gradient checkpointing on, `cutoff_len 8192`.
-- **Checkpoint:** the final checkpoint after 3 epochs, with no early stopping. Save the
-  end-of-epoch checkpoints and log dev loss, for diagnostics only. → Decision D1
-- **Budget control:** equal epochs means equal exposure to every task example. Shared LoRA
-  sees each row 3 times; each TaskLoRA sees each of its own rows 3 times. Optimizer-step
-  counts therefore differ per adapter, which is expected and recorded.
-- **Routers/gates:**
-  - Trained jointly with the experts where the original method does so (Hydra-L, LoRAMoE,
-    top-k MoE, spectral).
-  - For compositions of frozen adapters (MoLE), only the gates train (Tausifa Q10).
-  - Router learning rate = the common 2e-4; paper rates such as MoLE's 1e-5 are not
-    copied. → Decision D4
-- **Seeds:** `1337, 2026, 42`. The seed varies LoRA and router initialisation and data
-  order. Data subsets are fixed separately (§1.9).
+| Task | A∪B questions | Share | Holdout questions | Holdout datasets |
+|---|---:|---:|---:|---:|
+| Classification | 15,218 | 38.0% | 1,689 | 10 |
+| Report generation | 7,016 | 17.5% | 781 | 1 |
+| Multi-label | 6,415 | 16.0% | 703 | 2 |
+| Detection | 5,280 | 13.2% | 588 | 3 |
+| Regression | 5,265 | 13.1% | 586 | 2 |
+| Counting | 900 | 2.2% | 100 | 1 |
+| **Total** | **40,094** | | **4,447** | **19** |
 
-**Method-specific tuning is a separate secondary comparison (S11). It never feeds the main
-tables.**
+- **Loss:** token cross-entropy averaged within each example, then over the 8 examples of the
+  effective batch. A long report weighs the same as a one-token label. Implemented in W2 by
+  ignoring HF's `num_items_in_batch`; unit-tested.
+- Decks: `/data/ugrip2026/journal/data` on the box; md5s in `data/DECK_MANIFEST_blackwell.json`.
 
-### 1.5 Data unit, sampling and loss weighting (Tausifa Q5)
+### 1.6 Prompts, decoding, parsing
+- **Bare prompts** for every task and arm, in training and evaluation: the dataset's question
+  as given, no system prompt, no added instruction. The target is the dataset's answer string.
+- **Zero-shot, two protocols** (inference only, both backbones; nothing else differs):
+  - **ZS-bare:** the bare question.
+  - **ZS-prompt:** the same plus one task-agnostic system prompt: *"Answer the question about
+    the medical image(s). Return only the requested answer, without an explanation."* It is the
+    anchor `M_base` for μ and C_ij. It is never used in training.
+  - MedGemma folds the system prompt into the first user turn; the text stays identical.
+- **Decoding:** greedy, `do_sample=False`, EOS pinned, `enable_thinking=False`,
+  `max_new_tokens=512` for every task, arm and backbone. Log the truncation rate.
+- **Parsers:** the existing scorer, `score_single.py`. Do not re-implement them.
+- **Images:** up to 4 per question, each preceded by `Image-i:`.
+- **Excluded:** instance detection (unscored); endoscopy (out of the decks and the cls macro).
 
-- **One row = one question** with all its images (up to the §1.6 image limit).
-  - Multi-image questions are **not** split into one row per image, unlike the challenge
-    decks.
-  - This matches the holdout, which is scored per question.
-  - It also means a two-view report counts once in the loss, not twice.
-- **Sampler:** the natural A∪B distribution. Concatenate all task decks and shuffle
-  uniformly; do not balance tasks or datasets.
-- Natural shares (A∪B questions):
-
-| Task | Questions | Share |
-|---|---:|---:|
-| Classification | 15,218 | 38.0% |
-| Report generation | 7,016 | 17.5% |
-| Multi-label | 6,415 | 16.0% |
-| Detection | 5,280 | 13.2% |
-| Regression | 5,265 | 13.1% |
-| Counting | 900 | 2.2% |
-| **Total** | **40,094** | |
-
-  - Source: the A∪B census in `stats/15 §1` (Endoscopy and instance detection excluded).
-    These are raw counts before the flagged-row filter; W1 recounts them exactly.
-  - The compute estimates in §2 and §4 were derived from the challenge decks, which split
-    multi-image questions into one row per image (57,803 rows). They are kept as the cost
-    basis. Total image tokens are similar under both layouts, so the GPU-hour estimates
-    should not move much; the S0 calibration replaces them with measured values.
-- **Loss:** token cross-entropy averaged **within each example** (over its answer tokens),
-  then averaged across the examples in the effective batch. A long report weighs the same
-  as a one-token class label.
-- **Implementation note (W2):**
-  - With `bsz=1`, each micro-batch is one example. Since transformers 4.46, the HF Trainer
-    passes `num_items_in_batch`, which normalises by the **total tokens across the 8
-    accumulation steps**. That is token weighting, the thing we are removing.
-  - Fix: make the loss ignore `num_items_in_batch` (for example
-    `model_accepts_loss_kwargs=False`, or a custom `compute_loss`). Each micro-batch loss
-    is then that example's per-token mean, and gradient accumulation averages the 8 of
-    them.
-  - Unit-test this on 2 hand-made examples of very different length.
-  - This is why `bsz=1/ga=8` is mandated: with `bsz>1`, padding mixes examples inside one
-    mean and needs a per-sample reduction.
-- This loss also changes the recipe for the single-task adapters (for example within
-  report generation), so it is applied to **all** arms.
-
-### 1.6 Prompts, decoding, parsing (Tausifa Q11: identical across methods within a task)
-
-**Prompt: bare for every task and every method.**
-- The input is the dataset's question text as given, with no system prompt, no added
-  instruction, and no reasoning prompt.
-- The target is the dataset's answer string.
-- Prompt engineering is a separate intervention, studied only in S9.7. None of the
-  challenge prompt variants (ML `medical_cot`, counting `cot`) are used in the main
-  comparisons.
-
-**Zero-shot is evaluated under two protocols** (inference only, both backbones). Nothing
-else differs between them: the same 512-token cap, parser, decoding, image limit and rows.
-
-| Protocol | Input | Role |
-|---|---|---|
-| **ZS-bare** (true zero-shot) | the bare question, identical to what every adapter is trained and evaluated on | reported as the untouched base model |
-| **ZS-prompt** (prompted zero-shot) | ZS-bare plus one fixed, task-agnostic system prompt: *"Answer the question about the medical image(s). Return only the requested answer, without an explanation."* | **primary anchor** (`M_base`) for C_ij (S2) and μ (§1.8), because it measures capability rather than verbosity |
-
-- The generic prompt is **never used in training**. Every fine-tuned arm trains and
-  evaluates bare, so the low-data scaling points (S3) get no free format hint.
-- **Consequence to state in the paper:** because the anchor carries the prompt and the
-  adapters do not, any comparison against ZS-prompt combines two changes: adding the
-  adapter and removing the prompt. The ZS-bare recomputation (§1.8) shows how much that
-  matters.
-- MedGemma: the Gemma3 template folds the system prompt into the first user turn. Keep the
-  text identical.
-- This avoids the confound in the challenge paper's v2 protocol (`stats/26` audit). That
-  run also changed the token budget, the answer seed and the extractor, so it was not a
-  prompt-only intervention. Here only the sentence changes.
-
-**Parsers** (the existing repo scorer, `score_single.py`; do not re-implement):
-- classification: strip `<think>` first, then `parse_answer`;
-- multi-label: the repo multi-label parser;
-- detection: the nested-box parser; record the malformed count;
-- counting: integer;
-- regression: numeric;
-- report generation: free text, scored with CRIMSON.
-
-**Generation and inputs:**
-- **Generation length:** one uniform cap, `max_new_tokens = 512`, for every task, method
-  and backbone.
-  - It is only a safety stop against runaway generation (Qwen3.5 without a pinned EOS
-    babbles to the budget, `stats/26 §0`). With EOS pinned, fine-tuned adapters stop on
-    their own long before 512.
-  - 512 is the cap the pipeline zero-shot protocol used (`stats/26 §6`). Report answers
-    have a median of about 55 tokens.
-  - It is not tuned per task, because per-task caps would make some methods truncate where
-    others do not.
-  - Log the truncation rate (outputs that hit the cap) for every task and run. In the
-    zero-shot base and in off-diagonal S2 cells, truncation is part of the measured
-    behaviour, not something to tune away.
-- **Decoding:** greedy, `do_sample=False`, EOS pinned, `enable_thinking=False`, batched
-  left-padded generation (`code/eval/eval_harness.py`, formerly `zeroshot_truetest.py`).
-- **Multi-image:** up to 4 images per question, each preceded by an `Image-i:` marker.
-  - This default is carried over from the challenge system; it was not derived for this
-    study.
-  - It truncates only the long dermatology/endoscopy tail.
-  - Alternatives are tested in S9.6.
-- **Excluded:** instance detection (unscored). Endoscopy stays out of the training decks
-  and the cls macro, as before.
-
-### 1.7 Data splits (Tausifa Q7, Q8)
-
-- **Train: A∪B.**
-  - **W1 check:** confirm that `A.jsonl`/`B.jsonl` exclude `A_dev`/`B_dev`. The pipeline
-    doc says `A.jsonl` = A_train, but `ws` was unreachable when this plan was written, so
-    the counts are unconfirmed.
-- **Selection: dev = `A_dev ∪ B_dev`.**
-  - This is the **only** split used for hyperparameters, λ grids, router settings, top-k
-    choices, and any "best of" decision.
-  - From it, build a fixed **dev-select** subset with ≤200 questions per (task, dataset)
-    cell (a proposed cap), so that one selection eval costs about 0.5 GPU-h.
-- **Final evaluation: holdout, 4,449 scored questions.**
-
-  | Task | Questions | Datasets |
-  |---|---:|---:|
-  | Classification | 1,689 | 10 |
-  | Multi-label | 703 | 2 |
-  | Detection | 588 | 3 |
-  | Counting | 100 | 1 |
-  | Regression | 586 | 2 |
-  | Report generation | 781 | 1 |
-
-  Each finished arm touches the holdout once. It is never used for selection.
-- **Optional external surface:** `validation-public-clean.jsonl` (5,340 questions; no
-  regression; a different dataset mix, `stats/22`). Main arms only, in a separate,
-  labelled table. → Decision D6
-
-The proposal's A→B / B→A cross-fold design is **dropped** (Tausifa Q7). What we lose:
-- an estimate of split-to-split variance;
-- a second independent test fold.
-
-Seeds and holdout bootstrap CIs partly replace it. State this in the Limitations section.
+### 1.7 Data splits (v2: updated by the 2026-10-13 W1 finding)
+- **Train: A∪B (40,094).** `A.jsonl` = `A_train ∪ A_dev` (likewise B), so dev is inside the
+  training pool and cannot serve as an untouched selection set.
+- **Report: holdout, 4,447 questions.** Each finished arm is evaluated on it once.
+- **Selection decisions:** the experiments in this plan need none (no λ grids, no router
+  tuning, no early stopping). If one comes up, it is made on the holdout and flagged in the
+  paper as optimistically biased; the alternative is splitting the holdout into a selection
+  half and a reporting half.
+- **Optional second surface:** `validation-public-clean.jsonl` (5,340 questions, no
+  regression), main arms only, in a separate labelled table.
+- v1's A→B / B→A cross-fold design stays dropped (Tausifa Q7). Seeds and bootstrap CIs partly
+  replace it; state this in Limitations.
 
 ### 1.8 Metrics and aggregation
+- **Per-dataset metric, then the unweighted macro over datasets within the task.** Never pool
+  across datasets.
+  - cls: balanced accuracy; ML: micro-F1 (sample-F1 as secondary); det: F1 at IoU > 0.5;
+    counting: MAE; regression: MAE per dataset, then macro, plus boneresorption alone;
+    report: CRIMSON.
+- **Every run also logs:** malformed-output rate per task, truncation rate, report omission
+  rate (`code/eval/reportgen_omission.py`).
+- **μ (PGF), for aggregate plots and E8 only, never as a headline:** against ZS-prompt of the
+  same backbone. Higher-is-better metrics: `μ = (M − M_base)/(1 − M_base)`; MAE:
+  `μ = (MAE_base − MAE)/MAE_base`. Recompute against ZS-bare and report what changes.
+- **Power warning:** counting n=100, boneresorption n=70, BUS-UCLM-det n=22. Wide CIs there.
 
-- **Per-dataset metric, then the unweighted macro over datasets within the task** (never
-  pooled across datasets):
-  - cls: balanced accuracy;
-  - ML: micro-F1 per dataset (repo scorer); also report sample-F1 as secondary, labelled;
-  - det: F1 at IoU > 0.5;
-  - counting: MAE;
-  - regression: MAE per dataset, then macro. Also report boneresorption alone, because
-    the macro is iugc-dominated (`stats/18`);
-  - report: CRIMSON (`CRIMSON-medgemma-4b` on ws).
-- **Also log for every run:** malformed-output rate per task, truncation rate, and the
-  report omission rate (the rule in `code/eval/reportgen_omission.py`, `stats/26 §1i`).
-- **Normalised task score μ.** Used for aggregate plots and the mixed model only, never as
-  a headline. This is the PGF form of `stats/12`, computed against **ZS-prompt** of the
-  same backbone (§1.6):
-  - higher-is-better metrics: `μ = (M − M_base)/(1 − M_base)`;
-  - MAE: `μ = (MAE_base − MAE)/MAE_base`;
-  - "task-mean μ" is the mean over the 6 tasks.
-- **Anchor robustness:** recompute μ and C_ij against ZS-bare, and report which
-  conclusions change.
-  - Within a target task the anchor is a constant, so the ranking of methods or source
-    adapters cannot change.
-  - What can change is whether a transfer cell counts as positive or negative, and the
-    size of μ.
-- **Power warning:** counting has n=100 (one dataset), boneresorption n=70, and
-  BUS-UCLM-det n=22. Expect wide CIs on these slices.
-
-### 1.9 Subsets for the data-scaling study (Tausifa Q9, Q12)
-
-- **Sampling unit:** the unique image group (the `internal_splits_v2` grouping key, so
-  multi-image questions stay whole). Stratify by dataset, and also by label for cls.
-- **Minimum coverage:** keep at least 1 image group per dataset; for cls, at least 1 per
-  class when the class has at least one group. At 1%, rare classes may still vanish; log
-  which ones.
-- **Nested:** per stratum, one fixed random permutation (seed `20261009`). The p% subset is
-  its prefix, so 1 ⊂ 5 ⊂ 10 ⊂ 25 ⊂ 50 ⊂ 100. The **same subsets** are used for every method
-  and seed.
-- Keep all target-task questions on the selected images.
-- **Shared images (iugc):** the same ultrasound image carries cls, det and reg questions.
-  "Shrink only the target task" means dropping only the **target-task questions** of
-  unselected images; the other tasks' questions on those images stay. → Decision D5
-- **Sensitivity draws:** 2 additional independent permutations (seeds `20261010`,
-  `20261011`) at p ∈ {5, 10, 25}%.
-- Record the exact image-group IDs per subset in `data/subsets/*.json` and commit them.
+### 1.9 Subsets for scaling (used only by E9)
+Already built (W1, `data/subsets/`): nested subsets of the target task's image groups,
+stratified by dataset (and label for cls), seed `20261009`, p ∈ {1, 5, 10, 25, 50, 100}%, plus
+sensitivity draws `20261010`, `20261011` at {5, 10, 25}%. Only target-task questions are
+dropped; on shared iugc images the other tasks keep theirs (v1 D5).
 
 ### 1.10 Run registry and provenance
+- **Run ID:** `j26_{backbone}_{arm}_{data}_{res}_s{seed}`; backbone `q35` or `mg15`; e.g.
+  `j26_q35_hydraR_full_768_s2026`, `j26_mg15_shared48_full_896_s42`,
+  `j26_q35_modxray_full_768_s1337`, `j26_q35_dsbonemarrow_full_768_s1337`.
+- **Outputs** under `/data/ugrip2026/journal/runs/<run_id>/`: `config.yaml`,
+  `git_commit.txt`, deck md5s, `trainer_log.jsonl`, adapter, `predictions_holdout.jsonl`,
+  `metrics.json`, `runtime.json` (s/it, peak memory, GPU id, co-tenants, parameter counts).
+- **Registry:** one row per run in `results/RUNS.csv`. **Numbers of record:** `results/LEDGER.md`.
+  Raw predictions are archived into `results/predictions/` when each experiment closes.
 
-- **Run ID:** `j26_{backbone}_{method}_{data}_{res}_s{seed}`, for example
-  `j26_q35_hydraT_full_768_s1337` or `j26_q35_shared_cls10_768_s2026`.
-- **Code:** in `code/` of this repo, seeded from code branch `Taha/qwen35-sprint` `bec2d1f`
-  (see `code/README.md`). One topic branch per piece of work; on ws, each person works in a
-  worktree under `/share/sda/ugrip/<user>/worktrees/`.
-- **Outputs** under `/share/sda/ugrip/journal/runs/<run_id>/`:
-  - `config.yaml`
-  - `git_commit.txt`
-  - deck md5s
-  - `trainer_log.jsonl`
-  - adapter
-  - `predictions_holdout.jsonl`
-  - `metrics.json`
-  - `routing_stats.npz` (routed methods)
-  - `runtime.json` (s/it, peak memory, GPU id, co-tenants)
-- **Registry:** one row per run in `results/RUNS.csv`.
-- **Raw predictions:** archive into `results/predictions/` in this folder when each
-  experiment closes.
-- **Ledger:** results go in `results/LEDGER.md`.
-
-### 1.11 Statistics (applies to all studies)
-
+### 1.11 Statistics
 - **Per task:** 95% CI from 10k bootstrap resamples of holdout questions, stratified by
-  dataset, with the dataset macro recomputed on each resample.
-- **Method differences:** paired bootstrap on the same questions.
-- **With 3 seeds:** report mean ± SD over seeds. The CI comes from a two-level bootstrap:
-  resample seeds, then questions.
-- **Multiplicity:** Holm–Bonferroni across the 6 tasks within each pairwise method
-  comparison. Report both adjusted and unadjusted values.
-- The scaling interaction model is in S3; the transfer-versus-similarity association is in
-  S7.
+  dataset, with the macro recomputed on each resample.
+- **Arm differences:** paired bootstrap on the same questions.
+- **3 seeds:** mean ± SD over seeds; CI from a two-level bootstrap (seeds, then questions).
+- **Multiplicity:** Holm across the 6 tasks within each pairwise comparison. Report adjusted
+  and unadjusted values.
+
+### 1.12 Same box for everything (v2)
+Training is not bit-reproducible across machines: ws and Blackwell gave different greedy
+outputs from the same adapter recipe (STATUS, 2026-10-14). **Every run that enters a
+comparison is trained and evaluated on `mbz-yaqub` GPU 1.** Same-box run-to-run noise exists
+too (~1% in final loss); seeds cover it.
 
 ---
 
 ## 2. Compute model
 
-### 2.1 Measured anchors
+### 2.1 Measured on GPU 1 (3 runs at once, Qwen, 768²)
 
-All Qwen anchors: Qwen3.5-9B, 4-bit, effective batch 8, on a `ws` A5000 under normal
-4-job contention unless noted. The challenge decks split multi-image questions into one row
-per image, so "example" below means one such row.
+| Run (seed 1337) | Wall time, one slot |
+|---|---:|
+| Shared, full A∪B | ≈ 48.5 h (finishing 16 Oct) |
+| TaskLoRA cls | 26.9 h |
+| TaskLoRA report | 10.0 h |
+| TaskLoRA ML | 9.0 h |
+| TaskLoRA reg | 6.0 h |
+| TaskLoRA det | 4.5 h |
+| TaskLoRA count | 1.2 h |
+| **6 TaskLoRAs, total** | **57.6 h** |
 
-- **cls training, 768²** (29,667 rows × 3 epochs): 30.5 h at 11.4 s/it, i.e.
-  **1.23 s per example-epoch** (`stats/26 §9`).
-- **Counting training, 768²** (900 rows × 3 epochs): 62 min, i.e. **1.37 s**
-  (`stats/26 §1j`).
-- **General all-task training, 768²** (57,803 × 3 epochs): planned ~75 h, i.e. ~1.56 s.
-  This is a plan, not a measured wall time (`stats/26 §1c`).
-- **Detection, 768²:** planned ~7 h, i.e. ~1.6 s (`stats/26 §1c`).
-- **Report generation, 768²:** planned 20–26 h, i.e. ~1.6–1.9 s (`stats/26 §1c`).
-- **2048² on ws:** impossible; OOM at step 0 (needs ~23 GB) (`stats/26 §1c`).
-- **2048² on Blackwell**, measured at batch 2 × accumulation 4:
-  - per example: cls ~2.7 s (21.5 s/it), ML 3.1, counting 2.3, detection 0.5–0.9,
-    regression 0.75;
-  - peak memory 40–45 GB (`stats/26 §0, §1d, §1g, §1h, §2`).
-- **Holdout evaluation, 768², all 6 tasks:** 1.9 h generation + 38 min CRIMSON (general
-  adapter); batched cls 0.37 s/question (`stats/26 §1k, §9`).
-- **MedGemma-1.5-4B cls training** (A only, 3 epochs, native 896²): ~50 min per direction,
-  i.e. ~0.08 s/example (`PROGRESS` 2026-07-06).
-- **DDP across 4 GPUs:** only ~2.2× faster, not 4× (`stats/15 §3`).
+- 3 runs at once: 1.75 s/example each, 2.0× the throughput of one run alone. Peak ~17 GB
+  reserved per run (~51 of 96 GB). 4 at once is untested.
+- Each run's first pass tokenizes its deck (~35–40 min for the full deck), then caches it.
 
-### 2.2 Planning constants
+### 2.2 Planning constants (slot-hours)
 
-These are the constants used throughout. S0 replaces them with measured values.
+| Item | Estimate | Basis |
+|---|---:|---|
+| Qwen, one full-mixture run (Shared, Hydra-T, Reversed Hydra) | ≈ 50 | measured Shared; Hydra overhead ×1.05 assumed |
+| Qwen, Shared r48 | ≈ 55 | rank 48 adds a little compute; measure in its smoke gate |
+| Qwen, 6 TaskLoRAs | ≈ 58 | measured |
+| **Qwen, the 5 main arms, one seed** | **≈ 265** | |
+| MedGemma, one full-mixture run | ≈ 8 | v1 estimate (7.2 ws GPU-h); **unmeasured on the box** |
+| Qwen, one holdout eval (all tasks + CRIMSON) | ≈ 2.5 | v1: 2.1 h on ws |
+| MedGemma, one holdout eval | ≈ 1 | estimate |
 
-| Symbol | Meaning | Value |
-|---|---|---|
-| **U** | one full A∪B run, 3 epochs, Qwen 768², plain LoRA | **≈ 68 GPU-h** |
-| per-task 3-epoch cost | cls 26.6 h · report 19.9 h · ML 7.5 h · det 7.0 h · reg 5.7 h · counting 1.0 h | sum ≈ U |
-| overhead, Hydra-T | | ×1.05 |
-| overhead, MoE-type custom modules (Hydra-L, LoRAMoE, top-k MoE, spectral, modality-guided) | Python expert loop over 4-bit layers; calibrate | **×1.4** |
-| overhead, MoLE over K frozen adapters | | ×1.6 (6 adapters), ×2.2 (13) |
-| **E** | holdout eval, plain adapters | 1.5 h + 0.6 h CRIMSON = **2.1 h** |
-| E, custom routed models | | ~3.0 h |
-| dev-select eval | | ~0.5 h (≈0.1 h per task slice) |
-| **U_MG** | MedGemma, one A∪B run × 3 epochs. Planning value 0.45 s/row; measured-implied ≈ 4 h, inflated for longer multi-task targets | **≈ 7.2 h** |
-
-**Capacity, 9–31 Oct:**
-- Raw: 4 GPUs × 22 days = 2,112 GPU-h.
-- The GPUs are mostly idle for the first 3–4 days while W1–W3 are built.
-- Evaluation and smoke runs share the same GPUs.
-- Realistic utilisation is about 85%.
-- **Usable for training: about 1,400–1,500 GPU-h.**
-
-**Throughput rule:** run 4 independent single-GPU jobs. Use DDP only to shorten a
-critical-path run.
+### 2.3 Capacity
+- 16 Oct → 11 Nov (12–13 Nov kept for final evals and slack): 26 days × 24 h × 3 slots ≈
+  **1,870 slot-hours**; at ~85% usable, **≈ 1,600**.
+- Evaluation, zero-shot and smoke runs share the same three slots (one queue,
+  `code/train/run_chain.sh`). Check `nvidia-smi -i 1` before each launch.
 
 ---
 
-## 3. Shared foundation (built first, by one owner)
+## 3. Foundation and code to build
 
-Everyone's experiments run on these three pieces, so one person builds them and everyone
-uses the same version.
-- On their own, they train and evaluate plain LoRA (Shared and TaskLoRA).
-- Every other method plugs into them through the interface in §3.2.
-- The code specific to each method is listed inside its study in §4, under
-  **"Code to build"**.
+### 3.1 State of the foundation
 
-### 3.1 Foundation packages
+| Package | What | State |
+|---|---|---|
+| W1 Data | decks, holdout file, subsets, md5 manifest, task/modality/dataset labels on every row | **done** 2026-10-13 |
+| W2 Training | `journal_train`, per-example loss, plug-in hook, registry | **done** 2026-10-13; smoke gate passed on GPU 1, 2026-10-14 |
+| W3 Eval | holdout eval of single adapters and oracle-routed adapter sets, plug-in methods, scoring, CRIMSON, omission rule, bootstrap | written (branch `taha/w3-eval`), **untested** |
+| Interface note | `code/INTERFACE.md` + a reference plug-in | to write once W3 works |
 
-**W1 Data** (~2 person-days):
-- Verify that A/B exclude dev.
-- Build the natural A∪B per-task decks: one row per question, bare prompts, up to 4 marked
-  images.
-- Build dev-select.
-- Build the nested scaling subsets and sensitivity draws (§1.9), including the
-  shared-iugc-image rule.
-- Write a deck md5 manifest.
-- Put task, modality and dataset labels on every row (needed for oracle routes).
+### 3.2 Code to build for v2 (in order of need)
 
-**W2 Training harness** (~2 person-days): a `journal_train` wrapper around LF v0.9.5 with:
-- dropout 0.05;
-- per-example loss (§1.5), with a unit test;
-- the frozen target-module list (§1.2);
-- `task_id`/`modality_id`/`dataset_id` passed through the collator to the model;
-- the run registry and `runtime.json`;
-- the plug-in hook (§3.2).
+| Package | For | What |
+|---|---|---|
+| **W4 HydraLoRA module** | E1, E2 (and E9) | One plug-in (`code/methods/hydra.py`) replacing each target `Linear4bit` with `y = W0·x + s·B·(A·x)`, where the oracle `task_id` picks the head. Two modes: **`hydraT`** (shared A, 6 B_t heads) and **`hydraR`** (6 A_t heads, shared B). Standard LoRA init in both (A random, B zeros). Prints the stored and active parameter counts at load. Learned routing (Hydra-L) is not needed. |
+| Shared r48 config | E1, E2 | A config only: `lora_rank: 48`, `lora_alpha: 96`. |
+| **W9 MedGemma port** | E0, E2 and every later experiment | Gemma3 template and the train/inference byte-identity gate; the language-model target list (no vision modules); detection coordinates at 896² (targets in original pixels, as for Qwen; check on a smoke run that the model learns the mapping); W4 ported to Gemma3 layer names. |
+| W11a Transfer analysis | E3, E8 | `code/analysis/transfer_matrix.py`: C_ij, PGF μ_{i→j}, transferability/malleability (Sachdeva et al., Eqs. 1–3), malformed/truncation table, covariate correlations with permutation tests, heatmap. CPU only. |
+| Routers | E6 | Task route: the question-only GLiClass router; confirm it never saw holdout data, else retrain on A∪B questions (minutes). Modality route: the ResNet-18 modality classifier, trained on A∪B images. |
+| W8 Representation tooling | E7 | `code/analysis/representations.py`: forward-only hooks, debiased linear CKA, RSA, permutation tests; head-similarity for Hydra. |
+| W11b Scaling model | E9 | `code/analysis/scaling_model.py`: the mixed-effects interaction model, crossover p*, curves. CPU only. |
 
-**W3 Eval harness** (~3 person-days): batched holdout/dev evaluation for:
-- (a) a single adapter;
-- (b) oracle-routed adapter sets (one adapter per task);
-- (c) weighted multi-adapter composition at runtime (PEFT multi-adapter with per-adapter
-  scaling; no merging into the 4-bit base);
-- (d) any plug-in method, saving its `routing_stats.npz`.
-
-  Then scoring via `score_single.py`, CRIMSON, the omission rule, the truncation rate, and
-  the bootstrap scripts (§1.11).
-
-**Critical path to first GPU use:** W1 + W2 + a minimal W3, about 3–4 days. S1 starts as
-soon as they pass the gate in §3.3; nothing else needs to exist for it.
-
-### 3.2 Plug-in interface (written once the harness works; changelog 2026-10-13)
-
-Freeze these in a short note (`code/INTERFACE.md`), written after W1–W3 work, so teammates
-build their modules against a harness that already runs:
-
-- **Deck row format:** the fields every training/eval row carries: `id`, `image_group`,
-  `images[]`, `question`, `answer`, `task`, `modality`, `dataset`.
-- **Method hook:** `apply_method(model, cfg) -> model`. It takes the loaded 4-bit model and
-  returns it with the method's layers inserted on the frozen target-module list.
-  - Routing inputs arrive as `task_id`, `modality_id`, `dataset_id` keyword arguments.
-  - Auxiliary losses are returned through a single `aux_loss` attribute that the trainer
-    adds to the loss.
-  - Routing statistics are written to `routing_stats.npz` in a fixed schema.
-- **Run folder layout and CLI arguments** for training and evaluation (§1.10).
-
-### 3.3 Smoke gate (every method, before it gets a full GPU slot)
-
-Every method must pass all of these. The foundation owner reviews the gate output, not the
-whole implementation.
-
+### 3.3 Smoke gate (every method and backbone, before a full GPU slot)
 1. Loss decreases over 50 training steps.
-2. The active-parameter count matches §1.3 (or is reported, for composition methods).
-3. The train/inference prompt render is byte-identical (`template_gate.py`), including any
-   preprocessing the method uses.
-4. Eval runs end to end on ~50 holdout questions, with a sensible malformed and truncation
+2. Stored and active parameter counts match §1.3.
+3. Train/inference prompt render is byte-identical (`template_gate.py`).
+4. Eval runs end to end on ~50 holdout questions with a sensible malformed and truncation
    rate.
-5. Routed methods: `routing_stats.npz` is non-empty and its schema is valid.
-6. `runtime.json` records s/it and peak memory (this feeds the compute estimates).
+5. `runtime.json` records s/it, peak memory and parameter counts (these replace the §2.2
+   estimates).
 
-### 3.4 Index of study-specific code (details inside each study)
-
-| Package | Built in | Also used by | Est. (person-days) |
-|---|---|---|---|
-| W4 HydraLoRA module | S4a | S3, S5 (Med-MoE-style arm), S10 | 3 |
-| W5 MoE family (LoRAMoE, top-k, spectral, modality-guided) | S6 | — | 6 |
-| W6 Composition (fixed λ, MoLE gates) | S4b | S5 | 3 |
-| W7 Location target sets | S8 | — | 1 |
-| W8 Representation tooling | S7 | S8 | 2 |
-| W9 MedGemma port | S10 | — | 2 |
-| W10 Practical-factor switches | S9 | — | 3 |
-| W11a Transfer-matrix analysis | S2 | S4b, S7 | 1 |
-| W11b Scaling mixed-effects model | S3 | S10 | 1 |
-
-Total, foundation included: ≈ **29 person-days**.
+The foundation owner reviews the gate output, not the whole implementation.
 
 ---
 
 ## 4. Experiments
 
-Each study block gives, in order: code to build (if any) → question and design → arms →
-evaluation and analysis → prior evidence → dependencies → compute.
+### Phase A — Main experiments
 
-The **prior evidence** line gives the challenge-era result (Qwen3.5-9B or Qwen3-VL-8B,
-different recipe) to set expectations. Those results are **not** reused as data in the new
-protocol.
+#### E0. Zero-shot anchors
+- ZS-bare and ZS-prompt (§1.6) on the holdout, for Qwen and MedGemma.
+- Per task: metric, malformed rate, truncation rate, and ZS-prompt − ZS-bare (how much of the
+  zero-shot gap is format).
+- Needed for μ (§1.8) and C_ij (E3). Challenge-era zero-shot runs are not reusable
+  (different resolution, prompts and protocol).
+- **Cost:** ≈ 5 (Qwen) + 3 (MedGemma) slot-h.
+- **Also:** W3's first real test is evaluating the S1 seed-1337 Shared and TaskLoRA adapters.
 
-### S0 — Infrastructure, calibration, zero-shot anchors
+#### E1. The five arms on Qwen3.5-9B (RQ1)
+- **Arms:** Shared, Hydra-T, Reversed Hydra, TaskLoRA, Shared r48 (§1.3), each × seeds 1337,
+  2026, 42, on the full A∪B mixture. Hydra-T and Reversed Hydra train on the full mixture with
+  the oracle task picking the head; each TaskLoRA trains on its task deck only.
+- **Evaluation:** holdout, all tasks, oracle task route where the arm needs one.
+- **Contrasts (each per task, paired bootstrap, Holm over 6):**
 
-- **Smoke tests:** every method (Shared, TaskLoRA, Hydra-T, Hydra-L, LoRAMoE, top-k MoE,
-  spectral, MoLE, MedGemma) passes the §3.3 gate as its code becomes ready. The measured
-  s/it and memory replace the §2.2 planning constants.
-- **Zero-shot base, two protocols (§1.6):** ZS-bare and ZS-prompt, for Qwen and MedGemma,
-  on holdout and dev-select.
-  - ZS-prompt is the M_base anchor for μ and C_ij; ZS-bare is reported alongside.
-  - Per task, report: metric, malformed rate, truncation rate, and the ZS-prompt − ZS-bare
-    difference (how much of the zero-shot gap is format).
-  - The challenge zero-shot runs (`stats/26 §6`) are not reusable: they used 2048² for most
-    routes, task-specific prompts, and a different v2 protocol.
+  | Contrast | Question it answers |
+  |---|---|
+  | TaskLoRA − Shared | the headline: does specialization help, and for which task families? |
+  | TaskLoRA − Shared r48 | is that gain specialization, or just 6× the parameters? |
+  | Hydra-T − Reversed Hydra | does it matter which matrix is shared? |
+  | Hydra-T, Reversed Hydra − Shared and − TaskLoRA | where partial sharing falls between the extremes |
 
-| Item | GPU-h |
-|---|---:|
-| smoke + calibration (9 × 0.5) | 4.5 |
-| Qwen ZS-bare + ZS-prompt, holdout (2 × E) + dev-select | 5.2 |
-| MedGemma ZS-bare + ZS-prompt, holdout + dev | 3 |
-| **S0 total** | **≈ 13** |
+- **Also report:** per-dataset deltas grouped by modality; malformed, truncation and report
+  omission rates; an output-format error table (does any shared arm emit the wrong task's
+  format?); task-mean μ.
+- **Prior evidence** (challenge, different recipe, not reused as data): specialists were better
+  on regression, cls and detection; ML and counting tied; the general adapter was slightly
+  better on reports.
+- **Done so far:** seed 1337 TaskLoRA (all 6) trained; seed 1337 Shared finishing 16 Oct.
+- **Cost:** 3 × 265 ≈ 800 slot-h (≈ 105 already spent) + 15 evals ≈ 40.
 
-### S1 — Shared vs task-specific adaptation (RQ1)
+#### E2. The five arms on MedGemma-1.5-4B (RQ1, cross-backbone)
+- Same arms, seeds and evaluation as E1, after the W9 port passes the gate. Run IDs use
+  `mg15` and `896`.
+- **Analysis:** `Δ_spec = M_TaskLoRA − M_Shared` per task for each backbone, compared with
+  bootstrap CIs. Read it alongside the differences in size, resolution and pretraining (4B,
+  fixed 896², medical SigLIP).
+- **Risk:** MedGemma was very weak on detection in the organiser baselines (0.092 F1). Once the
+  coordinate convention is verified, low detection numbers are a finding, not a bug.
+- **Cost:** 15 runs × ≈ 8 + 15 evals ≈ 135 slot-h (MedGemma speed unmeasured).
 
-- **Question:** which task families benefit from explicit specialization over one shared
-  adapter?
-- **Arms (Qwen, 3 seeds each):**
-  1. base: ZS-bare and ZS-prompt (from S0);
-  2. **Shared LoRA** on the full natural A∪B mixture;
-  3. **TaskLoRA:** 6 independent r8 adapters, each trained on its task deck and evaluated
-     with the oracle task route.
-- **Evaluation:** holdout, all tasks.
-  - Per task and per dataset: the metric, malformed rate, truncation rate, and report
-    omission rate.
-  - Variation by domain: per-dataset deltas (TaskLoRA − Shared) grouped by modality.
-- **Analysis:**
-  - paired bootstrap of TaskLoRA − Shared per task (Holm over 6);
-  - task-mean μ;
-  - an output-format error table (does Shared ever emit the wrong format?);
-  - interference proxy: per-task loss curves from the Shared run, compared with the
-    single-task curves.
-- **Prior evidence** (`stats/26 §1k`, 9B, 768²):
-  - specialists were better on regression (boneresorption +3.9 MAE, significant), cls
-    (+0.035 BA, but r32 vs r8) and detection (+0.03, small n);
-  - multi-label and counting were ties;
-  - the general adapter was slightly *better* on reports (+0.010 CRIMSON, P=0.93).
-- **Dependencies:** W1–W3, S0.
+### Phase B — Additional experiments
 
-| Item | GPU-h |
-|---|---:|
-| Shared × 3 seeds (3U) | 203 |
-| TaskLoRA × 3 seeds (3U; the 6 adapters run in parallel, so the ~27 h cls adapter sets the wall clock) | 203 |
-| Holdout eval × 6 | 13 |
-| **S1 total** | **≈ 419** |
+> **Phase B GPU work starts only after every Phase A training run has finished** (E1 and E2,
+> all seeds). Code, routers and analysis scripts for Phase B can be built at any time. Every
+> Phase B experiment runs on both backbones with 3 seeds.
 
-### S2 — Cross-task transfer matrix (RQ6)
+#### E3. Transfer matrix (RQ3, RQ4)
+- **Design:** evaluate each TaskLoRA_i on every other task j's holdout slice: a 6 × 6 grid per
+  seed and backbone (the diagonal comes from E1/E2), plus the base rows from E0.
+  - `C_ij = M_j(TaskLoRA_i) − M_j(base)`, metric-oriented, base = ZS-prompt. Recompute against
+    ZS-bare and list the cells whose sign flips.
+  - Also PGF `μ_{i→j}`, transferability Δ(i)± and malleability Θ(j)±.
+  - Malformed and truncation rate per cell: format lock-in was the main negative-transfer
+    mechanism in the challenge.
+  - CRIMSON scores from non-report adapters will mostly be junk. Keep and flag them.
+- **RQ3 analysis:** relate C_ij to pair covariates computed from the W1 labels: output-structure
+  similarity (hand-coded: label / label-set / boxes / integer / scalar / free text), modality
+  overlap (Jaccard), dataset overlap, source and target data size. 30 off-diagonal pairs:
+  Spearman correlations with permutation tests, not a multiple regression. Sign stability across
+  the 3 seeds (Wilcoxon).
+- **Natural experiment:** iugc carries cls, detection and regression questions on the *same*
+  ultrasound images, so transfer between those three holds modality and dataset fixed and
+  varies only the output format.
+- **Cost:** Qwen ≈ 12 per seed → 36; MedGemma ≈ 6 per seed → 18. **≈ 54 slot-h**, all
+  inference.
 
-**Code to build (W11a, ~1 person-day, CPU only):** a script that takes the per-cell metric
-files and produces:
-- C_ij and PGF μ_{i→j};
-- transferability Δ(i)± and malleability Θ(j)± (Sachdeva et al., Eqs. 1–3);
-- the malformed/truncation table;
-- the covariate correlations with permutation tests;
-- the heatmap figure.
+#### E4. Modality adapters (RQ3)
+- **Design:** one r8 adapter per imaging modality, trained on all of that modality's A∪B
+  questions, whatever the task. Modalities: X-ray, Ultrasound, Mammography, Microscopy,
+  Dermatology, Retinography, Clinical. Endoscopy skipped (15 questions).
+- **Evaluation:** each modality adapter on its modality's holdout questions (oracle modality
+  route), compared on the same questions with Shared (one group), TaskLoRA (grouped by task)
+  and the five E1/E2 arms.
+- **Question:** is specializing by *modality* better or worse than specializing by *task*? Put
+  together with E5, this asks at which level sharing should be cut: task, modality or dataset.
+- Composition (task + modality adapters combined) is out of scope (§6, N5).
+- **Prior evidence** (challenge, 8B): modality adapters lost to task specialists on cls but beat
+  the general adapter; X-ray ML was the one slice where modality was competitive.
+- **Cost:** Qwen ≈ 50 per seed (the 7 adapters together cover the mixture) + evals → ≈ 165;
+  MedGemma ≈ 30. **≈ 195 slot-h.**
 
-Owner decides: whether to include the diagonal in the Δ/Θ sums (the paper doesn't say), and
-the hand-coded output-structure similarity scale. S4b and S7 reuse this script.
+#### E5. Dataset adapters within classification (RQ3)
+- **Design:** one r8 adapter per cls dataset (10), each trained on that dataset's A∪B cls
+  questions, evaluated on its holdout slice (oracle dataset route), compared with TaskLoRA-cls
+  and Shared on the same questions.
+- **Analysis:** the per-dataset gain over TaskLoRA-cls against dataset size and zero-shot
+  difficulty. Does specializing below the task level help only for large or visually distinct
+  datasets?
+- **Cost:** Qwen ≈ 30 per seed (about one cls TaskLoRA) + evals → ≈ 95; MedGemma ≈ 15.
+  **≈ 110 slot-h.**
 
-- **Design:** evaluate each TaskLoRA_i from S1 (adapters evaluated bare, as trained) on
-  every target task j's holdout slice. This gives a 6 × 6 grid plus the base rows.
-  - **Transfer score:** `C_ij = M_j(ΔW_i) − M_j(base)`, metric-oriented, with base =
-    ZS-prompt (§1.6). Recompute against ZS-bare and list the cells whose sign flips.
-  - Also compute PGF `μ_{i→j}` (`stats/12` form: ceiling 1; MAE form for counting and
-    regression), plus transferability Δ(i)± and malleability Θ(j)±.
-  - Report the malformed and truncation rate per cell. Format lock-in was the dominant
-    negative-transfer mechanism before (`stats/12 §3`).
-- **Report generation as a target:** CRIMSON scores from non-report adapters will mostly be
-  junk. Keep them, and flag them.
-- **Analysis:** relate C_ij (or its sign/rank) to these pair covariates, all computed from
-  W1 labels:
-  - output-structure similarity, hand-coded: label / label-set / boxes / integer /
-    scalar / free text;
-  - source data size;
-  - target data size;
-  - modality overlap (Jaccard of modality sets);
-  - dataset overlap.
+#### E6. Predicted routing (RQ1 robustness)
+- Every specialized arm needs a route at test time; E1–E5 use the oracle label. Here the label
+  is predicted:
+  - task route (TaskLoRA, Hydra-T, Reversed Hydra): the question-only GLiClass router;
+  - modality route (E4 adapters): the ResNet-18 modality classifier.
+- **Report:** routing accuracy per task/modality, and the end-to-end metric drop versus the
+  oracle route. Does the specialization gain survive without labels?
+- **Cost:** ≈ 24 evals → **≈ 45 slot-h**.
 
-  With 30 off-diagonal pairs, use Spearman correlations plus a permutation test, not a
-  multiple regression.
-- **Seeds:** the main matrix uses seed 1337. Seeds 2026 and 42 (optional) give per-cell
-  variability and support task-clique sign stability (Wilcoxon), as in the paper.
-- **Prior evidence** (`stats/12`, 8B): a mild positive cluster {counting, regression,
-  multi-label}; detection was isolated; cls helped only cls.
-- **Dependencies:** S1 TaskLoRA.
+#### E7. Representations (RQ4)
+- **Probe set:** a fixed, stratified holdout subset of 30 questions per cell (≈ 570); commit
+  the IDs.
+- **Models:** base, Shared, Shared r48, TaskLoRA (each adapter on all probe questions), Hydra-T,
+  Reversed Hydra, modality and dataset adapters; 3 seeds give the seed-to-seed noise ceiling.
+- **Features:** mean-pooled image tokens and question tokens, plus the last prompt token, at a
+  fixed set of LLM layers (proposed for Qwen: 1, 8, 16, 24, 32, 40, 48, 56, 64; owner sets the
+  MedGemma list).
+- **Measures:**
+  - **input similarity:** RSA/centroid similarity between base-model representations of
+    source task i's inputs and target cell c's inputs; correlated with transfer C_i,c (≈ 110
+    task–cell pairs; permutation test shuffling target cells; Holm across layers). This is the
+    main test;
+  - **adapter similarity:** debiased linear CKA between TaskLoRA_i and TaskLoRA_j on the same
+    inputs, per layer, against C_ij (descriptive only: 6 tasks are too few for a test);
+  - **shift from base:** CKA(model, base) per layer: where does specialization appear?
+  - **Hydra heads:** pairwise cosine similarity of the B_t heads (Hydra-T) and of the A_t heads
+    (Reversed Hydra) across tasks. Which matrix actually diverges between tasks?
+- **Cost:** forward passes only, **≈ 30 slot-h**; storage ≈ 200 MB per configuration.
 
-| Item | GPU-h |
-|---|---:|
-| seed 1337: 6 sources × the 5 other targets (≈ 6 × 1.5 h generation + 5 report targets × 0.6 h CRIMSON) | 12 |
-| seeds 2026 and 42 (optional) | +24 |
-| **S2 total** | **≈ 12** (36 with all seeds) |
+#### E8. RQ4 synthesis (CPU)
+- **Unit:** the 19 cells, per backbone. **Outcome:** the specialization benefit per cell,
+  TaskLoRA − Shared (and Hydra-T − Shared, Reversed Hydra − Shared), averaged over seeds.
+- **Candidate predictors:** training size of the cell and of its task, number of datasets in
+  the task, output-structure type, modality, zero-shot score (difficulty), malleability Θ(j)
+  and transferability Δ(i) from E3, input and adapter similarity from E7.
+- **Method:** Spearman correlations with permutation tests, reported per predictor (19 cells
+  are too few for a joint regression). Check that the sign agrees across backbones.
 
-### S3 — Supervision scaling (RQ2)
+### Phase C — Supervision scaling
 
-**Code to build (W11b, ~1 person-day, CPU only):**
-- the mixed-effects fit (statsmodels `MixedLM` or R `lme4`) on μ;
-- the crossover p* with a bootstrap CI;
-- the scaling-curve figures.
-
-The subsets themselves come from the foundation (W1), so the S3 owner writes no data code.
-Owner decides: the random-effect structure (dataset only, or dataset + seed), and how to
-treat the 1% points if some datasets have no questions there.
-
-- **Question:** does the preferred degree of sharing change with target-task supervision?
-- **Targets:** cls (high-resource, 15,218 A∪B questions) and regression (naturally
-  low-resource per Tausifa Q9: 5,265 questions, 2 datasets).
-  - **Caveat for regression:** its holdout macro is dominated by iugc (n=516, already near
-    its floor at MAE ≈ 2.4), and boneresorption has only n=70. The scaling signal may be
-    mostly noise. Report the two datasets separately. Counting (900 questions) is actually
-    our smallest task. → Decision D12
-- **Fractions:** p ∈ {1, 5, 10, 25, 50, 100}% of the target task's image groups. Non-target
-  tasks always stay at 100%. The 100% point is reused from S1/S4.
-- **Arms:**
-  - **TaskLoRA:** target subset only;
-  - **Shared LoRA:** mixture with the subsetted target;
-  - **Hydra-T:** mixture with the subsetted target.
-- **Seeds:** 3 seeds on the same nested subsets (Tausifa Q12), plus the 2 extra
-  sensitivity draws at p ∈ {5, 10, 25}%, 1 seed each.
-- **Evaluation:** the target task's holdout slice. Also the full holdout for Shared/Hydra
-  at p ∈ {1, 25}%, to check whether other tasks move.
-- **Analysis:** the interaction model from the proposal, fitted on μ per (task, dataset,
-  method, p, seed):
-
-  `μ = β0 + β1 log N + β2 S + β3 (log N × S) + u_dataset + ε`
-
-  where S is the method, with TaskLoRA as reference.
-  - Main test: β3 (does the method gap change with N?).
-  - Also report the crossover p* at which TaskLoRA ≥ Shared, with a bootstrap CI.
-  - For cls, fit per dataset too: small datasets reach their floor first.
-- **Expected issue:** at 1%, cls has ~150 questions and regression ~53 (about 6
-  boneresorption). TaskLoRA may emit poorly calibrated outputs; keep the malformed-rate
+#### E9. Supervision scaling (RQ2)
+- **Runs last.** Its scope is decided once Phases A and B are done, from the compute left.
+  As designed it does **not** fit (§5.2). Until then it stands as in v1:
+- **Design (v1 S3, unchanged):**
+  - targets: cls (15,218 questions) and regression (5,265; caveat: its holdout macro is
+    iugc-dominated; report boneresorption separately);
+  - fractions p ∈ {1, 5, 10, 25, 50, 100}% of the target task's image groups (§1.9); other tasks
+    stay at 100%; the 100% point is reused from E1/E2;
+  - arms: TaskLoRA (target subset only), Shared and Hydra-T (mixture with the subsetted target);
+  - 3 seeds on the same nested subsets, plus the 2 sensitivity draws at {5, 10, 25}%, 1 seed;
+  - both backbones (v2: MedGemma gets the full design, not v1's reduced one).
+- **Analysis:** `μ = β0 + β1 log N + β2 S + β3 (log N × S) + u_dataset + ε` per (task,
+  dataset, arm, p, seed), with TaskLoRA as the reference arm. Main test: β3. Also the crossover
+  p* where TaskLoRA ≥ Shared, with a bootstrap CI; per-dataset fits for cls.
+- **Expected issue:** at 1%, cls has ~150 questions and regression ~53. Keep the malformed-rate
   column.
-- **Dependencies:** W1 subsets; **the HydraLoRA module from S4a (W4)** for the Hydra-T arm;
-  S1.
-
-Compute. The row counts in this table come from the challenge decks (one row per image)
-and are kept only as the cost basis (§1.5):
-
-| Block | Per seed | × seeds/draws | GPU-h |
-|---|---|---|---:|
-| cls — TaskLoRA, 5 new p | 23,579 rows ⇒ 24 | × 3 | 73 |
-| cls — Shared, 5 new p (31,892 + 25,911p rows each) | 183,039 rows ⇒ 214 | × 3 | 641 |
-| cls — Hydra-T, 5 new p | 224 | × 3 | 672 |
-| cls — sensitivity (2 draws × {5, 10, 25} × 3 methods, 1 seed) | 264 per draw | × 2 | 528 |
-| reg — TaskLoRA, 5 new p | 5 | × 3 | 16 |
-| reg — Shared, 5 new p (52,538 + 5,265p rows each) | 312 | × 3 | 936 |
-| reg — Hydra-T, 5 new p | 328 | × 3 | 983 |
-| reg — sensitivity | 385 per draw | × 2 | 770 |
-| evals (slice evals ~0.2–0.3 h; a few full evals) | | | ≈ 25 |
-| **S3 total** | | | **≈ 4,640** |
-
-This is by far the largest item, because every Shared/Hydra point retrains on the whole
-mixture. Levers are in §5.3.
-
-### S4 — Partial and soft sharing (RQ3)
-
-#### S4a HydraLoRA
-
-**Code to build (W4, ~3 person-days):** a plug-in (§3.2) that replaces each target
-`Linear4bit` with `y = W0·x + s·Σ_i ω_i B_i (A x)`: one shared A, several B heads.
-- Two modes:
-  - `oracle`: ω is one-hot from `task_id`. This is Hydra-T.
-  - `learned`: a per-token router `ω = softmax(W_g x)`, kept in bf16 with an fp32 softmax.
-    This is Hydra-L.
-- Rank solved per module from the §1.3 matching formula; print the active count at load.
-- A routing-stats dump for the learned mode.
-- **Owner decides and documents:** the router input (the token hidden state x or the
-  low-rank projection Ax; the paper is ambiguous, and the default here is x), and the
-  B-head initialisation (zeros, as in LoRA).
-- **Also used by** S3 (Hydra-T scaling arm), S5 (Med-MoE-style arm) and S10 (port to Gemma3
-  layer names), so build the oracle mode first.
-
-**Arms:**
-- **Hydra-T** (the proposal's ΔW_t = B_t A_s), 3 seeds: shared A (r8); 6 task heads B_t;
-  the oracle task selects B_t in training and inference.
-- **Hydra-L** (Tian et al. 2024, paper-faithful), 3 seeds:
-  - shared A, N B heads, dense per-token softmax router `ω = softmax(W_g x)`;
-  - no task labels and no auxiliary loss (the paper has none); jointly trained;
-  - rank from §1.3.
-  - **Head count N:** the paper's k-means elbow procedure (App. B), run on CPU over
-    sentence embeddings of the training questions (the paper used TF-IDF; this is a
-    documented deviation), for N ∈ {2…8}. If there is no clear elbow, use N=6 (the task
-    count). Dev is not used for this. → Decision D8
-- **Hydra-L paper-budget**, 1 seed: r8 per head (§1.3).
-
-**Analyses:**
-- Hydra vs Shared vs TaskLoRA, per task.
-- The paper's A-vs-B check: pairwise cosine (or t-SNE) of the B_t heads across tasks,
-  compared with the shared A.
-- Hydra-L routing entropy and task-conditional head usage (with the S6 routing metrics).
-
-#### S4b Soft adapter composition
-
-**Code to build (W6, ~3 person-days):**
-- **Fixed composition:** a thin wrapper over the eval harness's multi-adapter mode (W3c)
-  that applies `ΔW_t + λ ΔW_j` at runtime, plus the dev-select λ grid driver.
-- **Learned composition (MoLE-style gates):** a plug-in that loads K frozen adapters and
-  adds one gate per transformer block, with a learnable temperature τ and the MoLE balance
-  loss `L_balance = −log Π q_i`, α=0.5.
-  - **Gate input = the hidden state** entering the block (Tausifa Q11), mean-pooled over
-    the prompt at prefill and cached for decoding.
-  - Optional task/modality embeddings are concatenated to it (the variants below).
-  - This deviates from the MoLE paper, whose gate reads the adapters' outputs flattened
-    over the sequence. Flattening breaks during generation, and Tausifa specified the
-    hidden state. Document the deviation.
-- **Owner decides:** block-wise gates (the paper's best) or layer-wise.
-- **Also used by** S5 (task+modality and global+dataset compositions).
-
-**Fixed composition:**
-- `ΔW = ΔW_t + λ ΔW_j`, for target task t and each of the 5 donor adapters j, using the S1
-  TaskLoRA seed-1337 adapters.
-- λ ∈ {0, 0.25, 0.5, 0.75, 1.0} (Tausifa Q11), selected on **dev-select** per (t, j). Then
-  evaluate all 30 (t, j) pairs on holdout at their selected λ.
-- Runtime composition only; nothing is merged into the NF4 weights.
-- **Analysis:** correlate the composition gain G_tj = M_t(t + λ*·j) − M_t(t) with the
-  transfer score C_jt from S2 (Spearman + permutation).
-- **Prior evidence:** the naive λ=1 sum was destructive (`stats/25`: detection −0.17 to
-  −0.37). The λ grid tests whether that was the weight or the mechanism.
-
-**Learned composition:** freeze the 6 TaskLoRAs and train only the gates on the natural A∪B
-mixture with the common recipe. Router-input ablation (Tausifa Q11):
-
-| Variant | Gate input | Seeds |
-|---|---|---|
-| L-h | hidden state only — **main** | 3 |
-| L-h+t | hidden state + task-id embedding (oracle task) | 1 |
-| L-h+m | hidden state + modality-id embedding (oracle modality) | 1 |
-| L-h+t+m | hidden state + both | 1 |
-
-If a variant with ids clearly wins on dev, run it with 3 seeds instead.
-
-#### S4c Predicted routing, end to end (separate from the main comparison; Tausifa Q11)
-
-The main comparisons use oracle routes. This experiment reruns the best oracle-routed
-systems (TaskLoRA, Hydra-T, fixed compositions, and the S5 modality routes) with predicted
-routes:
-- **Task route:** the question-only GLiClass router. **W1 check:** confirm the router was
-  trained without holdout data; otherwise retrain it on A∪B questions (minutes).
-- **Modality route:** the ResNet-18 modality classifier (`stats/15 §6`, trained on A∪B
-  images).
-- **Report:** routing accuracy, and the end-to-end metric drop versus the oracle route.
-
-| Item | GPU-h |
-|---|---:|
-| Hydra-T × 3 (3 × 1.05U) | 213 |
-| Hydra-L × 3 (3 × 1.4U) | 285 |
-| Hydra-L paper-budget × 1 | 95 |
-| Hydra-L head count (k-means on CPU) | 0 |
-| evals (Hydra, 7 runs) | 19 |
-| fixed composition: 120 dev-select evals (6 t × 5 j × 4 λ, ~5 min each) | 10 |
-| fixed composition: 30 holdout pair evals | 11 |
-| learned composition, main variant × 3 seeds (3 epochs × 1.6U ≈ 108 each) | 324 |
-| learned composition, 3 other variants × 1 seed each | 324 |
-| learned-composition evals (6) | 18 |
-| S4c predicted-routing reruns | 6 |
-| **S4 total** | **≈ 1,305** (gates trained for 1 epoch instead of 3: −430) |
-
-### S5 — Modality and domain specialization (RQ4)
-
-**Code:** almost none new.
-- The modality and dataset adapters are plain LoRA, trained by the foundation on decks
-  filtered by modality or dataset (W1 labels).
-- The compositions reuse W6 from S4b.
-- The Med-MoE-style arm is a small variant of the HydraLoRA module (W4, from S4a): an
-  always-on shared head plus oracle-selected modality heads.
-
-#### S5a Modality level
-
-- **Modality adapters:** one r8 adapter per imaging modality, trained on all of that
-  modality's A∪B tasks, 1 seed. Modalities: X-ray, Ultrasound, Mammography, Microscopy,
-  Dermatology, Retinography, Clinical. Endoscopy is skipped (15 questions).
-- **Arms:**
-  1. task only = TaskLoRA (S1);
-  2. modality only (oracle modality);
-  3. **task + modality, fixed:** `ΔW_t + λ_m ΔW_m`, with λ_m from the same 5-point grid,
-     selected on dev per task;
-  4. **task + modality, learned:** learned-composition gates over {6 task + 7 modality}
-     adapters, with the best gate input from S4b;
-  5. **Med-MoE-style joint variant** (Jiang et al. 2024, LoRA analogue): one always-on
-     shared "meta" LoRA (r4) plus modality experts (r4 each) selected by the oracle
-     modality route. Med-MoE uses a frozen, supervised modality router; the predicted
-     modality version goes in S4c. Active rank is 8, so it is matched.
-- **Prior evidence** (8B):
-  - standalone modality adapters lost to the task specialists on cls (`stats/15 §4`; up to
-    −0.46 BA on bone_marrow) but beat the general adapter;
-  - the naive task+modality sum was negative (`stats/25`);
-  - X-ray multi-label was the one slice where modality was competitive.
-
-#### S5b Dataset level, within classification
-
-- **Arms:**
-  1. global cls adapter = TaskLoRA-cls (S1);
-  2. dataset-specific cls adapters, one per cls dataset (10);
-  3. global + dataset adapter, fixed λ selected on dev;
-  4. global + dataset adapters, learned composition (gates over the global adapter and the
-     10 dataset adapters, trained on cls data only).
-- **Analysis:** the per-dataset gain against dataset size and against zero-shot
-  difficulty. Does specialization below the task level help only on large, visually
-  distinct datasets?
-
-| Item | GPU-h |
-|---|---:|
-| 7 modality adapters (≈ U; X-ray ~21 h, US ~14 h, others small) | 68 |
-| modality-only eval + task+modality λ grid (24 dev evals) + holdout | 7 |
-| learned task–modality composition × 1 (2.2U) | 151 |
-| Med-MoE-style joint × 1 (1.2U) + eval | 85 |
-| 10 dataset cls adapters (≈ cls cost + small-run overhead) | 29 |
-| global+dataset fixed λ (40 dev evals) + holdout | 3 |
-| global+dataset learned composition (cls data, 1.6×) | 43 |
-| **S5 total** | **≈ 386** |
-
-### S6 — Latent expert specialization and routing (RQ4, RQ5)
-
-**Code to build (W5, ~6 person-days):** one generic mixture-of-LoRA-experts plug-in
-(§3.2), configured into four methods:
-- **LoRAMoE:** dense softmax router, plus the localized balancing constraint. The
-  constraint needs per-sample sums of router probabilities over non-padding tokens.
-- **Top-k MoE:** Mixtral-style top-k with renormalisation; balance loss `Σ f_i P_i`.
-- **Spectral init:**
-  - SVD of each target weight after dequantising it from NF4, done once at load and cached
-    to disk;
-  - experts initialised from strided singular slices;
-  - the residual W_res kept as a frozen low-rank negative correction (the NF4 weights are
-    not edited);
-  - scale `s* = sqrt(3nη/r)` in place of α/r.
-- **Modality-guided MI loss:** an extra auxiliary loss on the top-k router, using
-  `modality_id`.
-- **Common to all:** a per-token routing dump (layer, expert probabilities, task /
-  modality / dataset, image vs text token), and hooks for router perturbation and expert
-  masking.
-
-**Owner decides and documents:**
-- whether image tokens count in the balance and MI statistics (the papers differ);
-- padding must be masked;
-- the LoRAMoE expert grouping (D9);
-- the bin count for the MI loss.
-
-Calibrate the ×1.4 overhead in §2.2 during the gate run. A slow Python expert loop is the
-biggest compute risk in this study.
-
-**Arms.** All are jointly trained (experts + router) on the natural mixture. Task and
-modality labels may enter training losses, but never inference.
-- **LoRAMoE** (Dou et al., ACL 2024), 3 seeds:
-  - dense per-token softmax router;
-  - localized balancing constraint `L_lbc = σ²(Z)/μ(Z)`, β=0.1, δ=0.1;
-  - *deviations:* N=4 experts × r2 (matched; the paper uses 6 × r4); all target modules,
-    not FFN only; expert groups are 2 groups of 2, "structured-output tasks" (cls, ML,
-    det, counting, reg) vs "free text" (report), replacing the paper's world-knowledge vs
-    task split.
-- **Spectral experts** (MedQwen, Manzari et al. 2026), 3 seeds:
-  - N=8, top-2, rank 4 per expert (total rank 32, the same as the paper; active rank 8);
-  - SVD of the dequantised W0, strided singular slices;
-  - residual compensation W_res as a frozen low-rank correction;
-  - `s* = sqrt(3nη/r)` with η=0.1, ρ=10;
-  - balance loss coefficient 1e-3.
-- **Top-k MoE-LoRA, random init**, 1 seed: identical to spectral except standard LoRA
-  initialisation and no W_res or s*. This is the paper's own initialisation ablation
-  (Table 5); it separates the spectral initialisation from the routing.
-- **Soft modality-guided** (SMoES-style, Bo et al.), 1 seed:
-  - top-k MoE plus an inter-bin mutual-information loss between imaging modality and
-    expert bin, α_MI=1e-4, bin balance α=1e-3, 4 bins (proposed).
-  - *Deviation:* SMoES's "modality" is text tokens vs vision tokens, and its experts are
-    native FFN experts. Using the per-sample imaging-modality label is our adaptation;
-    state it explicitly.
-- **LoRAMoE paper-budget**, 1 seed (optional): 6 × r4 (§1.3).
-- **Spectral (N, top-k) sweep at active rank 8**, 1 seed each (optional):
-  (4, 1, rank 8), (8, 1, rank 8), (8, 4, rank 2).
-
-**Routing metrics** (also applied to Hydra-L and the learned compositions). Compute them on
-the holdout, separately over prompt vs answer tokens and over image vs text tokens:
-- expert utilisation per layer;
-- routing entropy;
-- p(k | task), p(k | modality), p(k | dataset);
-- top-k selection frequencies;
-- the Modality Specialization Index (SMoES Eq. 18–19, using imaging modality);
-- the pairwise task routing distance `D_ij = ½ Σ_k |p(k|t_i) − p(k|t_j)|`;
-- the correlation of D_ij with C_ij (S2) and with the similarity measures of S7.
-
-**Router perturbation:** mix the router distribution with uniform,
-`π̃ = (1−λ)π + λu`, λ ∈ {0.25, 0.5, 0.75, 1.0}, on holdout. For top-k methods, mix the full
-softmax first, then take the top k and renormalise. Apply it to LoRAMoE, spectral, Hydra-L
-and the learned compositions.
-
-**Expert masking** (MoLE Fig. 8, cheap): drop one expert at a time, on a dev slice.
-
-| Item | GPU-h |
-|---|---:|
-| LoRAMoE × 3 (1.4U each) | 285 |
-| spectral × 3 (+1 h SVD) | 286 |
-| top-k random init × 1 | 95 |
-| modality-guided × 1 | 95 |
-| evals (8 × 3 h) | 24 |
-| router perturbation (4 λ × 4 models × 3 h) | 48 |
-| routing dumps + masking | 6 |
-| **core** | **≈ 840** |
-| optional: LoRAMoE paper-budget (95) + (N, top-k) sweep (285) + evals | +392 |
-
-### S7 — Representation analysis (RQ6)
-
-**Code to build (W8, ~2 person-days):**
-- forward-only extraction with hooks on the chosen layers: mean-pooled over image tokens
-  and over question tokens separately, plus the last prompt token; saved as fp16 per
-  configuration;
-- debiased linear CKA, RSA, principal angles between expert subspaces, and the
-  permutation tests.
-
-Owner decides: the layer list, the pooling and the probe-set size (proposed defaults
-below). S8 reuses this code for its representation shift.
-
-- **Probe set (proposed):** a fixed, stratified holdout subset of 30 questions per
-  (task, dataset) cell, ≈ 600 questions. Commit the IDs.
-- **Models:** base, Shared, TaskLoRA (each adapter on all probe questions), Hydra-T/L,
-  learned composition, LoRAMoE, spectral. Seeds 1337 and 2026 of the 3-seed arms give a
-  seed-to-seed CKA noise ceiling.
-- **Features:**
-  - the vision merger output (frozen, so identical across adapters; a sanity check);
-  - LLM layers {1, 8, 16, 24, 32, 40, 48, 56, 64} (proposed).
-- **Similarity measures:**
-  - **Adapter similarity** `S_ij^ad`: debiased linear CKA between TaskLoRA_i and TaskLoRA_j
-    representations on the *same* probe inputs, per layer.
-  - **Input similarity** `S_i,c^in`: RSA/centroid similarity between base-model
-    representations of source task i's inputs and target cell c's inputs, where c is a
-    (task, dataset) cell.
-  - **Shift from base:** CKA(model, base) per layer. Does specialization emerge late?
-  - For MoE models: principal angles between the experts' B column spaces.
-- **Statistics:**
-  - **Main test, at cell level.** A task-level test has only 6 tasks (15 pairs, 720
-    permutations) and would almost surely be inconclusive after correcting across layers.
-    Instead, correlate `S_i,c^in` with the transfer to that cell, C_i,c (6 source adapters ×
-    ~19 target cells ≈ 110 pairs; per-dataset metrics from S2). Use a permutation test
-    that shuffles target cells. Holm across layers.
-  - **Task-level adapter similarity** `S_ij^ad` vs C_ij: report descriptively (a heatmap and
-    Spearman ρ), without a significance claim.
-
-| Item | GPU-h |
-|---|---:|
-| ~12 model–adapter configurations × 2 seeds × ~0.3 h forward (no generation) | ~8 |
-| margin | ~7 |
-| **S7 total** | **≈ 15 GPU-h + CPU** |
-
-Storage: about 200 MB per configuration (fp16).
-
-### S8 — Specialization location (RQ7)
-
-**Code to build (W7, ~1 person-day):**
-- target-module lists for the vision tower, the merger/projector, and LLM blocks 49–64;
-- a check that LF/PEFT accepts LoRA on the vision tower under the 4-bit load (is the tower
-  quantized?), and that `freeze_vision_tower`/`freeze_multi_modal_projector` are switched
-  off only for the arm that needs it;
-- the representation shift reuses W8 from S7.
-
-- **Question:** which component can be specialized while preserving pretrained multimodal
-  representations?
-- **Design:** task-specific adapters (one per task), each restricted to one location;
-  everything else frozen. This is the one study where the vision encoder or projector is
-  trainable.
-- **Arms:**
-  - **L-vis:** vision-encoder linears, r8. Backward still runs through the whole LLM, so
-    ~0.9U.
-  - **L-proj:** merger/projector linears, r8; ~0.85U.
-  - **L-late:** LLM blocks 49–64 only, **r32**. A quarter of the layers at 4× the rank
-    ≈ P8, so it is matched. Backward stops at block 49, so ~0.55U.
-  - **L-all:** all LLM linears, r8 = TaskLoRA from S1 (reused).
-  - optional: L-late at r8 (unmatched); L-vis at a parameter-matched rank.
-- **Evaluation:** holdout downstream, plus the representation shift (CKA to base) at the
-  vision output, the merger output and the LLM layers.
-
-| Item | GPU-h |
-|---|---:|
-| L-vis | 61 |
-| L-proj | 58 |
-| L-late | 37 |
-| evals | 6 |
-| CKA | 3 |
-| **S8 total** | **≈ 165** |
-| optional | +98 |
-
-### S9 — Practical adaptation factors (RQ8)
-
-**Code to build (W10, ~3 person-days):** each factor becomes a switch in the foundation's
-data and eval path, off by default:
-- preprocessing transforms, applied identically at train **and** inference (so the §3.3
-  byte-identity gate must cover them);
-- train-only augmentation with a per-modality allowlist. Geometric transforms must keep
-  labels valid: counts are unaffected, but boxes would also need transforming, so
-  detection is excluded;
-- multi-image variants;
-- prompt variants (9.7);
-- decoding variants (9.8).
-
-Owner decides and documents: the exact transform parameters, the per-modality allowlist,
-the fresh task-specific prompts for 9.7, and the decoding settings for 9.8.
-
-Unless noted: TaskLoRA, Qwen, 1 seed, holdout. Each factor changes one thing relative to
-§1. Challenge experiments are cited as prior evidence only; they used different recipes, so
-matched comparisons need reruns (proposal, Study 9).
-
-**9.1 Resolution** (Blackwell, because ws runs out of memory at 2048²)
-- Arms: TaskLoRA trained and evaluated at 2048² (batch 1 × accumulation 8, for the
-  per-example loss); optionally Shared LoRA at 2048².
-- Tasks retrained: all 6.
-- Prior: cls +0.010/+0.024, counting −1.7 MAE, ML +0.016, detection and regression null
-  (`stats/26 §1g–§1j, §9`).
-- Cost: **BW ≈ 109 h** (cls 58, report ~22, ML 17, reg ~4, det ~3, counting 2, eval ~4);
-  optional Shared +102 h BW. These speeds were measured at batch 2 × accumulation 4.
-  Batch 1 is likely slower per example, so treat this as a lower bound.
-
-**9.2 LoRA rank**
-- Arms: r ∈ {4, 16, 32, 64} (r8 reused from S1). Tasks: all 6.
-- Cost: 293 GPU-h (4 × U + overhead + 8 h eval); optional Shared rank sweep +272.
-
-**9.3 Class imbalance**
-- Arms:
-  - cls: oversampling of minority (dataset, class) groups (the challenge's "K2a" recipe,
-    +3,756 rows), and inverse-√frequency resampling at a fixed deck size;
-  - ML: label-frequency oversampling.
-- Tasks: cls, ML. Cost: 67 GPU-h.
-
-**9.4 Preprocessing** (train = inference)
-- Arms: (a) black-border crop (fundus, retino, derm, neojaundice); (b) CLAHE contrast
-  equalisation (X-ray, mammography, ultrasound).
-- Tasks: cls, ML. Prior: global histogram equalisation rejected; border crop promising
-  (`stats/17`).
-- Cost: 70 GPU-h.
-
-**9.5 Augmentation** (train only)
-- Arms:
-  - (a) a domain-plausible per-modality allowlist: horizontal/vertical flips and 90°
-    rotations for microscopy/derm/fundus; small brightness/contrast changes; **no** flips
-    for chest X-ray or dental (laterality); no colour jitter for derm/fundus;
-  - (b) generic augmentation everywhere, as a negative control.
-- Tasks: cls, ML, counting. Prior: `stats/23`. Cost: 72 GPU-h.
-
-**9.6 Multi-image**
-- Arms: (i) up to 4 marked images (default); (ii) first image only; (iii) up to 8 marked
-  images.
-- Tasks: cls, report. Prior: grouping images helped only where views are complementary
-  (neojaundice), `stats/3`. Cost: 95 GPU-h.
-
-**9.7 Prompting** (bare is the default)
-- Arms: (i) task-specific instruction prompts, written fresh for this study, one per task;
-  (ii) an answer-format suffix ("…Final answer: …") for all tasks; (iii) the same variants
-  zero-shot (inference only).
-- Tasks: all 6, per variant. Cost: 146 GPU-h (2 × U + 4 eval + 6 zero-shot).
-
-**9.8 Decoding** (inference only, TaskLoRA and Shared, seed 1337)
-- Arms: greedy (default); sampling × 3 runs (run-to-run variance); self-consistency
-  (majority vote for cls/ML, median for counting/regression); beam search for reports.
-- The settings are proposals, to be fixed by the owner before running: temperature 0.7 and
-  top-p 0.8 (Qwen3.5 ships no generation config, so these are our choice), 5 samples for
-  self-consistency, beam width 3.
-- Cost: 20 GPU-h.
-
-**S9 total: ≈ 763 GPU-h on ws + ≈ 109 h on BW** (+374 ws and +102 BW optional).
-
-### S10 — Cross-backbone validation: MedGemma-1.5-4B (Tausifa Q1; proposal Study 10)
-
-**Code to build (W9, ~2 person-days):** make the foundation run MedGemma:
-- the Gemma3 template and the train/infer byte-identity gate;
-- its language-model target-module list, explicitly excluding vision modules;
-- the detection coordinate convention at 896²: targets stay in original pixels, as with
-  Qwen; verify on a smoke run that the model can learn the mapping;
-- porting the HydraLoRA oracle mode (W4, from S4a) to Gemma3 layer names.
-
-**Needs** the HydraLoRA module from S4a.
-
-- **Arms (3 seeds each):** base (ZS-bare and ZS-prompt, from S0); Shared LoRA; TaskLoRA;
-  Hydra-T.
-- **Reduced scaling:** cls target, p ∈ {5, 25}% plus the reused 100%, × 3 methods × 3
-  seeds, on the same nested subsets.
-- **Analysis:** `Δ_spec^(b) = M_TaskLoRA − M_Shared` per task for each backbone b, compared
-  across backbones with bootstrap CIs. Interpret it only alongside the differences in
-  architecture, size and resolution (MedGemma 4B, fixed 896², medical SigLIP).
-- **Literature hook:** MedVLMBench found the Gemma family's specialist edge partly
-  survives fine-tuning, unlike Qwen's.
-- **Risk:** MedGemma was very weak on detection in the organizer baselines (0.092 F1).
-  Expect low detection numbers. Once the coordinate convention is verified, that is a
-  finding, not a bug.
-- **Optional:** the MedGemma transfer matrix (S2 on MedGemma, ~6 GPU-h). It is cheap and
-  directly answers "does medical pretraining change transfer?".
-
-| Item | GPU-h |
-|---|---:|
-| base (both zero-shot protocols; counted in S0) | 0 |
-| Shared / Task / Hydra-T × 3 seeds (9 × ~7.5 h) | 68 |
-| evals (9 × 1.3) | 12 |
-| reduced scaling (3 seeds × ~19.4 h + evals) | 61 |
-| **S10 total** | **≈ 142** (+6 optional) |
-
-### S11 — Method-specific tuning (secondary comparison; Tausifa Q4)
-
-- **Scope:** for each of Shared, TaskLoRA, Hydra-T, Hydra-L, LoRAMoE and spectral, tune
-  the learning rate ∈ {1e-4, 4e-4} (2e-4 is the default), 1 seed, selected on
-  **dev-select**.
-- **Report:** the best-tuned score next to the common-recipe score. Does the method
-  ranking change?
-- **Cost:**
-  - full data: 12 runs × ~80 h + dev evals ≈ 960 GPU-h;
-  - or proxy runs on a 30% subset of A∪B (≈ 290), then the 6 winners retrained on full
-    data with 1 seed (≈ 480).
-
-This study is optional, and it is the first to cut.
+- **Cost as designed:** ≈ 4,640 (Qwen, v1 estimate) + ≈ 500 (MedGemma) slot-h.
 
 ---
 
-## 5. Totals, dependencies, levers
+## 5. Order of execution and budget
 
-### 5.1 Master compute table (Qwen on ws unless noted)
+### 5.1 Order
+The order is for organisation. Runs inside a step can share the three slots; a step can start
+while the previous one is finishing, **except** that Phase B GPU work waits for all Phase A
+training runs. Code for later steps is built in parallel with earlier runs.
 
-| Study | Core GPU-h | Optional GPU-h | Seeds (core) | Depends on |
-|---|---:|---:|---|---|
-| S0 setup / zero-shot | 13 | — | — | W1–W3 |
-| S1 Shared vs Task | 419 | — | 3 | S0 |
-| S2 Transfer matrix | 12 | 24 | 1 (3 optional) | S1, W11a |
-| S3 Supervision scaling | **4,640** | — | 3 + sensitivity draws | S1, W4, W11b |
-| S4 Hydra + soft composition + predicted routing | 1,305 | — | 3 main / 1 variants | S1, W4, W6 |
-| S5 Modality / dataset | 386 | — | 1 | S1, S4b, W4, W6 |
-| S6 Latent experts | 840 | 392 | 3 main / 1 variants | W5 |
-| S7 Representations | 15 | — | 2 | S1, S4, S6, W8 |
-| S8 Location | 165 | 98 | 1 | S1, W7, W8 |
-| S9 Practical factors | 763 (+109 BW) | 374 (+102 BW) | 1 | S1, W10 |
-| S10 MedGemma | 142 | 6 | 3 | W4, W9 |
-| S11 Method tuning | — | 960 | 1 | S1, S4, S6 |
-| **Total** | **≈ 8,700 + 109 BW** | **≈ 1,850 + 102 BW** | | |
-| **Available (9–31 Oct)** | **≈ 1,400–1,500 usable** (2,112 raw) | | | |
+1. **Now (Phase A):**
+   - E0 Qwen zero-shot; holdout evals of the seed-1337 Shared and TaskLoRA (W3's first test);
+   - Shared r48 seed 1337 (config only, smoke gate first).
+2. **Phase A, no new code needed:** Shared, TaskLoRA and Shared r48, seeds 2026 and 42.
+3. **Phase A, after W4 passes the gate:** Hydra-T and Reversed Hydra × 3 seeds.
+4. **Phase A, after W9 passes the gate:** E0 MedGemma; the 5 arms × 3 seeds (E2). MedGemma runs
+   are short: slot them in whenever one is free.
+5. Holdout evals of every Phase A arm; RQ1 analysis.
+6. **Phase B** (all Phase A training done): E3 → E4 → E5 → E6 → E7 → E8. E6 needs E4's adapters;
+   E7 needs every adapter; E8 needs E3 and E7.
+7. **Phase C:** E9, scoped to the compute left.
 
-### 5.2 Dependency graph and start order (ignoring budget)
+### 5.2 Budget (slot-hours on GPU 1)
 
-```
-W1,W2,W3 ──► S0 ──► S1 (Shared, TaskLoRA × 3 seeds) ──┬─► S2 transfer ─┐
-                                                      ├─► S4b fixed comp ┼─► S7 representations
-W4 ───────────────────────────► S4a Hydra ────────────┤                 │
-       │                               └──────────────┴─► S3 scaling     │
-       ├──────────────────────────────────────────────► S5 (Med-MoE arm) │
-       └──► W9 ──► S10 MedGemma                                          │
-W6 ──────────────────────────► S4b learned comp / S5 composition         │
-W5 ──────────────────────────► S6 latent experts ────────────────────────┘
-W7 (+W8) ──► S8 location
-W10 ──► S9 (independent; 9.1 needs Blackwell time requested)
-```
+| Item | Slot-h |
+|---|---:|
+| E0 zero-shot | ≈ 8 |
+| E1 Qwen main, 3 seeds, remaining | ≈ 695 |
+| E1 evals | ≈ 40 |
+| E2 MedGemma main, 3 seeds, incl. evals | ≈ 135 |
+| **Phase A remaining** | **≈ 880** |
+| E3 transfer matrix | ≈ 54 |
+| E4 modality adapters | ≈ 195 |
+| E5 dataset adapters | ≈ 110 |
+| E6 predicted routing | ≈ 45 |
+| E7 representations | ≈ 30 |
+| **Phase B** | **≈ 435** |
+| **A + B** | **≈ 1,315** of ≈ 1,600 usable |
+| Left for Phase C | **≈ 285** |
+| E9 as designed | ≈ 5,100 |
 
-Wall-clock notes:
-- One U-sized job takes about 3 days on one GPU, so each GPU completes only about **5–6
-  U-sized jobs** in the usable window.
-- S1 seed 1337 (Shared + TaskLoRA) should start the day W1–W3 pass. Every other study
-  references it.
-- Build the oracle mode of the HydraLoRA module (W4) early: S3, S5 and S10 all wait on it.
-
-### 5.3 Cost levers (each with its saving and its scientific cost)
-
-**S3, data scaling (the biggest block):**
-- **Drop the sensitivity draws** (keep only the main nested subsets).
-  - Saves ~1,300 GPU-h.
-  - Loses evidence on how much the conclusions depend on which examples were sampled.
-- **Drop Hydra-T from scaling** (keep Shared vs Task).
-  - Saves ~1,655, plus its share of the sensitivity draws.
-  - Loses partial sharing's scaling curve, which Tausifa listed.
-- **Use only one scaling target** (regression, given D12; keep TaskLoRA's cls curve, which
-  is cheap). Dropping the Shared and Hydra-T cls arms:
-  - saves ~1,310, plus ~500 of cls sensitivity draws;
-  - loses the high-resource comparison.
-- **Fewer points for Shared/Hydra-T:** p ∈ {5, 25} plus 100; TaskLoRA keeps all six.
-  - Saves ~55% of the Shared/Hydra-T cost.
-  - Loses resolution of the crossover point.
-- **1 seed except at p = 5%.**
-  - Saves ~60% of S3.
-  - Loses per-point seed CIs.
-- **Run scaling on MedGemma instead of Qwen**, or before it (about 7× cheaper).
-  - Saves ~90% of S3.
-  - Loses primary-backbone evidence.
-
-**Seeds:**
-- **3 seeds only for S1, Hydra-T and one latent method.**
-  - Saves ~600 GPU-h.
-  - Loses seed CIs for the other main methods.
-
-**S4 / S6:**
-- **Train the learned-composition gates for 1 epoch**, and run the variants with 1 seed.
-  - Saves ~430–650 GPU-h.
-  - Deviates from the common recipe for the router-only stage (D4).
-- **Drop the modality-guided arm or the random-init control.**
-  - Saves 95 each.
-  - Loses the modality-guidance question or the initialisation attribution.
-
-**S9 / S11:**
-- **Rank sweep {4, 32} only; preprocessing and augmentation on cls only.**
-  - Saves ~200 GPU-h.
-- **Cut S11 entirely.**
-  - Saves 960 GPU-h.
-  - Loses the tuned-vs-common robustness claim.
-
-**Recipe-wide (needs Tausifa's sign-off):**
-- **2 epochs instead of 3 for every run.**
-  - Saves 33% of every U.
-  - Changes the common recipe she specified (Q4). No experiment in this plan shows that 3
-    epochs are unnecessary.
-
-**Capacity:**
-- **Run some 768² mixture runs on Blackwell GPU 0** (much faster per step; 96 GB).
-  - Adds capacity.
-  - Availability isn't guaranteed and there are co-tenants.
+- At ~60 usable slot-hours a day, Phase A ends around **31 Oct** and Phase B around **7 Nov**.
+- The estimates for Hydra, r48 and MedGemma are unmeasured; their smoke gates replace them.
+  Testing 4 runs at once could add capacity.
+- **Phase C as designed is ~18× what is left.** Options, for when we get there: one target
+  (cls), fewer fractions (e.g. 5, 25, 50), fewer seeds, no sensitivity draws, MedGemma first
+  (≈ 9× cheaper).
 
 ---
 
-## 6. Decisions (confirmed 2026-10-11)
+## 6. Decisions
 
-| # | Decision | Confirmed choice |
-|---|---|---|
-| D1 | Checkpoint selection | final 3-epoch checkpoint for every arm; dev used only for method choices (λ, router inputs, top-k), not early stopping |
-| D2 | Dense mixtures and "active parameters" | primary = active rank 8 (§1.3); one paper-native-budget run per dense method, read as a main result |
-| D3 | Target modules for MoE methods | the same `all` set as LoRA for every method (location held fixed); paper target sets noted as deviations |
-| D4 | Training budget for router-only (learned-composition) runs | common recipe (3 epochs, 2e-4); 1 epoch as the fallback lever |
-| D5 | Scaling on shared iugc images | drop only target-task questions; other tasks keep their questions on those images |
-| D6 | Validation-public as a second reported surface | main S1/S4/S6 arms only, in a separate table |
-| D7 | Prompt per task | bare question for every task and method, in training and evaluation. Zero-shot run twice: ZS-bare, and ZS-prompt with one generic system prompt. ZS-prompt is the anchor for C_ij/μ; ZS-bare is reported alongside with a sign-flip check. Fine-tuning prompt variants only in S9.7. |
-| D8 | Hydra-L head count N | k-means elbow on training-question embeddings (CPU); N=6 if no clear elbow |
-| D9 | LoRAMoE expert groups for the balancing constraint | {structured outputs} vs {free-text report} |
-| D10 | MedGemma resolution | native 896² (the 768² cap cannot be applied); stated as a backbone-intrinsic difference |
-| D11 | Seeds | 1337 / 2026 / 42 |
-| D12 | Regression as the low-resource scaling target | keep it (Tausifa Q9), report boneresorption and iugc separately; ask whether counting should replace or join it, given the iugc-dominated holdout |
+**v2 decisions (Taha, 2026-10-16)**
 
-Also decided:
-- one row = one question with all its images (§1.5);
-- the learned-composition gate reads the hidden state, as Tausifa specified (§4 S4b).
+| # | Decision |
+|---|---|
+| N1 | The five arms of the 14 Oct update are the main experiments and run first. |
+| N2 | Parameters are counted as total stored parameters. Arms are unbalanced by design; Shared r48 (α 96) is the parameter control. |
+| N3 | 3 seeds (1337, 2026, 42) for every arm of every experiment. |
+| N4 | MedGemma-1.5-4B runs every experiment, not only the main ones. |
+| N5 | Kept from v1 as additional experiments, after Phase A: transfer matrix (S2 → E3), modality adapters (S5a → E4), dataset adapters (S5b → E5), predicted routing (S4c → E6), representations (S7 → E7). No adapter composition anywhere: v1 S4b and the composed arms of S5a/S5b are dropped. |
+| N6 | Dropped: Hydra-L, latent experts (S6), location (S8), practical factors (S9), method tuning (S11), v1's Med-MoE-style arm. |
+| N7 | RQ2 (v1 S3) runs last and is scoped to the compute left. |
+| N8 | All compared runs are trained and evaluated on `mbz-yaqub` GPU 1 (§1.12). |
 
----
-
-## 7. Team assignment
-
-Four owners. Each owns their studies end to end: the study's "Code to build", its runs,
-its gate, its ledger entries, and its paper section draft. GPU time is shared through one
-queue that Taha coordinates (§7.3), not split one GPU per person.
-
-### 7.1 Who owns what
-
-**Taha — foundation and core comparison**
-- **Setup and plumbing:**
-  - W1 data; W2 training harness; W3 eval harness;
-  - the plug-in interface note (§3.2), written once the harness works;
-  - the smoke gate (§3.3), reviewing every method before it gets a full GPU slot.
-- **Experiments:**
-  - S0: calibration and both zero-shot protocols;
-  - S1: Shared vs TaskLoRA, the baseline every other study compares against;
-  - S2: transfer matrix (W11a). It is inference-only on S1's adapters, so it costs little
-    extra time.
-- **Coordination:** the GPU queue, `results/RUNS.csv`, `results/LEDGER.md`, and the budget cuts in
-  §5.3.
-- **Code:** ~8 person-days. GPU: ~445 GPU-h core.
-
-**Veronika — partial sharing and latent experts**
-- **Experiments:**
-  - S4a: HydraLoRA (W4), both Hydra-T and Hydra-L;
-  - S6: latent experts (W5): LoRAMoE, spectral, the random-init control, modality-guided.
-- **Priority:** ship the **oracle mode of the HydraLoRA module first** (target: about a
-  week in). S3, S5 and S10 all wait on it.
-- **Why her:** she has worked with HydraLoRA before.
-- **Code:** ~9 person-days, the heaviest coding load, so no third study. GPU: ~1,450 GPU-h
-  core.
-
-**Alex (Thinh) — composition, routing and modality; analysis**
-- **Experiments:**
-  - S4b: fixed and learned composition (W6);
-  - S4c: predicted routing, end to end;
-  - S5: modality and dataset-level specialization;
-  - S8: specialization location (W7);
-  - S7: representation analysis (W8). It runs last, because it needs the trained models
-    from S1, S4 and S6.
-- **Why him:** he ran the earlier adapter-composition and learned-router experiments, and
-  built the modality classifier (`stats/25`, `stats/15 §5–6`).
-- **Code:** ~6 person-days. GPU: ~1,260 GPU-h core.
-
-**Alberto — scaling, practical factors and second backbone**
-- **Experiments:**
-  - S3: supervision scaling (W11b). The subsets come from W1; his part is launching the
-    runs and the mixed-effects analysis. The Hydra-T arm waits for Veronika's oracle mode.
-  - S9: practical factors (W10), including the Blackwell 2048² runs;
-  - S10: MedGemma (W9), plus porting the HydraLoRA oracle mode to Gemma3 with Veronika.
-- **Why him:** he ran the earlier preprocessing work (`stats/17`). S3 and S10 are mostly
-  run management on code others have built.
-- **Also:** raise D12 (the regression scaling target) with Tausifa early.
-- **Code:** ~6 person-days. GPU: ~5,550 GPU-h core + 109 h Blackwell, by far the most (S3 alone is ~4,640), so most of
-  the budget cuts will land in his studies.
-
-S11 (method-specific tuning) is unassigned. It is optional and the first thing to cut. If
-budget remains at the end, each method owner tunes their own methods.
-
-### 7.2 Hand-offs between owners
-
-| What | From | To | Needed for |
-|---|---|---|---|
-| Interface note + reference plug-in (§3.2) | Taha | everyone | starting any module code |
-| W1–W3 passing the gate | Taha | everyone | any full training run |
-| S1 TaskLoRA seed 1337 | Taha | Alex (S4b, S5), Taha (S2) | composition and transfer |
-| S1 Shared/TaskLoRA, all seeds | Taha | Alberto (S3 100% points), Alex (S7) | scaling, representations |
-| HydraLoRA oracle mode (W4) | Veronika | Alberto (S3, S10), Alex (S5 Med-MoE arm) | Hydra-T arms |
-| Transfer scores C_ij (S2) | Taha | Alex (S4b, S7) | composition and similarity analyses |
-| Hydra-L, S6 models + routing dumps | Veronika | Alex (S7) | representation analysis |
-| Scaling subsets (W1) | Taha | Alberto | S3 |
-
-### 7.3 Timeline (9–31 Oct)
-
-**Week 1 (9–15 Oct): foundation first** (changelog 2026-10-13)
-- Taha builds W1 (data) and W2 (training), then launches S1 seed 1337 (Shared + TaskLoRA)
-  as soon as W2 passes its gate.
-- Taha builds W3 (eval) while S1 trains, then runs S0.
-- Taha then writes the plug-in note (`code/INTERFACE.md`) with a reference plug-in, the
-  smoke-gate command and the launch/eval commands, and hands it to the team.
-- Until then, teammates read their method papers and design their modules (Veronika:
-  HydraLoRA oracle mode first; Alex: W6, W7; Alberto: W10, W9, and D12 with Tausifa), and
-  start coding against the note when it lands.
-
-**Week 2 (16–22 Oct): first wave of runs**
-- Taha: S1 seeds 2026 and 42; S2 once TaskLoRA seed 1337 lands.
-- Veronika: Hydra-T and Hydra-L runs; continue W5.
-- Alex: modality adapters and the fixed-composition λ grid (needs TaskLoRA seed 1337); S8
-  runs.
-- Alberto: S3 TaskLoRA/Shared points; S10 runs (cheap); the S9 runs that survive the cuts.
-
-**Week 3 (23–31 Oct): second wave**
-- Veronika: S6 runs.
-- Alex: learned compositions; S4c; S7 extraction once the S4 and S6 models exist.
-- Alberto: the S3 Hydra-T points; the Blackwell 2048² runs.
-- Everyone: archive predictions and enter results in `results/LEDGER.md` as runs finish.
-
-GPU-heavy studies (S3, S4, S6, S9) will not fit as written. Taha finalises the cuts before
-week 2 (proposal in §8; all levers in §5.3), and the queue follows the cut plan.
-
-Weekly sync, as agreed in the 2026-10-02 meeting. Each owner reports runs launched and
-finished against `results/RUNS.csv`, and records new numbers in `results/LEDGER.md`.
+**Carried over from v1** (numbers as in `PLAN_v1_2026-10-11.md` §6)
+- D1: the final 3-epoch checkpoint for every arm; no early stopping.
+- D5: scaling on shared iugc images drops only target-task questions.
+- D6: validation-public as an optional second surface, main arms only.
+- D7: bare prompts everywhere; ZS-bare and ZS-prompt for zero-shot, ZS-prompt as anchor.
+- D10: MedGemma at native 896².
+- D11: seeds 1337 / 2026 / 42.
+- D12: regression stays a scaling target; boneresorption and iugc reported separately.
+- 2026-10-13: train on A∪B (dev included); selection decisions, if any, on the holdout (§1.7).
 
 ---
 
-## 8. Compute budget discussion
+## 7. Team
 
-The full plan (§5.1) needs about 8,700 GPU-h on ws. Usable capacity before 31 Oct is
-about 1,450 (§2.2). This section sets out where the hours go, what can be cut with the
-least scientific loss, and a trimmed plan that fits. **The trimmed plan (§8.3) was
-confirmed on 2026-10-11 as the working budget**, including its seed reductions (§8.4).
-
-### 8.1 Where the hours go (full plan)
-
-| Study | Core GPU-h | Share | Main cost drivers |
-|---|---:|---:|---|
-| S3 Data scaling | **4,640** | 53% | Every Shared/Hydra point retrains on the whole mixture; 3 seeds + sensitivity draws (~1,300 of it) |
-| S4 HydraLoRA + composition | 1,305 | 15% | Learned composition, 4 variants (~650); Hydra-T/L × 3 seeds (~500) |
-| S6 Latent experts | 840 | 10% | LoRAMoE and spectral × 3 seeds (~570) |
-| S9 Practical factors | 763 + 109 BW | 9% | Rank sweep (293), prompting (146), multi-image (95) |
-| S1 Shared vs Task | 419 | 5% | 3 seeds × 2 full runs |
-| S5 Modality / dataset | 386 | 4% | Learned task+modality composition (151) |
-| S8 Location | 165 | 2% | 3 location arms |
-| S10 MedGemma | 142 | 2% | Cheap backbone (~7 h per full run) |
-| S0, S2, S7 | 40 | <1% | Mostly inference |
-| **Total** | **≈ 8,700** | | vs **≈ 1,450 usable** |
-
-### 8.2 What to cut, by importance to the paper's question
-
-**Low value, cut first:**
-- **S11 method tuning (960 optional):** a secondary robustness claim.
-- **S3 sensitivity draws (~1,300):** a robustness check, not the scaling result itself.
-- **S3 regression scaling on Qwen (~1,930):** the costliest part of S3, because the other
-  52k rows retrain at every point. Its holdout signal is weak anyway (iugc near its floor;
-  boneresorption n=70; D12).
-- **S5:** the learned task+modality composition (151), the Med-MoE-style arm (85), and the
-  learned global+dataset composition (43). Modality adapters lost clearly in the challenge
-  (`stats/15`, `stats/25`); the fixed-λ composition already answers "does modality help?".
-- **S4b:** the extra gate-input variants L-h+m and L-h+t+m. The modality question is
-  covered in S5.
-- **S6:** the modality-guided arm (95), which is our own adaptation and far from the
-  original paper; also the paper-budget run and the (N, top-k) sweep.
-- **S8:** the projector-only arm (58). The projector is tiny and frozen by default.
-- **S9.3–9.6** (imbalance, preprocessing, augmentation, multi-image; ~300). They don't
-  bear on sharing vs specializing. Cite the challenge results in the appendix, labelled as
-  different-recipe evidence.
-- **S2's extra seeds (24).**
-
-**Keep, but shrink:**
-- **S3 on Qwen:** classification target only. TaskLoRA keeps all 5 fractions × 3 seeds
-  (cheap, 73 h); Shared runs only at 5% and 25%, 1 seed.
-- **Move the full scaling grid to MedGemma:** both targets and all 3 methods. MedGemma is
-  about 7× cheaper per run, so the complete curves cost about 60 extra GPU-h instead of
-  about 4,000.
-- **S4b learned composition:** the hidden-state variant only, 1 seed, gates trained for
-  1 epoch.
-- **S6:** LoRAMoE and spectral, 1 seed each; router perturbation at 2 λ values instead of 4.
-- **S9:** decoding (10) and the zero-shot prompt variants (6) on ws. Resolution runs on
-  Blackwell from its own budget.
-
-**Keep as is:** S0, S1 (3 seeds), S2, Hydra-T × 3 seeds, fixed composition, S7. These are
-the headline comparisons and they are cheap.
-
-### 8.3 Trimmed plan (ws only, 3 epochs)
-
-| Study | Full | Trimmed | What remains |
-|---|---:|---:|---|
-| S0 | 13 | 13 | as is |
-| S1 | 419 | 419 | Shared + TaskLoRA × 3 seeds |
-| S2 | 12 | 12 | seed 1337 matrix |
-| S3 | 4,640 | 162 | Qwen cls target: TaskLoRA full curve × 3 seeds; Shared at 5% and 25%, 1 seed |
-| S4 | 1,305 | 285 | Hydra-T × 3, fixed composition, learned composition (hidden state) × 1 with 1-epoch gates, S4c predicted routing |
-| S5 | 386 | 107 | modality adapters + fixed λ; dataset adapters + fixed λ |
-| S6 | 840 | 220 | LoRAMoE + spectral, 1 seed each; routing metrics; perturbation at 2 λ |
-| S7 | 15 | 15 | as is |
-| S8 | 165 | 0 | cut (first to add back) |
-| S9 | 763 | 16 | decoding + zero-shot prompt variants; resolution on Blackwell (109 BW-h) |
-| S10 | 142 | 200 | MedGemma core × 3 seeds + full scaling grid (both targets, Hydra-T included), 1 seed |
-| S11 | (960) | 0 | cut |
-| **Total** | **8,700** | **≈ 1,450** | |
-
-Per-person effect (§7): Alberto's load drops the most, from ~5,550 to ~380 GPU-h (S3, S9,
-S10). Taha's is unchanged (~445). Veronika's drops to ~440 and Alex's to ~190. The four loads sum to ≈ 1,450.
-
-### 8.4 Caveats
-
-1. **No slack.** The trimmed plan uses all of the usable capacity. Any crashed run or bug
-   pushes it over; plan for 10–15% of reruns.
-2. **It departs from Tausifa's seed rule.** She asked for 3 seeds on the main soft and
-   latent methods; here learned composition, LoRAMoE and spectral get 1 seed each.
-   Accepted when the plan was confirmed (2026-10-11).
-3. **The Qwen scaling evidence becomes thin** (Shared at two points), and MedGemma carries
-   the full curves. That is defensible, but it changes what the paper can claim about the
-   primary backbone.
-
-### 8.5 Levers that change the budget more than any single cut
-
-1. **Request Blackwell GPU 0 for the whole window.** Tausifa offered to ask Dr. Yaqub. Its
-   speed at 768² has not been measured, but it is much faster than an A5000. At even 2×,
-   it adds roughly 1,000 A5000-equivalent hours, enough for most of the add-backs below.
-2. **Measure U in S0 with the packed one-row-per-question decks.** About 40k rows instead
-   of 57.8k means fewer steps. If a full run drops from 68 to ~55 GPU-h, everything gets
-   ~20% cheaper.
-3. **Ask Tausifa about 2 epochs instead of 3.** Saves about a third of all training, but
-   changes the recipe she specified (Q4), so it is her call.
-
-### 8.6 Add-back order (if capacity appears)
-
-1. Hydra-L × 1 seed (98)
-2. S8 late-layer and vision-encoder arms (~105)
-3. Rank 32 on all tasks (68)
-4. Shared × 3 seeds at the two Qwen scaling points (+167)
-5. LoRAMoE and spectral to 3 seeds (+380)
-6. Hydra-T at the Qwen scaling points (+175)
-7. Random-init MoE control (98)
-
+To be agreed separately, after this plan. Until then, every GPU job goes through the one
+GPU 1 queue (`code/train/run_chain.sh`).
 
 ---
 
-## Appendix A. Tausifa's protocol answers (verbatim, received after the 2026-10-02 meeting)
+## Appendix. Where v1's studies went
 
-The plan cites these as "Tausifa Q1" … "Tausifa Q12". The questions are the ones the team
-sent; the answers are copied as received.
-
-**Q1. For Qwen3.5-9B and MedGemma 1.5-4B, what exact checkpoints and loading settings should we use? Should both use 4-bit quantization, and should the vision encoder and multimodal projector stay frozen for the main comparisons?**
-
-Use the official checkpoints Qwen/Qwen3.5-9B and google/medgemma-1.5-4b-it. Load both using 4-bit QLoRA with NF4 quantization and BF16 compute. For the main comparisons, keep the same components frozen as in our final challenge solution: the base model weights, vision encoder, and multimodal projector/connector remain frozen, and only the PEFT components are trained.
-
-**Q2. What LoRA target layers, rank, alpha/scaling, and dropout should we use as defaults? The draft already includes separate rank sweeps, but should the main comparisons use the same rank across tasks?**
-
-Use a common default of r=8, alpha=16, and dropout=0.05 for the main experiments. Rank sweeps can then be reported separately to study task-specific capacity effects.
-
-**Q3. The draft mentions matching parameter budgets where possible. Should we match total trainable parameters or parameters active per example? How should we choose ranks for shared LoRA, task-specific LoRA, and HydraLoRA to make that comparison fair?**
-
-Match active trainable parameters per example, not total stored adapter parameters.
-
-**Q4. What common training recipe should we use: optimizer, learning rate, scheduler, effective batch size, and epochs? To match training budgets, should we control epochs, optimizer steps, or exposure to each task's examples? Should method-specific tuning be a separate comparison?**
-
-Use the same training recipe across all methods, matching our final challenge training protocol. Method-specific hyperparameter tuning should be treated as a separate secondary comparison, after the common-recipe benchmark, so that the primary results isolate architectural differences rather than tuning differences.
-
-**Q5. For shared training, should we sample tasks according to dataset size or balance them? Should we also balance datasets within each task, and how should long report answers contribute to the loss compared with short labels?**
-
-Keep the shared-training sampler as simple and neutral as possible. Sample according to the natural A+B data distribution rather than balancing tasks or datasets, so that the main comparison isolates the effect of the adaptation method rather than mixing in a sampling intervention. For long report answers, normalize the token-level loss at the example level before averaging across the batch, so that a long report does not contribute disproportionately more loss than a short classification or regression answer simply because it contains more tokens.
-
-**Q6. What resolution should we use for the main comparisons? Would a common 768² cap make sense, with selected 2048² experiments separately? What preprocessing and multi-image settings should stay fixed outside their dedicated ablations?**
-
-Use a common 768² image-area cap. The higher 2048² setting should be evaluated separately as a dedicated resolution ablation rather than mixed into the main architecture comparison.
-
-**Q7. The draft specifies both A→B and B→A evaluation. Could we instead train on A+B and evaluate on the internal holdout? That would be simpler to run. What additional evidence would the two-direction evaluation give us, and what would we lose by simplifying?**
-
-Train on A+B and evaluate on the internal holdout.
-
-**Q8. Which data should we use for tuning and checkpoint selection? Should we reserve validation data within each training split so the evaluation set isn't also used to choose settings?**
-
-Yes. We should reserve a development/validation split from within A+B and use that exclusively for hyperparameter tuning, router settings, composition weights, and any other model-selection decisions. The internal holdout should remain untouched until the final evaluation of each experiment.
-
-**Q9. For the planned data-scaling percentages, which high-resource and naturally low-resource tasks should we select? Should only the selected task's data shrink while other tasks stay fixed? Should the percentages count images or QA pairs?**
-
-Use classification as the high-resource task and regression as the naturally low-resource task. For each scaling experiment, shrink only the selected target task's training data, while keeping the other tasks at 100%. That directly tests whether shared or partially shared adaptation can compensate for limited supervision on the target task. The scaling percentages should be based on unique images/patient groups rather than QA pairs. Sample the images first, then retain all QA pairs associated with those selected images so that image-level leakage and repeated-question effects are controlled.
-
-**Q10. Could you resend the papers for HydraLoRA, Soft-LoRA, LoRA-MoE, and the spectral expert methods? Should we follow their methods exactly or adapt them to a common setup? For unspecified settings, we'll need to agree on expert counts, top-k, and whether adapters and routers train jointly or separately.**
-
-We should preserve the core architectural idea of each method, but adapt them to our common experimental setup. We should not copy method-specific learning rates, epochs, or other training settings from the original papers, because then the comparison would not be controlled.
-
-For method-specific settings such as the number of experts and top-k, first use the settings specified by the original paper when they are integral to the method. Where they are not directly transferable to our setting, we will define a common default and document it explicitly. For LoRA-MoE and spectral experts, the router and experts should be trained jointly when that is part of the original method. For experiments that combine our already-trained task/modality adapters, keep the adapters frozen and train only the router/composition mechanism. We can finalize expert count and top-k after reviewing the implementations rather than fixing arbitrary values now.
-
-**Q11. For the planned fixed and learned adapter compositions, what merge weights and router inputs should we use? Should the main comparisons assume the correct task/modality route or require predicted routing? Should prompts, decoding, and output parsing stay identical across methods within each task?**
-
-For the fixed adapter composition, use a small development-only grid for the merge weight, for example λ ∈ {0, 0.25, 0.5, 0.75, 1.0}, and select one setting on the A+B development split. Do not tune merge weights on the internal holdout.
-
-For the learned composition, start with the hidden state as the router input, then evaluate whether adding explicit task identity, modality identity, or both improves routing. A clean ablation is: hidden state only; hidden state + task; hidden state + modality; hidden state + task + modality.
-
-For the main method comparison, assume the correct task/modality route so that we compare the quality of the adapters and composition mechanism rather than confounding it with router errors. Predicted routing should be a separate end-to-end experiment.
-
-**Q12. The draft mentions multiple seeds where feasible. How many should we use, and which experiments should repeat? For data scaling, should repeated runs keep the same sampled subsets to measure training variability, or also vary the subsets to measure sensitivity to the selected examples?**
-
-Use 3 training seeds. Repeat the key experiments: Shared LoRA vs TaskLoRA vs HydraLoRA, and the main soft/latent expert comparisons. Keep the same nested sampled subsets across methods so that differences mainly reflect training variability rather than different data composition.
-
-For the primary scaling experiment, keep the same nested sampled subsets across methods so that differences mainly reflect training variability rather than different data composition. Then add a smaller sensitivity analysis using 2–3 independently sampled subsets at selected low-data points, such as 5%, 10%, and 25%, to measure how sensitive the conclusions are to which examples were selected.
+| v1 | v2 |
+|---|---|
+| S0 zero-shot | E0 |
+| S1 Shared vs TaskLoRA | E1 (with Hydra-T, Reversed Hydra and Shared r48 added) |
+| S2 transfer matrix | E3 |
+| S3 scaling | E9 (last) |
+| S4a Hydra-T | E1/E2 arm; Hydra-L dropped |
+| S4b composition | dropped |
+| S4c predicted routing | E6 |
+| S5a modality | E4 (modality adapters only) |
+| S5b dataset | E5 (dataset adapters only) |
+| S6 latent experts | dropped |
+| S7 representations | E7 |
+| S8 location | dropped |
+| S9 practical factors | dropped |
+| S10 MedGemma | E2, and MedGemma in every other experiment |
+| S11 method tuning | dropped |

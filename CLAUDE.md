@@ -22,7 +22,8 @@ the fixed protocol every experiment follows.
 | Path | Contents |
 |---|---|
 | `STATUS.md` | current state, active runs, next steps (keep it current) |
-| `PLAN.md` | the confirmed experiment plan; changelog at the top; Tausifa's 12 answers in Appendix A |
+| `PLAN.md` | the experiment plan (v2, 2026-10-16); changelog at the top |
+| `PLAN_v1_2026-10-11.md` | archived v1 plan (frozen); Tausifa's 12 answers in its Appendix A |
 | `paper/` | `main.tex` (the manuscript we edit), `proposal_original.tex` (Tausifa's draft, frozen), `paper.bib` |
 | `references/papers/` | the 11 method papers + `METHOD_DIGEST.md` |
 | `references/challenge_results/` | challenge-era ledgers: read-only, never mixed into new results (see its README) |
