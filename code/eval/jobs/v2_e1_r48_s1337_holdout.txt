@@ -1,0 +1,3 @@
+# E1 Shared r48 s1337 on the full holdout, after its training chain (D) is done.
+WAIT_FOR /data/ugrip2026/journal/runs/chain_D.log chain done
+j26_q35_shared48_full_768_s1337 --adapter_path /data/ugrip2026/journal/runs/j26_q35_shared48_full_768_s1337 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/j26_q35_shared48_full_768_s1337/predictions_holdout.json
