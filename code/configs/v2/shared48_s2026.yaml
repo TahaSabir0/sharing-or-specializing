@@ -1,0 +1,14 @@
+# E1 Shared LoRA rank 48, seed 2026 (PLAN.md v2 §1.3, E1): the parameter control (~6 x P8).
+# alpha 96 keeps alpha/r = 2 as in every r8 arm (decision N2); logged as overrides by design.
+run_id: j26_q35_shared48_full_768_s2026
+owner: taha
+study: E1
+backbone: q35
+method: lora
+method_cfg: {}
+deck: j26_train_mix
+data_tag: full
+seed: 2026
+overrides:
+  lora_rank: 48
+  lora_alpha: 96

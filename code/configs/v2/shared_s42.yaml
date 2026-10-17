@@ -1,0 +1,11 @@
+# S1 Shared LoRA, seed 42 (PLAN.md v2 E1). Protocol: code/train/journal_train.py PROTOCOL.
+run_id: j26_q35_shared_full_768_s42
+owner: taha
+study: E1
+backbone: q35
+method: lora
+method_cfg: {}
+deck: j26_train_mix
+data_tag: full
+seed: 42
+overrides: {}
