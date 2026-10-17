@@ -1,6 +1,6 @@
 # Status
 
-**Updated 2026-10-16.**
+**Updated 2026-10-17.**
 
 ## Where we are
 - **New plan, v2 (`PLAN.md`, 2026-10-16)**, from the 14 Oct research update
@@ -22,20 +22,18 @@
 | W2 Training: `journal_train`, per-example loss, plug-in plumbing, registry; 50-step gate | **done** 2026-10-13: unit test PASS, template gate 14/14, smoke loss 1.57→0.63, trainable = P8, 1.665 s/example, 15.5 GB peak |
 | Move to Blackwell (no-GPU part): env/LF/splits/decks verified identical to ws, code defaults → box, repo clone, docs | **done** 2026-10-14 (branch `taha/blackwell-move`; PLAN.md changelog) |
 | Smoke gate on Blackwell GPU 1 (50 steps; measures s/example on the box) | **passed** 2026-10-14: loss 1.563→0.642 (ws 1.573→0.634), **1.196 s/example** (ws 1.665, ≈1.4×), peak 15.5 GB, trainable = P8; holdout50 eval 0 truncated / 0 malformed |
-| S1 seed 1337 (Shared + 6 TaskLoRA; v2 E1) | 6 TaskLoRAs **done** 2026-10-15 (all rc=0); Shared at 89% on 16 Oct 10:41, ETA ~15:00 box time; see Active runs |
+| S1 seed 1337 (Shared + 6 TaskLoRA; v2 E1) | **done** (Shared 16 Oct 17:39). Holdout predictions done; scored except reports (`results/LEDGER.md`) |
+| E0 Qwen zero-shot (bare + prompt), holdout | **done** 17 Oct 00:32; scored except reports |
 | W3 Eval: ZS-bare/ZS-prompt, adapters, oracle sets, composition, plug-ins, scoring, bootstrap | code written (branch `taha/w3-eval`), untested |
 | S0: full zero-shot on holdout + dev; real U | — |
 | Handoff: `code/INTERFACE.md`, reference plug-in, gate + launch/eval commands, queue rules | — |
 
 ## Next steps (order: PLAN.md §5.1)
-1. **Fill the 2 idle slots on GPU 1** (idle since the TaskLoRAs finished, 15 Oct ~22:00): E0
-   Qwen zero-shot, holdout evals of the s1337 TaskLoRAs (W3's first test), Shared r48 s1337
-   after its smoke gate.
-2. Seeds 2026 and 42 of Shared, TaskLoRA and Shared r48.
-3. W4 HydraLoRA module (`hydraT` + `hydraR` modes) → gate → Hydra arms × 3 seeds.
-4. W9 MedGemma port → gate → E0 MedGemma + E2.
-5. Handoff: `code/INTERFACE.md` + reference plug-in.
-6. Agree v2 team roles.
+1. **GPU 1 has 2 idle slots** (since 16 Oct 19:02 and 17 Oct 00:32): launch seeds 2026 and 42 of
+   Shared, TaskLoRA, Shared r48 (configs only), and CRIMSON for the 4 report prediction files.
+2. W4 HydraLoRA module (`hydraT` + `hydraR`) → gate → Hydra arms × 3 seeds.
+3. W9 MedGemma port → gate → E0 MedGemma + E2.
+4. Handoff: `code/INTERFACE.md` + reference plug-in; agree v2 team roles.
 
 ## Compute (2026-10-14)
 - GPU access until **13 Nov 2026**.
@@ -80,12 +78,12 @@ S1 seed 1337, launched 2026-10-14 14:27 (box time, +04), `mbz-yaqub` GPU 1, comm
 repo `/data/ugrip2026/journal/repo`, logs in `/data/ugrip2026/journal/runs/`:
 | Chain | PID | Runs, in order | State (16 Oct 10:41) |
 |---|---|---|---|
-| A | 670039 | `j26_q35_shared_full_768_s1337` | 89% (13,321/15,036 steps), ETA ~15:00 16 Oct |
+| A | 670039 | `j26_q35_shared_full_768_s1337` | **done** 16 Oct 17:39, rc=0 |
 | B | 670040 | `taskcls` (26.9 h) → `taskdet` (4.5 h) | **done** 15 Oct 21:52, rc=0 |
 | C | 670041 | `taskcount` (1.2 h) → `taskreport` (10.0 h) → `taskml` (9.0 h) → `taskreg` (6.0 h) | **done** 15 Oct 16:38, rc=0 |
-| D | 826593 | `j26_q35_shared48_full_768_s1337` (E1 control, r48 α96; commit `a0ff450`) | started 16 Oct 11:16; trainable 129,835,008 = 6·P8 ✓; step-10 loss 3.05 (Shared r8: 3.13). ~18 s/it while 4 jobs share the card; ~3 days |
-| eval E1 | 826594 | `code/eval/jobs/v2_e1_s1337_holdout.txt`: 6 TaskLoRAs on their own holdout slice, then (after chain A) Shared on the full holdout | started 16 Oct 11:16; cls at 1.7 s/q |
-| eval E0 | 826595 | `code/eval/jobs/v2_e0_qwen_zeroshot.txt`: ZS-prompt, then ZS-bare, full holdout | started 16 Oct 11:16; ~2 h each |
+| D | 826593 | `j26_q35_shared48_full_768_s1337` (E1 control, r48 α96; commit `a0ff450`) | 51% on 17 Oct 09:39 (loss 0.51, 9.4 s/it alone), ETA ~18 Oct 05:00; started 16 Oct 11:16; trainable 129,835,008 = 6·P8 ✓; step-10 loss 3.05 (Shared r8: 3.13). ~18 s/it while 4 jobs share the card; ~3 days |
+| eval E1 | 826594 | `code/eval/jobs/v2_e1_s1337_holdout.txt`: 6 TaskLoRAs on their own holdout slice, then (after chain A) Shared on the full holdout | **done** 16 Oct 19:02, all rc=0 |
+| eval E0 | 826595 | `code/eval/jobs/v2_e0_qwen_zeroshot.txt`: ZS-prompt, then ZS-bare, full holdout | **done** 17 Oct 00:32, rc=0 (ZS-bare took 11.7 h: long rambling outputs) |
 
 The evals use `eval_arm.py` (one question at a time; it was the smoke-gate check) via the new queue
 `code/eval/run_eval_chain.sh`, not the untested W3 harness. Predictions only, written at the end of
