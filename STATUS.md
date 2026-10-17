@@ -29,8 +29,9 @@
 | Handoff: `code/INTERFACE.md`, reference plug-in, gate + launch/eval commands, queue rules | — |
 
 ## Next steps (order: PLAN.md §5.1)
-1. **GPU 1 has 2 idle slots** (since 16 Oct 19:02 and 17 Oct 00:32): launch seeds 2026 and 42 of
-   Shared, TaskLoRA, Shared r48 (configs only), and CRIMSON for the 4 report prediction files.
+1. Seeds 2026/42 of Shared, TaskLoRA, r48 launched 17 Oct (chains E, F, G); all 3 slots busy to ~22 Oct.
+   **CRIMSON is blocked:** the judge model (`CRIMSON-medgemma-4b`) and the `crimson-score` env are on ws,
+   not on the box. Copy the model over and set up the env, then score the 4 report files.
 2. W4 HydraLoRA module (`hydraT` + `hydraR`) → gate → Hydra arms × 3 seeds.
 3. W9 MedGemma port → gate → E0 MedGemma + E2.
 4. Handoff: `code/INTERFACE.md` + reference plug-in; agree v2 team roles.
@@ -82,6 +83,9 @@ repo `/data/ugrip2026/journal/repo`, logs in `/data/ugrip2026/journal/runs/`:
 | B | 670040 | `taskcls` (26.9 h) → `taskdet` (4.5 h) | **done** 15 Oct 21:52, rc=0 |
 | C | 670041 | `taskcount` (1.2 h) → `taskreport` (10.0 h) → `taskml` (9.0 h) → `taskreg` (6.0 h) | **done** 15 Oct 16:38, rc=0 |
 | D | 826593 | `j26_q35_shared48_full_768_s1337` (E1 control, r48 α96; commit `a0ff450`) | 51% on 17 Oct 09:39 (loss 0.51, 9.4 s/it alone), ETA ~18 Oct 05:00; started 16 Oct 11:16; trainable 129,835,008 = 6·P8 ✓; step-10 loss 3.05 (Shared r8: 3.13). ~18 s/it while 4 jobs share the card; ~3 days |
+| E | 890699 | `shared_s2026` → `shared48_s2026` (configs `code/configs/v2/`, commit `fe34bff`) | started 17 Oct 10:36; trainable = P8 ✓; ~13.5 s/it with 3 jobs; ~4 days for both |
+| F | 890700 | TaskLoRA s2026 (cls, report, ml, det, reg, count) → TaskLoRA s42 (same order) | started 17 Oct 10:36; trainable = P8 ✓; ~5 days for all 12 |
+| G | 890701 | waits for chain D's "chain done", then `shared_s42` → `shared48_s42` | queued; starts ~18 Oct 05:00 |
 | eval E1 | 826594 | `code/eval/jobs/v2_e1_s1337_holdout.txt`: 6 TaskLoRAs on their own holdout slice, then (after chain A) Shared on the full holdout | **done** 16 Oct 19:02, all rc=0 |
 | eval E0 | 826595 | `code/eval/jobs/v2_e0_qwen_zeroshot.txt`: ZS-prompt, then ZS-bare, full holdout | **done** 17 Oct 00:32, rc=0 (ZS-bare took 11.7 h: long rambling outputs) |
 
