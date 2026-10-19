@@ -41,7 +41,8 @@ Saving and loading (`method_state.safetensors` + `method_config.json`) is automa
 1. Wrap **exactly** `iter_target_modules(model)`: same layers for every method (PLAN.md §1.2).
 2. Leave the base frozen. Only your new parameters get `requires_grad=True`.
 3. Initialise so that **step 0 equals the base model** (LoRA: A random, B zeros). Then the
-   first logged loss matches plain LoRA's (~3.1 at step 10 on the mix deck).
+   first logged loss matches plain LoRA's: in a smoke test on the mix deck, 1.563 at step 10 and
+   ~0.65 at step 50 (the reference plug-in gives exactly that).
 4. Move only your new layers to the base layer's device; never move or cast the 4-bit base.
    The trainer upcasts your parameters to fp32; compute in that dtype and cast the delta back
    to the base output's dtype (as `lora_ref.py` does).

@@ -101,8 +101,10 @@ bash code/train/smoke.sh <your_name> code/configs/smoke_lora_ref.yaml
 ```
 
 - If another smoke test is running, it says whose: try again later.
-- You should see, at the end: loss going down (≈3 → <1), trainable params 21,639,168, and an
-  eval with 0 malformed answers. Then you're set up.
+- You should see, at the end: `loss: first ≈1.56 -> last ≈0.65 (decreasing)`, trainable params
+  21,639,168, an eval line for all 6 tasks with `malformed_rate 0.0`, and a valid
+  `routing_stats.npz`. (Task scores after 50 steps are meaningless: it's a format check.) Then
+  you're set up.
 - It takes ~20–40 min. To keep it running after you log out, use `tmux` (or `nohup ... &`).
 
 ## 6. Your daily loop
