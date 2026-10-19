@@ -14,3 +14,11 @@ _junk/
 .env
 __pycache__/
 *.pyc
+
+# journal data and outputs never go in git (decks, predictions, routing dumps, run folders)
+data/**/*.jsonl
+results/predictions/*
+!results/predictions/.gitkeep
+*.npz
+runs/
+people/

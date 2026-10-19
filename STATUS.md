@@ -1,104 +1,62 @@
 # Status
 
-**Updated 2026-10-17.**
+**Updated 2026-10-19.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
-- **New plan, v2 (`PLAN.md`, 2026-10-16)**, from the 14 Oct research update
-  (`references/plan_updates/research_update_2026-10-14.pdf`). Five main arms (Shared, Hydra-T,
-  Reversed Hydra, TaskLoRA, Shared r48) × 3 seeds × Qwen and MedGemma run first (Phase A); the
-  additional experiments follow (Phase B); scaling (RQ2) is last and over budget (Phase C).
-  v1 is archived in `PLAN_v1_2026-10-11.md`.
-- Team roles under v2: to be agreed separately (PLAN.md §7). v1's assignment no longer applies.
-- **Build first, interface note last** (2026-10-13, PLAN.md changelog): Taha builds the whole
-  foundation, launches S1 seed 1337 once W2 passes, builds W3 while it trains, then hands the
-  team a half-page plug-in note (`code/INTERFACE.md`) plus a reference plug-in.
-- Foundation work started 2026-10-13. Step 0, W1, W2 done on ws. **Move to Blackwell done (no-GPU part) 2026-10-14**; smoke gate passed on GPU 1.
+- **Phase A (main experiments) running on GPU 1.** Qwen Shared, TaskLoRA and Shared r48: seed 1337
+  done and evaluated; seeds 2026 and 42 training (all done ~23 Oct).
+- **First results (seed 1337, Qwen, no CIs, reports not yet scored):** fine-tuning lifts every
+  task far above zero-shot; Shared vs TaskLoRA is close to a tie (TaskLoRA ahead on regression,
+  driven by boneresorption, and slightly on cls; Shared ahead on detection and counting); Shared
+  r48 (6× parameters) is not better than Shared overall. Details: LEDGER.
+- **Blocked on code, now owned (PLAN.md §7.1):** Hydra-T / Reversed Hydra (Veronika) and the
+  MedGemma port (Alberto) gate 21 of the 30 Phase A runs. Target: both pass the smoke gate by 23 Oct,
+  when the GPU queue runs dry.
+- **Team set-up done 2026-10-19:** eval harness merged and tested on the box; `smoke.sh`;
+  `code/INTERFACE.md` + reference plug-in; `KICKSTART.md`; CRIMSON env and judge on the box;
+  MedGemma weights on the box; plan §7.
 
-## Foundation progress (Taha)
-| Step | State |
-|---|---|
-| 0 Setup: ws clone, env, 4-bit load, LF dry run, LF version recorded | **done** 2026-10-13 (`code/env/LF_VERSION.md`; P8 = 21,639,168) |
-| W1 Data: decks, dev-select, holdout file, subsets, md5 manifest | **done** 2026-10-13 (decks on ws `/share/sda/ugrip/journal/data`; `data/DECK_MANIFEST.json`, `data/subsets/`) |
-| W2 Training: `journal_train`, per-example loss, plug-in plumbing, registry; 50-step gate | **done** 2026-10-13: unit test PASS, template gate 14/14, smoke loss 1.57→0.63, trainable = P8, 1.665 s/example, 15.5 GB peak |
-| Move to Blackwell (no-GPU part): env/LF/splits/decks verified identical to ws, code defaults → box, repo clone, docs | **done** 2026-10-14 (branch `taha/blackwell-move`; PLAN.md changelog) |
-| Smoke gate on Blackwell GPU 1 (50 steps; measures s/example on the box) | **passed** 2026-10-14: loss 1.563→0.642 (ws 1.573→0.634), **1.196 s/example** (ws 1.665, ≈1.4×), peak 15.5 GB, trainable = P8; holdout50 eval 0 truncated / 0 malformed |
-| S1 seed 1337 (Shared + 6 TaskLoRA; v2 E1) | **done** (Shared 16 Oct 17:39). Holdout predictions done; scored except reports (`results/LEDGER.md`) |
-| E0 Qwen zero-shot (bare + prompt), holdout | **done** 17 Oct 00:32; scored except reports |
-| W3 Eval: ZS-bare/ZS-prompt, adapters, oracle sets, composition, plug-ins, scoring, bootstrap | code written (branch `taha/w3-eval`), untested |
-| S0: full zero-shot on holdout + dev; real U | — |
-| Handoff: `code/INTERFACE.md`, reference plug-in, gate + launch/eval commands, queue rules | — |
+## Phase A tracker (5 arms × 3 seeds × 2 backbones = 30 training runs)
 
-## Next steps (order: PLAN.md §5.1)
-1. Seeds 2026/42 of Shared, TaskLoRA, r48 launched 17 Oct (chains E, F, G); all 3 slots busy to ~22 Oct.
-   **CRIMSON is blocked:** the judge model (`CRIMSON-medgemma-4b`) and the `crimson-score` env are on ws,
-   not on the box. Copy the model over and set up the env, then score the 4 report files.
-2. W4 HydraLoRA module (`hydraT` + `hydraR`) → gate → Hydra arms × 3 seeds.
-3. W9 MedGemma port → gate → E0 MedGemma + E2.
-4. Handoff: `code/INTERFACE.md` + reference plug-in; agree v2 team roles.
+| Arm | Qwen s1337 | Qwen s2026 | Qwen s42 | MedGemma (×3) |
+|---|---|---|---|---|
+| Shared | done, evaluated | training | training | needs port |
+| TaskLoRA (6 adapters) | done, evaluated | cls/report/ml done (evals queued), det/reg/count training | queued (chain F) | needs port |
+| Shared r48 | done, evaluated | queued (chain E) | queued (chain G) | needs port |
+| Hydra-T | needs plug-in | | | needs plug-in + port |
+| Reversed Hydra | needs plug-in | | | needs plug-in + port |
 
-## Compute (2026-10-14)
-- GPU access until **13 Nov 2026**.
-- Only box: `mbz-yaqub`, **GPU 1** (first assigned GPU 0; switched to the free GPU 1 the same day). Setup and paths: banner of
-  `ops/cluster-config.md`. Launch with `code/train/run_chain.sh` (defaults to GPU 1).
-- On 2026-10-14, GPU 1 was empty; `mostafasalem` has jobs on GPUs 0, 2 and 5.
-- ws estimate for S1 s1337 was 1.665 s/example (Shared ≈ 58 h, 6 TaskLoRAs ≈ 56 h); the
-  challenge-era Blackwell speedup was ~4.1× at 2048². The box's 768² speed is measured in the smoke gate.
-- Fixed 2026-10-14: `run_chain.sh` logged `rc=0` for every run, failures included (the `$?`
-  came after a `$(date)` substitution). It now records the real exit code.
+Zero-shot (E0): Qwen done (bare + prompt); MedGemma needs the port.
 
-## Finding: ws and Blackwell are not bit-reproducible (2026-10-14)
-- Same code, data, decks, packages and seed, but the 50-step smoke adapters give different greedy
-  outputs on holdout50: identical raw outputs per task are cls 39/50, ML 36/50, report 41/50,
-  count 23/50, reg 15/50, det 0/50. GPU kernels differ (sm_120 vs sm_86), so the numerics differ
-  slightly and greedy decoding diverges. Counting MAE 38.2 (ws) vs 76.2 (box), almost all from
-  three degenerate answers ("1000" for 41 and 13, "105" for 7) of a barely trained adapter.
-- Consequence: **every arm we compare must be trained and evaluated on the same box.**
-  All journal runs from now on are on Blackwell GPU 1. The ws smoke numbers are not comparable
-  to box numbers. (Holdout50 here is a format check, not a result.)
-- Throughput: one run alone ≈ 1.4 A5000s (1.196 s/example, GPU ~53% busy). **3 runs at once
-  (tested 2026-10-14): 1.75–1.76 s/example each, ≈ 1.70 examples/s in total = 2.0× one run ≈
-  2.8 A5000s.** Peak 16.95 GB reserved each (~51 GB of 96). Budget to 13 Nov at 3 slots ≈
-  2,000 A5000-equivalent GPU-h. 4 at once is untested.
-- The 3 runs had the same config and seed, but their final losses differed slightly (0.6376 /
-  0.6424 / 0.6401; alone: 0.6417). So training isn't bit-deterministic even on one box: run-to-run
-  noise at the ~1% loss level, on top of seed variance.
+## Next steps (Taha)
+1. CRIMSON for the 6 report prediction files already on the box (ZS ×2, Shared, TaskLoRA-report,
+   Shared r48, TaskLoRA-report s2026 when evaluated), then LEDGER.
+2. Queue holdout evals of seeds 2026/42 as their training finishes (TaskLoRA s2026 evals are queued).
+3. Review the first PRs (Hydra, MedGemma); queue their runs as soon as they pass.
+4. Restructure `paper/main.tex` to v2 (week of 26 Oct).
 
-## Decisions to relay (Tausifa)
-- A/B include dev; we train on A∪B (40,094) and make selection decisions on the holdout
-  (v1 changelog 2026-10-13; PLAN.md v2 §1.7). v2 needs no selection decisions.
-- v2 decisions N1–N8 (PLAN.md §6): total-parameter counting with Shared r48 (α 96) as control;
-  3 seeds and MedGemma everywhere; additional experiments after the main ones; RQ2 last.
+## Active runs (box time, +04; `mbz-yaqub` GPU 1; logs in `/data/ugrip2026/journal/runs/`)
 
-## Open checks
-- Measure U with the packed decks: the S1 Shared s1337 run gives it (smoke implies ≈ 56 GPU-h
-  vs the planned 68).
-- Full-deck tokenization takes ~35–40 min (cached per deck after the first run).
+| Chain | Runs, in order | State (19 Oct) |
+|---|---|---|
+| E | `shared_s2026` → `shared48_s2026` | shared s2026 at 82%; r48 next (~2.5 days) |
+| F | TaskLoRA s2026 (cls ✓, report ✓, ml ✓, det, reg, count) → TaskLoRA s42 (same order) | det s2026 running; all done ~22–23 Oct |
+| G | `shared_s42` → `shared48_s42` | shared s42 at 34% |
+| eval | `code/eval/jobs/v2_e1_task_s2026_holdout.txt` (each TaskLoRA s2026 on its own slice; det/reg/count wait for chain F) | running |
 
-## Active runs
-S1 seed 1337, launched 2026-10-14 14:27 (box time, +04), `mbz-yaqub` GPU 1, commit `5199a58`,
-repo `/data/ugrip2026/journal/repo`, logs in `/data/ugrip2026/journal/runs/`:
-| Chain | PID | Runs, in order | State (16 Oct 10:41) |
-|---|---|---|---|
-| A | 670039 | `j26_q35_shared_full_768_s1337` | **done** 16 Oct 17:39, rc=0 |
-| B | 670040 | `taskcls` (26.9 h) → `taskdet` (4.5 h) | **done** 15 Oct 21:52, rc=0 |
-| C | 670041 | `taskcount` (1.2 h) → `taskreport` (10.0 h) → `taskml` (9.0 h) → `taskreg` (6.0 h) | **done** 15 Oct 16:38, rc=0 |
-| D | 826593 | `j26_q35_shared48_full_768_s1337` (E1 control, r48 α96; commit `a0ff450`) | 51% on 17 Oct 09:39 (loss 0.51, 9.4 s/it alone), ETA ~18 Oct 05:00; started 16 Oct 11:16; trainable 129,835,008 = 6·P8 ✓; step-10 loss 3.05 (Shared r8: 3.13). ~18 s/it while 4 jobs share the card; ~3 days |
-| E | 890699 | `shared_s2026` → `shared48_s2026` (configs `code/configs/v2/`, commit `fe34bff`) | started 17 Oct 10:36; trainable = P8 ✓; ~13.5 s/it with 3 jobs; ~4 days for both |
-| F | 890700 | TaskLoRA s2026 (cls, report, ml, det, reg, count) → TaskLoRA s42 (same order) | started 17 Oct 10:36; trainable = P8 ✓; ~5 days for all 12 |
-| G | 890701 | waits for chain D's "chain done", then `shared_s42` → `shared48_s42` | queued; starts ~18 Oct 05:00 |
-| eval E1 | 826594 | `code/eval/jobs/v2_e1_s1337_holdout.txt`: 6 TaskLoRAs on their own holdout slice, then (after chain A) Shared on the full holdout | **done** 16 Oct 19:02, all rc=0 |
-| eval E0 | 826595 | `code/eval/jobs/v2_e0_qwen_zeroshot.txt`: ZS-prompt, then ZS-bare, full holdout | **done** 17 Oct 00:32, rc=0 (ZS-bare took 11.7 h: long rambling outputs) |
+Check: `ssh blackwell 'cat /data/ugrip2026/journal/runs/chain_{E,F,G}.log /data/ugrip2026/journal/runs/evalchain_*.log'`;
+per run: `<run_id>.log`, `<run_id>/runtime.json`. Smoke lock: `cat /data/ugrip2026/journal/runs/smoke/.holder`.
 
-The evals use `eval_arm.py` (one question at a time; it was the smoke-gate check) via the new queue
-`code/eval/run_eval_chain.sh`, not the untested W3 harness. Predictions only, written at the end of
-each job to `<run_dir>/predictions_holdout.json`; scoring (`score_single.py`, CRIMSON) comes next.
-With 4 jobs on the card, Shared s1337 slowed from ~9 to ~17 s/it; its ETA moved to ~18:00 16 Oct.
-Eval logs: `<runs>/eval_<name>.log`, queues: `<runs>/evalchain_{E1s1337,E0qwen}.log`, `chain_D.log`.
+## Things to remember
+- Every compared run is trained and evaluated on the box (ws and the box are not
+  bit-reproducible; PLAN.md §1.12; numbers in LEDGER "Setup findings").
+- Never update `/data/ugrip2026/journal/repo` while a chain will start a new run from it with
+  changed code: chains read the code at each run's start (RUNS.csv notes one harmless case).
+- Thread caps are mandatory on the box (`run_chain.sh` and `smoke.sh` set them): uncapped
+  tokenizer workers once loaded ~400 of 512 cores (14 Oct).
+- 3 jobs at once = 2.0× one job, card ~90% busy; a 4th job mostly slows the others.
 
-Collect: `ssh blackwell 'cat /data/ugrip2026/journal/runs/chain_{A,B,C}.log'`; per run:
-`<run_id>.log` and `<run_id>/runtime.json`.
-
-Incident (2026-10-14 14:11): the first launch had no thread cap. Each of the 48 tokenizer workers
-started ~one thread per core (512 cores) → ~9k threads, ~400 cores, box load 2,800. Stopped by
-Taha at ~14:25 (still tokenizing, nothing lost; logs `chain_*_aborted_threads.log`). Relaunched
-with `run_chain.sh` capping OMP/MKL/BLAS at 4 threads per process: 168 threads, ~41 cores.
+## For Tausifa
+- Dev is inside the training pool, so v2 makes no selection decisions (PLAN.md §1.7).
+- v2 decisions N1–N8 (PLAN.md §6) and the team split (§7.1).

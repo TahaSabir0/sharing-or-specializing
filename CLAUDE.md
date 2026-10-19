@@ -6,21 +6,28 @@ Analysis". Mentor: Dr. Tausifa Jan Saleem (PI: Prof. Mohammad Yaqub, MBZUAI). GP
 (Blackwell GPU 1) runs until 13 Nov 2026; submission target ~15 Nov 2026.
 
 Read **STATUS.md** first, then the parts of **PLAN.md** your task touches. PLAN.md §1 is
-the fixed protocol every experiment follows.
+the fixed protocol every experiment follows; PLAN.md §7 is who does what and how the team
+works. New teammates start with **KICKSTART.md**; method plug-ins follow **code/INTERFACE.md**.
+Ask who you are working for (git `user.name`, or ask): rules below about launching GPU work
+depend on it.
 
-## Who's who
-- **Taha Sabir:** lead; foundation code, S0–S2, GPU queue, records. Explain ML reasoning
-  plainly: Taha is comfortable with code but still building depth in ML.
-- **Veronika Dmitrenko:** HydraLoRA (S4a) and MoE-style experts (S6).
-- **Thinh Quang Ly ("Alex"):** composition, routing, modality (S4b, S4c, S5), location (S8),
-  representations (S7).
-- **Alberto Montero Molina:** scaling (S3), practical factors (S9), MedGemma (S10).
+## Who's who (PLAN.md §7)
+- **Taha Sabir:** lead; foundation code, GPU 1 (the only one who launches real runs), eval and
+  scoring, records, E0/E1 plain-LoRA arms, paper lead. Explain ML reasoning plainly: Taha is
+  comfortable with code but still building depth in ML.
+- **Veronika Dmitrenko:** HydraLoRA plug-in, both modes (`hydraT`, `hydraR`), on Qwen and
+  MedGemma; the Hydra head-similarity analysis in E7.
+- **Alberto Montero Molina:** MedGemma port, E0/E2 on MedGemma (running the MedGemma Hydra arms
+  too); supervision scaling (E9).
+- **Thinh Quang Ly ("Alex"):** additional experiments: transfer matrix (E3), modality and
+  dataset adapters (E4, E5), predicted routing (E6), representations (E7), RQ4 synthesis (E8).
 - **Mentors:** Dr. Tausifa Jan Saleem (this paper), Prof. Mohammad Yaqub, Ahmed Aly.
 
 ## Folder map
 
 | Path | Contents |
 |---|---|
+| `KICKSTART.md` | one-time setup for a teammate: access, clone, box, first smoke test |
 | `STATUS.md` | current state, active runs, next steps (keep it current) |
 | `PLAN.md` | the experiment plan (v2, 2026-10-16); changelog at the top |
 | `PLAN_v1_2026-10-11.md` | archived v1 plan (frozen); Tausifa's 12 answers in its Appendix A |
@@ -29,7 +36,7 @@ the fixed protocol every experiment follows.
 | `references/challenge_results/` | challenge-era ledgers: read-only, never mixed into new results (see its README) |
 | `references/FLARE2026_Hexapus_paper_submitted.pdf` | our challenge paper (cite it) |
 | `data/` | split design (`FLARE2026_data_pipeline_v2.md`), dataset census, holdout composition; `subsets/` for the scaling subsets |
-| `ops/` | compute guide for `ws` and Blackwell; `cluster-executor` agent definition |
+| `ops/` | compute guide (`cluster-config.md`: current box guide on top, challenge history below); `cluster-executor` agent definition |
 | `code/` | all journal code: env, data, train, methods, eval, analysis, configs (see `code/README.md`) |
 | `results/` | `LEDGER.md` (numbers of record), `RUNS.csv` (run registry) and `predictions/` |
 | `transcripts/` | meeting transcripts + `SUMMARY.md` |
@@ -40,7 +47,7 @@ it came from, and who builds what. It was seeded from the challenge code repo
 Look things up there only for history; don't develop in it. Use one topic branch (and one
 worktree) per piece of work, and don't switch a shared checkout's branch.
 
-The old challenge workspace `C:/Users/tahas/research/UGRIP/` is history: look things up there only
+On Taha's machine, the old challenge workspace `C:/Users/tahas/research/UGRIP/` is history: look things up there only
 when a specific question needs it (for example its `PROGRESS.md`). Don't load it by
 default.
 
@@ -55,7 +62,9 @@ default.
    existing scorer (`score_single.py`); don't re-implement parsers.
 4. **Per-dataset metrics, then the macro within each task.** Never pool across datasets.
    Label every evaluation surface (holdout, dev, validation-public).
-5. **Holdout is touched once per finished arm.** Every selection decision uses dev-select.
+5. **Holdout is touched once per finished arm.** Dev is inside the training pool, so v2 makes
+   no selection decisions; if one arises, follow PLAN.md §1.7. Smoke tests evaluate on
+   dev-select (a format check, not a result).
 6. **Challenge numbers are not journal numbers** (`references/challenge_results/README.md`).
 7. **Keep what's needed to reproduce a claim:** config, commit, deck md5, adapter, raw
    predictions, metric definition.
@@ -63,8 +72,11 @@ default.
 
 ## Compute and execution
 - Since 2026-10-14 all training and evaluation run on `mbz-yaqub` (Blackwell, **GPU 1 only**).
-  `ws` is used by others: don't run jobs there. See the banner in `ops/cluster-config.md`.
-  Check `nvidia-smi -i 1` before launching.
+  `ws` is used by others: don't run jobs there. Guide: top of `ops/cluster-config.md`.
+- **Only Taha launches real runs and holdout evals** (`run_chain.sh`, `run_eval_chain.sh`).
+  Everyone else launches GPU work only through `code/train/smoke.sh`, from their own clone in
+  `/data/ugrip2026/journal/people/<name>/repo`. Never touch `/data/ugrip2026/journal/repo`
+  or other people's runs; never kill a process you didn't start. Check `nvidia-smi -i 1` first.
 - Delegate remote GPU/data work to the `cluster-executor` agent (`ops/cluster-executor.toml`)
   with a concrete task, branch/commit, GPU and budget.
 - Long jobs: launch durably (nohup + log), report PID, log path, ETA and the collection

@@ -22,6 +22,13 @@ the changes marked **(v2)**.
   - dropped: adapter composition (fixed and learned), Hydra-L, latent experts (v1 S6),
     location (v1 S8), practical factors (v1 S9), method tuning (v1 S11);
   - team roles are to be agreed separately (§7).
+- 2026-10-19: **team set-up** (Taha). §7 filled: owners (Veronika: HydraLoRA both modes, on
+  both backbones; Alberto: MedGemma port, E2, E9; Alex: E3–E8, E3 moved from Taha), first
+  deliverables and dates, and the team rules. Everyone gets the box login, but only for smoke
+  tests through `code/train/smoke.sh` (one at a time, 50 steps, output in `runs/smoke/`); real
+  runs and holdout evals stay with Taha. Smoke-gate eval moved from 50 holdout questions to 10 per
+  task on dev-select (keeps the holdout untouched). W3 eval harness merged and tested on the box;
+  MedGemma and the CRIMSON judge copied to the box; `crimson-score` env built there.
 
 ---
 
@@ -94,8 +101,9 @@ other change is a logged deviation.
   - Template: LF `qwen3_5`, `enable_thinking: false` (the empty `<think>` block sits in the
     prompt, not the target).
   - Image budget: **768² area cap** (`image_max_pixels: 589824`).
-- **MedGemma-1.5-4B** (`google/medgemma-1.5-4b-it`).
-  - Template: LF `gemma3`.
+- **MedGemma-1.5-4B** (`google/medgemma-1.5-4b-it`; box `/data/ugrip2026/models/medgemma-1.5-4b-it`).
+  - Template: LF `gemma3`. Environment: `flare-blackwell-v5` if Gemma3 loads and trains there,
+    else a separate env; decided and recorded here by the MedGemma port (W9).
   - Image budget: **native fixed 896² (256 tokens)**. The SigLIP input size is fixed, so the
     768² cap cannot apply. This is a backbone-intrinsic difference, stated in the paper.
 - **Both:**
@@ -281,8 +289,9 @@ too (~1% in final loss); seeds cover it.
 ### 2.3 Capacity
 - 16 Oct → 11 Nov (12–13 Nov kept for final evals and slack): 26 days × 24 h × 3 slots ≈
   **1,870 slot-hours**; at ~85% usable, **≈ 1,600**.
-- Evaluation, zero-shot and smoke runs share the same three slots (one queue,
-  `code/train/run_chain.sh`). Check `nvidia-smi -i 1` before each launch.
+- Real runs and holdout evals use the three slots (launched by Taha: `run_chain.sh`,
+  `run_eval_chain.sh`). A smoke test runs as a short 4th job (`smoke.sh`, one at a time). Check
+  `nvidia-smi -i 1` before each launch. Rules: §7.3.
 
 ---
 
@@ -294,8 +303,11 @@ too (~1% in final loss); seeds cover it.
 |---|---|---|
 | W1 Data | decks, holdout file, subsets, md5 manifest, task/modality/dataset labels on every row | **done** 2026-10-13 |
 | W2 Training | `journal_train`, per-example loss, plug-in hook, registry | **done** 2026-10-13; smoke gate passed on GPU 1, 2026-10-14 |
-| W3 Eval | holdout eval of single adapters and oracle-routed adapter sets, plug-in methods, scoring, CRIMSON, omission rule, bootstrap | written (branch `taha/w3-eval`), **untested** |
-| Interface note | `code/INTERFACE.md` + a reference plug-in | to write once W3 works |
+| W3 Eval | `eval_harness.py` (zs / adapter / oracle / plugin), `score_run.py`, `crimson_box.sh`, omission rule, `bootstrap.py` | **merged and tested on the box 2026-10-19** (reference plug-in end to end). The first E0/E1 evals used the simpler `eval_arm.py` |
+| Interface note | `code/INTERFACE.md` + reference plug-in `code/methods/lora_ref.py` | **done** 2026-10-19 |
+| Smoke tests | `code/train/smoke.sh`: one at a time, 50 steps + 10/task dev-select eval, `runs/smoke/` | **done** 2026-10-19 |
+| CRIMSON on the box | judge `/data/ugrip2026/models/CRIMSON-medgemma-4b`, env `crimson-score` | **done** 2026-10-19; report scores of the finished runs pending |
+| Team set-up | `KICKSTART.md`, own clones in `/data/ugrip2026/journal/people/<name>/`, box guide on top of `ops/cluster-config.md` | **done** 2026-10-19 |
 
 ### 3.2 Code to build for v2 (in order of need)
 
@@ -313,12 +325,15 @@ too (~1% in final loss); seeds cover it.
 1. Loss decreases over 50 training steps.
 2. Stored and active parameter counts match §1.3.
 3. Train/inference prompt render is byte-identical (`template_gate.py`).
-4. Eval runs end to end on ~50 holdout questions with a sensible malformed and truncation
-   rate.
-5. `runtime.json` records s/it, peak memory and parameter counts (these replace the §2.2
+4. Eval runs end to end on 10 questions per task of dev-select (a format check; the holdout
+   stays untouched) with a sensible malformed and truncation rate.
+5. Routed methods: `routing_stats.npz` exists and is valid.
+6. `runtime.json` records s/it, peak memory and parameter counts (these replace the §2.2
    estimates).
 
-The foundation owner reviews the gate output, not the whole implementation.
+`code/train/smoke.sh` runs items 1, 2, 4, 5, 6 and prints a summary; item 3 is
+`code/eval/template_gate.py`, needed only when prompts or data change. Taha reviews the summary
+(in the pull request), not the whole implementation.
 
 ---
 
@@ -553,10 +568,64 @@ training runs. Code for later steps is built in parallel with earlier runs.
 
 ---
 
-## 7. Team
+## 7. Team and how we work
 
-To be agreed separately, after this plan. Until then, every GPU job goes through the one
-GPU 1 queue (`code/train/run_chain.sh`).
+New teammates: do `KICKSTART.md` first (access, clone, box, first smoke test).
+
+### 7.1 Who owns what
+
+Each owner owns their part end to end: code, smoke test, configs, analysis, ledger entries and
+the paper section draft.
+
+| Person | Owns | First deliverable (target) | Then |
+|---|---|---|---|
+| **Taha** | GPU 1 (the only one who launches real runs and holdout evals), foundation code, eval and scoring (incl. CRIMSON), stats (`bootstrap.py`), records (STATUS, RUNS.csv, LEDGER), E0, E1 plain-LoRA arms (Shared, TaskLoRA, Shared r48), reviews and merges every PR, paper lead | report scores (CRIMSON) for the finished runs; seeds 2026/42 evaluated (~23 Oct) | RQ1 analysis; paper integration |
+| **Veronika** | HydraLoRA plug-in `code/methods/hydra.py`, both modes (`hydraT`, `hydraR`), working on Qwen **and** MedGemma; the Hydra head-similarity part of E7 | `hydraT` and `hydraR` pass the smoke gate on Qwen (**by 23 Oct**) | Gemma3 layer names with Alberto; Hydra results; E7 heads |
+| **Alberto** | MedGemma port (template, target list, detection coordinates at 896², backbone switch in `journal_train` / eval), E0 MedGemma zero-shot, E2 (all 5 arms; runs the MedGemma Hydra arms with Veronika's plug-in), E9 scaling (Phase C) | MedGemma plain LoRA passes the smoke gate (**by 23 Oct**) | E2 configs; `scaling_model.py` |
+| **Alex** | Phase B: E3 transfer matrix (eval jobs + `transfer_matrix.py`), E4 modality decks + adapters, E5 dataset decks + adapters, E6 routers + predicted-route eval, E7 `representations.py`, E8 synthesis | E4/E5 decks + configs and `transfer_matrix.py` (**by 31 Oct**, so Phase B starts the day Phase A ends) | routers (E6), E7, E8 |
+
+Dates are targets: the GPU queue runs dry around 22–23 Oct unless Hydra and MedGemma are ready.
+
+### 7.2 Git
+
+- One branch per piece of work: `<name>/<topic>` (e.g. `veronika/hydra`). Code on your laptop,
+  push to GitHub, pull into your own clone on the box to test.
+- Into `main` only by pull request; Taha reviews and merges. Real runs only ever use `main`.
+- No force-push to shared branches; never commit data, weights, predictions or credentials.
+- Configs for real runs: `code/configs/v2/`, one YAML per run, run id
+  `j26_{backbone}_{arm}_{data}_{res}_s{seed}` (§1.10).
+
+### 7.3 GPU 1 and the box
+
+Everyone has the box login (shared account `ugrip2026`, password from Taha by DM, MBZUAI VPN).
+
+| Who | May launch on GPU 1 |
+|---|---|
+| everyone | `code/train/smoke.sh <name> <config>` from their own clone: one smoke test at a time on the whole box (a lock enforces it), 50 steps, 1-hour cap, output in `runs/smoke/` |
+| Taha | real runs (`run_chain.sh`) and holdout evals (`run_eval_chain.sh`), from `/data/ugrip2026/journal/repo` |
+
+**Never:** launch other GPU work; use a GPU other than 1; kill a process you did not start;
+work in `/data/ugrip2026/journal/repo`; write in `runs/` outside `runs/smoke/` or in the shared
+decks; install into shared conda envs; store credentials on the box. CPU work in your own folder
+is fine; cap threads (`OMP_NUM_THREADS=4`). Something broken: tell Taha, don't fix it.
+
+**Getting a real run:** open a PR with the smoke summary and the configs; Taha merges and queues
+them. Priority when the card frees: (1) smoke tests, (2) Phase A runs, (3) evals of finished
+runs, (4) Phase B (only after all Phase A training).
+
+### 7.4 Records
+
+- **Taha** keeps `results/RUNS.csv` (every real run), `results/LEDGER.md` (numbers of record from
+  holdout evals) and `STATUS.md`.
+- Owners add their analysis results (E3–E9) to the LEDGER through their PR, with run ids,
+  commit, surface and metric definition (CLAUDE.md rule 7).
+- Plan changes: a line in the changelog at the top of this file, in the same PR.
+
+### 7.5 Paper
+
+`paper/main.tex` is still structured as v1 and is restructured to v2 first (Taha, week of
+26 Oct). Each owner then drafts the methods and results of their part. Target: section drafts by
+7 Nov; full draft by 11 Nov; submission ~15 Nov.
 
 ---
 

@@ -1,75 +1,56 @@
-# code/ — journal study code
+# code/: journal study code
 
-All code for the journal study lives here. It was seeded on 2026-10-11 with the reusable
-parts of the challenge code repo (`TahaSabir0/MICCAI-FLARE-2026-Task-3`, branch
-`Taha/qwen35-sprint`, commit `bec2d1f`), plus two scripts that had never been committed. It
-is a copy into fresh history; develop here, not in the old repo.
+All code for the study lives here. The protocol every script follows is **PLAN.md §1**; how a
+method plugs in, how to configure, smoke-test and request a run is **`INTERFACE.md`**; setting
+yourself up is **`../KICKSTART.md`**.
 
-**The protocol every script must follow is PLAN.md §1.** Files copied from the challenge
-still hold challenge settings, and the ones that matter carry a "JOURNAL REPO NOTE" banner
-saying what to change.
+Seeded on 2026-10-11 from the challenge code repo (`TahaSabir0/MICCAI-FLARE-2026-Task-3`,
+branch `Taha/qwen35-sprint`, commit `bec2d1f`) into fresh history. Develop here, not there.
 
-## Layout and status
+## Layout
 
-| Folder | Purpose | What's here now | Who builds the rest (PLAN.md) |
+| Folder | What's here | State (2026-10-19) | Owner of what's left |
 |---|---|---|---|
-| `env/` | pinned stack | `requirements.txt` (Qwen3.5 stack: transformers 5.16.1, torch 2.11 cu128), `lf_v095_tf5_compat.patch` | Taha (W2) |
-| `data/` | training decks and subsets | `build_decks.py` (the challenge deck exporter), `build_splits_REFERENCE.py` | Taha (W1) |
-| `train/` | training harness | `launch_template_ws.sh` | Taha (W2) |
-| `methods/` | one plug-in per method | — | Veronika (W4 HydraLoRA, W5 MoE family), Alex (W6 composition, W7 location) |
-| `eval/` | evaluation and scoring | scorer, batched harness, single-adapter eval, CRIMSON, omission rule, gates | Taha (W3) |
-| `analysis/` | stats and figures | — | Taha (W11a transfer), Alberto (W11b scaling), Alex (W8 representations) |
-| `configs/` | one YAML per run family | `recipe_template_qwen35_768.yaml` | each study owner |
+| `train/` | `journal_train.py` (LF v0.9.5 wrapper: pinned protocol, per-example loss, routing ids, plug-in hook, run registry), `journal_loss.py`, `run_chain.sh` (real runs, Taha only), **`smoke.sh`** (teammates' smoke tests), `target_modules_qwen35.json` | done; trained every run so far | MedGemma target list + backbone switch: Alberto |
+| `methods/` | `base.py` (plug-in plumbing), `lora_ref.py` (reference plug-in, copy it) | done | `hydra.py` (`hydraT` + `hydraR`): Veronika |
+| `eval/` | `eval_harness.py` (batched; zs / adapter / oracle / plugin), `eval_arm.py` (simple one-at-a-time, used for the first runs), `score_single.py` + `evaluation.py` (the scorer), `score_run.py`, `crimson_box.sh` + `score_crimson.py` (reports), `template_gate.py`, `run_eval_chain.sh` + `jobs/` (Taha's eval queue) | done; harness tested on the box 2026-10-19 | E3 transfer jobs: Alex; E6 predicted-route eval: Alex |
+| `data/` | `build_journal_decks.py` (W1, all journal decks), `journal_format.py` (row schema), `label_ids.json` (frozen routing ids), `build_decks.py` (challenge exporter), `build_splits_REFERENCE.py` (provenance, never rerun) | done | modality/dataset decks (E4, E5): Alex |
+| `analysis/` | `bootstrap.py` (CIs, paired bootstrap, seed bootstrap, Holm) | bootstrap done | `transfer_matrix.py` (E3), `representations.py` (E7), RQ4 synthesis (E8): Alex; `scaling_model.py` (E9): Alberto |
+| `configs/` | `v2/` (every v2 run), `s1/` (seed-1337 Shared/TaskLoRA, v1 naming, kept for provenance), `smoke_lora_ref.yaml`, `recipe_template_qwen35_768.yaml` (challenge recipe, reference) | | each owner adds theirs in `v2/` |
+| `env/` | `requirements.txt`, `LF_VERSION.md`, `lf_v095_tf5_compat.patch` | frozen | |
+| `tests/` | `test_per_example_loss.py` | | add tests next to your code |
 
-Also planned (PLAN.md §3.2): `code/INTERFACE.md` (the plug-in contract, written on day 1)
-and `train/target_modules_qwen35.json` (the frozen LoRA target list).
+## Environments (box `mbz-yaqub`)
 
-## What each carried file is
-
-**`eval/`: use these, don't re-implement them.**
-
-| File | Source (@ `bec2d1f` unless noted) | Role |
+| Env | For | Notes |
 |---|---|---|
-| `evaluation.py` | `evaluation/evaluation.py` | the scorer: per-dataset metrics for all tasks, including the multi-label parser |
-| `score_single.py` | `llama_factory_internvl/scripts/` | scores one predictions file per dataset; imports `evaluation.py` from this folder |
-| `score_crimson.py`, `score_reportgen_crimson.sh` | `llama_factory_internvl/scripts/` | CRIMSON for report generation (`score_single.py` skips reports). The `.sh` was written for SLURM; adapt it to ws. |
-| `vlm_prompt.py`, `format_templates.py`, `prompt_variants.py`, `infer_single_adapter.py` | `llama_factory_internvl/scripts/` | parsing helpers (`strip_think_block`, `parse_answer`, task-type normalisation) and the prompt-variant registry. The journal uses the bare variant (`none`); ZS-prompt still needs adding. |
-| `eval_harness.py` | `experiments/qwen35_zeroshot/zeroshot_truetest.py` (**never committed**; rescued from the old local checkout, Sep 22 version) | batched, left-padded greedy evaluation with `--adapter_path` and `--image_max_pixels`. **This is the base for W3.** Its TASK_CONFIG and v1/v2 protocols are challenge-era (see the banner). |
-| `eval_arm.py` | `experiments/qwen35_sprint/eval_qwen35_arm.py` | simpler single-adapter evaluation with the Qwen3.5 traps pinned |
-| `template_gate.py` | `experiments/qwen35_sprint/` | train/inference byte-identity check (smoke gate item 3); needs LLaMA-Factory importable |
-| `det_box_sanity.py` | `experiments/qwen35_sprint/` | detection output sanity (nested boxes, out of bounds, boxes per case) |
-| `reportgen_omission.py` | old research repo, `stats/predictions/qwen35_sprint/reportgen_normal_on_abnormal.py` | the report omission rule (PLAN.md §1.8) |
+| `flare-blackwell-v5` | training and evaluation (Qwen) | Python 3.12, transformers 5.16.1, torch 2.11 cu128, LF v0.9.5 at `/data/ugrip2026/LLaMA-Factory-v5` + tf5 patch. Frozen: never `pip install` into it. |
+| `crimson-score` | CRIMSON report scoring only | Python 3.11, crimson-score 0.2.0, torch 2.13 cu130 (copy of the ws env) |
 
-**`data/`**
-- `build_decks.py` (from `export_sharegpt.py`): builds ShareGPT decks from the frozen split
-  jsonl files. It already has `--max_images`, `--markers`, `--task`, prompt variants and the
-  k2a rebalance. W1 adapts it to one row per question (≤4 marked images) and adds
-  task/modality/dataset labels on every row.
-- `build_splits_REFERENCE.py`: how `internal_splits_v2` was built, kept for provenance.
-  **Never rerun it**; the splits are frozen on ws.
-
-**Not carried, fetch when needed:**
-- The GLiClass router inference code (in the old repo's `docker_qwen35/inference.py`) and
-  the ResNet-18 modality classifier (old branch `Taha/modality-adapters`). Both are needed
-  for S4c only; their weights are on ws.
-- `infer_single_adapter.py` has an env-gated, default-off border-crop hook that imports
-  `experiments.qwen3_matched_border_crop` from the old repo. If S9.4 needs the crop, copy that
-  module here.
-
-## Environment (Blackwell `mbz-yaqub`, GPU 1; since 2026-10-14)
-- Conda env `flare-blackwell-v5` (same package versions as ws `flare-ws-v5`), with LLaMA-Factory
-  v0.9.5 at `/data/ugrip2026/LLaMA-Factory-v5` and `env/lf_v095_tf5_compat.patch` applied. Both
-  are recorded in `env/LF_VERSION.md`.
-- Base model `/data/ugrip2026/models/Qwen3.5-9B`; decks `/data/ugrip2026/journal/data`; run outputs
-  `/data/ugrip2026/journal/runs/<run_id>/`, and each run gets a row in `results/RUNS.csv`.
-  Code defaults point here; override with `JOURNAL_DATA`, `JOURNAL_RUNS`, `MODELS_DIR`,
-  `QWEN35_MODEL`, `CONDA_SH`, `CONDA_ENV`.
-- `train/launch_template_ws.sh` is the old ws launcher, kept for reference only.
-- On Windows, scripts that print `∪` need `PYTHONIOENCODING=utf-8`; Linux is fine.
+Paths: models `/data/ugrip2026/models/`, decks `/data/ugrip2026/journal/data/`, runs
+`/data/ugrip2026/journal/runs/<run_id>/`, smoke runs `.../runs/smoke/`. Code defaults point there;
+override with `JOURNAL_DATA`, `JOURNAL_RUNS`, `MODELS_DIR`, `QWEN35_MODEL`, `CONDA_SH`, `CONDA_ENV`.
 
 ## Rules
-- Every new method is a plug-in behind the interface in `code/INTERFACE.md`, and must pass
-  the smoke gate (PLAN.md §3.3) before a full run.
+
+- A new method is a plug-in behind `INTERFACE.md` and passes the smoke gate before a full run.
 - Pin every generation and template setting explicitly (greedy, EOS, `enable_thinking=False`,
-  `max_new_tokens=512`).
-- Never hard-code personal paths in shared code; use arguments or environment variables.
+  `max_new_tokens=512`). Our worst past bugs came from unset defaults.
+- Use the existing scorer (`eval/score_single.py`); never re-implement parsers or metrics.
+- No personal paths in shared code: arguments or environment variables.
+- CPU-heavy scripts cap threads (`OMP_NUM_THREADS=4` etc.); the box has 512 cores.
+
+## Carried from the challenge (provenance)
+
+| File | Source (@ `bec2d1f` unless noted) |
+|---|---|
+| `eval/evaluation.py` | `evaluation/evaluation.py` (the official-style scorer) |
+| `eval/score_single.py`, `score_crimson.py`, `vlm_prompt.py`, `format_templates.py`, `prompt_variants.py`, `infer_single_adapter.py` | `llama_factory_internvl/scripts/` |
+| `eval/eval_harness.py` | rewritten from `experiments/qwen35_zeroshot/zeroshot_truetest.py` (never committed upstream) |
+| `eval/eval_arm.py`, `template_gate.py`, `det_box_sanity.py` | `experiments/qwen35_sprint/` |
+| `eval/reportgen_omission.py` | `stats/predictions/qwen35_sprint/reportgen_normal_on_abnormal.py` (old research repo) |
+| `data/build_decks.py` | `export_sharegpt.py` |
+
+Not carried (fetch when E6 needs them): the GLiClass task router (old repo
+`docker_qwen35/inference.py`, weights on ws `/share/sda/ugrip/models/FLARE-gliclass-small-v1.0`) and
+the ResNet-18 modality classifier (old branch `Taha/modality-adapters`).

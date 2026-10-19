@@ -1,27 +1,61 @@
 # Compute operations guide (journal study)
 
-> # ★ 2026-10-14: ONE BACKEND — `mbz-yaqub` (Blackwell) GPU 1. `ws` IS NOT OURS ANY MORE.
->
-> - All journal training **and** evaluation run on `mbz-yaqub`, **GPU 1 only** (2026-10-14: first
->   assigned GPU 0, switched to GPU 1 the same day because GPU 1 was free). Never use any other GPU. `ws` is used by others: no jobs there. Its copies of the decks
->   and env are a read-only reference.
-> - Access runs until **13 Nov 2026**.
-> - GPU 1 was empty on 2026-10-14 (`mostafasalem` has jobs on GPUs 0, 2, 5). Run
->   `nvidia-smi -i 1` before each launch. We need ~17 GB per training run.
-> - Journal setup on the box (all verified 2026-10-14):
->   - env `flare-blackwell-v5`: package versions identical to ws `flare-ws-v5`; see `code/env/LF_VERSION.md`.
->   - LF v0.9.5 at `/data/ugrip2026/LLaMA-Factory-v5`: release commit `7af9095` + tf5 patch;
->     source byte-identical to ws.
->   - model `/data/ugrip2026/models/Qwen3.5-9B`.
->   - repo clone `/data/ugrip2026/journal/repo`. The box can't pull from GitHub: update it with a
->     git bundle copied to `/data/ugrip2026/relay/`, then `git fetch` from it.
->   - decks `/data/ugrip2026/journal/data`: identical to the ws decks once image paths are remapped;
->     md5s in `data/DECK_MANIFEST_blackwell.json`.
->   - runs `/data/ugrip2026/journal/runs/<run_id>/`.
-> - Launch: `nohup bash code/train/run_chain.sh <cfg.yaml ...> > /data/ugrip2026/journal/runs/chain_gpu1.log 2>&1 &`
->   (`run_chain.sh` defaults to GPU 1 and refuses other GPUs).
-> - Everything below is the pre-2026-10-14 guide. §B is still valid for access, storage and
->   hardware; the `flare-blackwell` env (Qwen3-VL) is challenge-era.
+## Current setup (since 2026-10-14): one card, `mbz-yaqub` GPU 1
+
+Teammates: the step-by-step setup is `KICKSTART.md`; the rules are PLAN.md §7. This section is
+the reference.
+
+**Access**
+- Box `mbz-yaqub`, `10.67.33.33`, shared account `ugrip2026`, reachable on the MBZUAI VPN.
+  Password: from Taha by DM (never in the repo). Access runs until **13 Nov 2026**.
+- Connect with SSH agent forwarding (`ForwardAgent yes`, KICKSTART §4.1), so `git` on the box uses
+  your own GitHub key; nothing is stored on the shared account.
+- **GPU 1 only.** The other 7 cards belong to other people. `ws` is not ours any more: no jobs
+  there; its copies of decks, models and envs are a read-only reference.
+
+**Who runs what on GPU 1**
+
+| Job | Who | How |
+|---|---|---|
+| Real training runs (3 at a time, days each) | Taha | `code/train/run_chain.sh` from `/data/ugrip2026/journal/repo` |
+| Holdout evaluations | Taha | `code/eval/run_eval_chain.sh code/eval/jobs/<file>.txt` |
+| Smoke tests (50 steps + tiny eval, one at a time for the whole box) | anyone | `code/train/smoke.sh <name> <config>` from your own clone |
+
+Measured (2026-10-14/16): 3 runs at once give 2.0× the throughput of one; at 3 the card is
+~90% busy, so a 4th job mostly slows the others (accepted for a short smoke test). Each Qwen
+training run needs ~17–20 GB; `smoke.sh` refuses if < 25 GB are free.
+
+**Layout on the box**
+
+| Path | What | Who writes |
+|---|---|---|
+| `/data/ugrip2026/journal/repo` | the clone real runs use (`main`) | Taha only |
+| `/data/ugrip2026/journal/people/<name>/repo` | your clone | you |
+| `/data/ugrip2026/journal/data/` | decks + `dataset_info.json` + tokenized caches | read only |
+| `/data/ugrip2026/journal/runs/<run_id>/` | real runs, eval outputs, chain logs | Taha's jobs only |
+| `/data/ugrip2026/journal/runs/smoke/` | smoke runs, the smoke lock (`.lock`, `.holder`) | `smoke.sh` |
+| `/data/ugrip2026/models/` | `Qwen3.5-9B`, `medgemma-1.5-4b-it`, `CRIMSON-medgemma-4b` (+ challenge `Qwen3-VL-8B-Instruct`) | read only |
+| `/data/ugrip2026/LLaMA-Factory-v5` | LF v0.9.5 (`7af9095`) + tf5 patch | frozen |
+| envs | `flare-blackwell-v5` (train/eval), `crimson-score` (report judge); challenge-era `flare-blackwell` | frozen: never `pip install` |
+
+**Never:** launch GPU work other than `smoke.sh` (unless you are Taha); use a GPU other than 1;
+kill a process you did not start; write outside your folder and `runs/smoke/`; install into
+shared envs; store credentials on the box.
+
+**Checks:** `nvidia-smi -i 1` (load), `cat /data/ugrip2026/journal/runs/smoke/.holder` (who holds the
+smoke lock), `cat /data/ugrip2026/journal/runs/chain_*.log` (real-run chains).
+
+**Verified 2026-10-14:** `flare-blackwell-v5` package versions identical to ws `flare-ws-v5`
+(`code/env/LF_VERSION.md`); LF source byte-identical to ws; decks identical to ws once image paths
+are remapped (md5s in `data/DECK_MANIFEST_blackwell.json`). Training is **not** bit-reproducible
+across machines (STATUS 2026-10-14), so every compared run is trained and evaluated here.
+
+---
+
+# History: challenge-era guide (do not follow for the journal study)
+
+Kept for reference (access details, storage, hardware). Commands, envs, GPU numbers and "idle /
+running" statements below are from the challenge and are out of date.
 
 > Extracted on 2026-10-11 from the UGRIP challenge repo's `cluster-config.md`: section A (`ws`)
 > and section B (`mbz-yaqub` Blackwell) only. The retired `flare` SLURM material was left behind.

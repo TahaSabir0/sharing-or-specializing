@@ -4,7 +4,7 @@ The numbers of record for the journal study. One section per experiment (PLAN.md
 runs finish.
 
 For every result, record:
-- run ID(s) from `journal/RUNS.csv`;
+- run ID(s) from `results/RUNS.csv`;
 - backbone, method, data (subset / seed);
 - code branch and commit;
 - evaluation surface (holdout / dev / validation-public), with sample counts;
@@ -15,6 +15,26 @@ For every result, record:
 Raw predictions go to `predictions/<study>/<run_id>/`.
 
 Challenge-era numbers never go here; they live in `../references/challenge_results/`.
+
+---
+
+## Setup findings (2026-10-14; moved here from STATUS on 2026-10-19)
+
+**ws and the box are not bit-reproducible.** Same code, data, decks, packages and seed; the
+50-step smoke adapters (`j26_q35_shared_full_768_s1337_smoke` on ws, `..._smoke_bw` on the box)
+give different greedy outputs on 50 holdout questions per task. Identical raw outputs per task:
+cls 39/50, ML 36/50, report 41/50, count 23/50, reg 15/50, det 0/50. Kernels differ (sm_120 vs
+sm_86). Counting MAE 38.2 (ws) vs 76.2 (box), almost all from three degenerate answers of a barely
+trained adapter. Consequence: every compared run is trained and evaluated on the box (PLAN.md §1.12).
+
+**Throughput on GPU 1 (Qwen, 768², 50-step runs).** One run alone: 1.196 s/example (ws 1.665),
+card ~53% busy. Three at once (`..._conc3_{1,2,3}`): 1.75–1.76 s/example each, ≈ 1.70 examples/s
+in total = 2.0× one run; ~17 GB reserved each. Same config and seed, final losses 0.6376 / 0.6424
+/ 0.6401 (alone 0.6417): run-to-run noise at the ~1% loss level even on one box.
+
+**Full runs (3 at once, measured).** Shared s1337 ≈ 48.5 h; TaskLoRAs s1337: cls 26.9 h, report
+10.0 h, ML 9.0 h, reg 6.0 h, det 4.5 h, count 1.2 h (57.6 h total); Shared r48 s1337 ≈ 52 h
+(12.3 s/it averaged, partly with 4 jobs on the card).
 
 ---
 
