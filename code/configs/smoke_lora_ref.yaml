@@ -1,0 +1,13 @@
+# Smoke-gate config for the reference plug-in (code/methods/lora_ref.py). Copy for a new method.
+#   CUDA_VISIBLE_DEVICES=<n> python code/train/journal_train.py --config code/configs/smoke_lora_ref.yaml \
+#       --max_steps 50 --no_eval --run_suffix smoke
+run_id: j26_q35_loraref_full_768_s1337
+owner: taha
+study: S0
+backbone: q35
+method: lora_ref
+method_cfg: {r: 8, alpha: 16, dropout: 0.05, aux_coef: 0.0, log_routing: true}
+deck: j26_train_mix
+data_tag: full
+seed: 1337
+overrides: {}
