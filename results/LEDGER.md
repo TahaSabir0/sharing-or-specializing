@@ -31,16 +31,19 @@ Challenge-era numbers never go here; they live in `../references/challenge_resul
   `<run_dir>/metrics_holdout_noreport.json` (per dataset + task macro); predictions
   `<run_dir>/predictions_holdout.json`.
 
-| Task (macro over datasets) | ZS-bare | ZS-prompt | Shared | TaskLoRA |
-|---|---:|---:|---:|---:|
-| Classification, BA ↑ | 0.004 | 0.118 | 0.729 | 0.734 |
-| Multi-label, micro-F1 ↑ | 0.273 | 0.501 | 0.618 | 0.617 |
-| Detection, F1@0.5 ↑ | 0.000 | 0.000 | 0.897 | 0.871 |
-| Counting, MAE ↓ | 113.9 | 103.7 | 13.01 | 14.21 |
-| Regression, MAE ↓ | 56.45 | 59.50 | 11.51 | 10.12 |
-| — boneresorption MAE ↓ | 34.38 | 37.92 | 20.70 | 17.78 |
-| — iugc MAE ↓ | 78.53 | 81.07 | 2.32 | 2.46 |
-| Report generation, CRIMSON ↑ | pending | pending | pending | pending |
+| Task (macro over datasets) | ZS-bare | ZS-prompt | Shared | Shared r48 | TaskLoRA |
+|---|---:|---:|---:|---:|---:|
+| Classification, BA ↑ | 0.004 | 0.118 | 0.729 | 0.739 | 0.734 |
+| Multi-label, micro-F1 ↑ | 0.273 | 0.501 | 0.618 | 0.588 | 0.617 |
+| Detection, F1@0.5 ↑ | 0.000 | 0.000 | 0.897 | 0.897 | 0.871 |
+| Counting, MAE ↓ | 113.9 | 103.7 | 13.01 | 20.03 | 14.21 |
+| Regression, MAE ↓ | 56.45 | 59.50 | 11.51 | 13.17 | 10.12 |
+| — boneresorption MAE ↓ | 34.38 | 37.92 | 20.70 | 24.27 | 17.78 |
+| — iugc MAE ↓ | 78.53 | 81.07 | 2.32 | 2.08 | 2.46 |
+| Report generation, CRIMSON ↑ | pending | pending | pending | pending | pending |
+
+Shared r48 (`j26_q35_shared48_full_768_s1337`, r48 α96, training commit `a0ff450`) added 2026-10-19;
+0 truncated / 0 malformed.
 
 - Fine-tuned arms: 0 truncated, 0 malformed on every task.
 - ZS-bare truncated at 512 tokens on cls 244, ML 42, reg 48, count 14, report 3; malformed

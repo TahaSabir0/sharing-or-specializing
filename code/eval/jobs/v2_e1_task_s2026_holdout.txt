@@ -1,0 +1,10 @@
+# E1 s2026 TaskLoRA holdout evals (own task slice, oracle route); det/reg/count wait for chain F.
+j26_q35_taskcls_full_768_s2026 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskcls_full_768_s2026 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'classification' --output_file /data/ugrip2026/journal/runs/j26_q35_taskcls_full_768_s2026/predictions_holdout.json
+j26_q35_taskml_full_768_s2026 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskml_full_768_s2026 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'multi-label classification' --output_file /data/ugrip2026/journal/runs/j26_q35_taskml_full_768_s2026/predictions_holdout.json
+j26_q35_taskreport_full_768_s2026 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskreport_full_768_s2026 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'report_generation' --output_file /data/ugrip2026/journal/runs/j26_q35_taskreport_full_768_s2026/predictions_holdout.json
+WAIT_FOR /data/ugrip2026/journal/runs/chain_F.log end j26_q35_taskdet_full_768_s2026
+j26_q35_taskdet_full_768_s2026 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskdet_full_768_s2026 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'detection' --output_file /data/ugrip2026/journal/runs/j26_q35_taskdet_full_768_s2026/predictions_holdout.json
+WAIT_FOR /data/ugrip2026/journal/runs/chain_F.log end j26_q35_taskreg_full_768_s2026
+j26_q35_taskreg_full_768_s2026 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskreg_full_768_s2026 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'regression' --output_file /data/ugrip2026/journal/runs/j26_q35_taskreg_full_768_s2026/predictions_holdout.json
+WAIT_FOR /data/ugrip2026/journal/runs/chain_F.log end j26_q35_taskcount_full_768_s2026
+j26_q35_taskcount_full_768_s2026 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskcount_full_768_s2026 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'counting' --output_file /data/ugrip2026/journal/runs/j26_q35_taskcount_full_768_s2026/predictions_holdout.json
