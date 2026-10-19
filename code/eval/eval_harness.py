@@ -19,8 +19,8 @@ Modes
                                            routing ids set per batch; routing_stats.npz saved
 
   CUDA_VISIBLE_DEVICES=1 python code/eval/eval_harness.py --mode zs --protocol bare \
-      --data /share/sda/ugrip/journal/data/j26_holdout.jsonl --surface holdout --out_dir <dir>
-Then: python code/eval/score_run.py --out_dir <dir>   (+ CRIMSON: code/eval/crimson_ws.sh <dir>)
+      --data /data/ugrip2026/journal/data/j26_holdout.jsonl --surface holdout --out_dir <dir>
+Then: python code/eval/score_run.py --out_dir <dir>   (+ CRIMSON: code/eval/crimson_box.sh <dir>)
 
 Outputs in --out_dir: <task>.jsonl (resumable), all_predictions.json, run_meta.json.
 Every prediction carries raw_output, Answer (parsed), n_new_tokens and truncated (hit the cap
@@ -178,7 +178,7 @@ def main():
     ap.add_argument("--adapter_set")
     ap.add_argument("--compose")
     ap.add_argument("--run_dir")
-    ap.add_argument("--base_model", default=os.environ.get("QWEN35_MODEL", "/share/sda/ugrip/models/Qwen3.5-9B"))
+    ap.add_argument("--base_model", default=os.environ.get("QWEN35_MODEL", "/data/ugrip2026/models/Qwen3.5-9B"))
     ap.add_argument("--data", required=True, help="journal eval deck (j26_holdout.jsonl, j26_devselect.jsonl)")
     ap.add_argument("--surface", required=True, choices=["holdout", "dev", "devselect", "valpub"],
                     help="label of the evaluation surface (PLAN rule: always labelled)")

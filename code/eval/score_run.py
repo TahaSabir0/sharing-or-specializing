@@ -9,7 +9,7 @@ Writes into <out_dir>:
   omission.json               reportgen_omission.profile (normal-on-abnormal rate etc.)
   metrics.json                the record: per task n, per-dataset metric, task macro, malformed
                               rate, truncation rate, error count; report: CRIMSON (if
-                              crimson_metrics.json exists; run crimson_ws.sh first) + omission.
+                              crimson_metrics.json exists; run crimson_box.sh first) + omission.
 
 Report predictions are free text: the CRIMSON/omission `pred` is the raw output with any think
 block stripped, NOT parse_answer's output (which keeps only the text after the first newline).
@@ -86,7 +86,7 @@ def main():
             rec["macro"] = c["crimson_score_mean"]
         else:
             rec["macro"] = None
-            rec["note"] = "CRIMSON pending: run code/eval/crimson_ws.sh on this folder"
+            rec["note"] = "CRIMSON pending: run code/eval/crimson_box.sh on this folder"
 
     json.dump(metrics, open(os.path.join(d, "metrics.json"), "w"), indent=1)
     print(f"[{metrics['surface']}] {meta.get('mode')} {meta.get('protocol') or ''}")
