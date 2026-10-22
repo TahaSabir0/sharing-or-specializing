@@ -1,0 +1,8 @@
+# CRIMSON chain 1 (E0/E1 Qwen holdout reports): seed-1337 set first, then s2026; r48 s42 after its eval.
+shared_s1337 /data/ugrip2026/journal/runs/j26_q35_shared_full_768_s1337
+taskreport_s1337 /data/ugrip2026/journal/runs/j26_q35_taskreport_full_768_s1337
+zsbare /data/ugrip2026/journal/runs/j26_q35_zsbare_holdout_768
+shared_s2026 /data/ugrip2026/journal/runs/j26_q35_shared_full_768_s2026
+taskreport_s2026 /data/ugrip2026/journal/runs/j26_q35_taskreport_full_768_s2026
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_E1chain1.log eval chain done
+shared48_s42 /data/ugrip2026/journal/runs/j26_q35_shared48_full_768_s42
