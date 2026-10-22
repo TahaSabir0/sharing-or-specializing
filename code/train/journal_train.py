@@ -50,14 +50,17 @@ REPO = os.path.dirname(CODE)
 sys.path.insert(0, CODE)
 sys.path.insert(0, HERE)
 
+from methods import backbones  # noqa: E402
 from methods import base as mb  # noqa: E402
 
 RUNS_ROOT = os.environ.get("JOURNAL_RUNS", "/data/ugrip2026/journal/runs")
 DATA_DIR = os.environ.get("JOURNAL_DATA", "/data/ugrip2026/journal/data")
 MODELS_DIR = os.environ.get("MODELS_DIR", "/data/ugrip2026/models")
-TARGETS = mb.load_targets()
+TARGETS = mb.load_targets()   # Qwen's (PROTOCOL below is the Qwen recipe); other backbones: methods/backbones.py
 
 # PLAN.md §1.1–§1.4. Every value pinned explicitly, including framework defaults.
+# This is the Qwen3.5 recipe. A run config with `backbone: mg15` gets backbones.lf_overrides("mg15")
+# on top (model, template, image budget, target modules); `backbone: q35` adds nothing.
 PROTOCOL = {
     # model / loading
     "model_name_or_path": f"{MODELS_DIR}/Qwen3.5-9B",
@@ -161,7 +164,7 @@ def deck_record(name):
 
 
 # ------------------------------------------------------------------------------------ patches
-def install_patches(method, method_cfg, run_dir):
+def install_patches(method, method_cfg, run_dir, backbone=backbones.DEFAULT_BACKBONE):
     """Monkeypatch LF so routing ids reach the trainer and plug-ins replace LF's LoRA."""
     import torch
     from llamafactory.data import converter as C
@@ -209,6 +212,11 @@ def install_patches(method, method_cfg, run_dir):
 
     K.SFTDataCollatorWith4DAttentionMask.__call__ = coll_call
 
+    # (3b) MedGemma only: LF marks the wrong tokens as image in token_type_ids (see backbones.py)
+    if backbone == "mg15":
+        backbones.patch_lf_gemma3_token_type_ids()
+        print("[journal_train] mg15: LF gemma3 token_type_ids patched (all image soft tokens, as the processor)", flush=True)
+
     # (4) plug-in hook in place of LF's adapter setup
     if method != "lora":
         plugin = importlib.import_module(f"methods.{method}")
@@ -243,8 +251,9 @@ def install_patches(method, method_cfg, run_dir):
     W.CustomSeq2SeqTrainer = JournalTrainer
 
 
-def runtime_callback(run_dir, method):
+def runtime_callback(run_dir, method, p8=None):
     import torch
+    p8 = TARGETS["P8"] if p8 is None else p8
     from transformers import TrainerCallback
 
     class RuntimeCallback(TrainerCallback):
@@ -268,8 +277,8 @@ def runtime_callback(run_dir, method):
                 "peak_mem_allocated_gb": round(torch.cuda.max_memory_allocated() / 2**30, 2),
                 "peak_mem_reserved_gb": round(torch.cuda.max_memory_reserved() / 2**30, 2),
                 "trainable_params": self.trainable,
-                "P8": TARGETS["P8"],
-                "trainable_matches_P8": (self.trainable == TARGETS["P8"]) if method == "lora" else None,
+                "P8": p8,
+                "trainable_matches_P8": (self.trainable == p8) if method == "lora" else None,
                 "gpu_begin": self.gpu_begin, "gpu_end": gpu_snapshot(),
                 "note": "wall_s includes dev-loss evaluation and checkpoint saving",
             }
@@ -291,6 +300,13 @@ def main():
     cfg = yaml.safe_load(open(a.config))
     run_id = cfg["run_id"] + (f"_{a.run_suffix}" if a.run_suffix else "")
     assert run_id.startswith("j26_"), "run ids follow j26_{backbone}_{method}_{data}_{res}_s{seed}"
+    backbone = cfg.get("backbone", backbones.DEFAULT_BACKBONE)
+    try:
+        backbones.get_backbone(backbone)
+    except ValueError as e:
+        raise SystemExit(str(e))
+    if f"_{backbone}_" not in run_id:
+        raise SystemExit(f"run_id {run_id!r} does not carry the backbone tag _{backbone}_")
     method = cfg.get("method", "lora")
     method_cfg = cfg.get("method_cfg") or {}
     run_dir = os.path.join(RUNS_ROOT, run_id)
@@ -299,13 +315,16 @@ def main():
     os.makedirs(run_dir, exist_ok=True)
 
     lf = copy.deepcopy(PROTOCOL)
+    backbone_args = backbones.lf_overrides(backbone, MODELS_DIR)   # {} for q35
+    lf.update(backbone_args)
     lf.update({"dataset": cfg["deck"], "dataset_dir": DATA_DIR, "output_dir": run_dir,
                "seed": int(cfg["seed"]), "data_seed": int(cfg["seed"])})
     if cfg.get("eval_deck"):
         lf["eval_dataset"] = cfg["eval_deck"]
     overrides = cfg.get("overrides") or {}
-    deviations = {k: {"protocol": PROTOCOL.get(k), "run": v} for k, v in overrides.items()
-                  if PROTOCOL.get(k) != v}
+    recipe = {**PROTOCOL, **backbone_args}   # what a run of this backbone uses unless it overrides
+    deviations = {k: {"protocol": recipe.get(k), "run": v} for k, v in overrides.items()
+                  if recipe.get(k) != v}
     lf.update(overrides)
     smoke = {}
     if a.max_steps:
@@ -334,7 +353,8 @@ def main():
         decks["eval"] = deck_record(lf["eval_dataset"])
     started = datetime.datetime.now().isoformat(timespec="seconds")
     resolved = {"run_id": run_id, "owner": cfg.get("owner"), "study": cfg.get("study"),
-                "backbone": cfg.get("backbone", "q35"), "method": method, "method_cfg": method_cfg,
+                "backbone": backbone, "backbone_overrides": backbone_args,
+                "method": method, "method_cfg": method_cfg,
                 "data_tag": cfg.get("data_tag"), "seed": int(cfg["seed"]),
                 "deviations": deviations, "smoke": smoke, "llamafactory_args": lf,
                 "source_config": os.path.abspath(a.config)}
@@ -367,10 +387,10 @@ def main():
     os.environ.setdefault("DISABLE_VERSION_CHECK", "1")
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
-    install_patches(method, method_cfg, run_dir)
+    install_patches(method, method_cfg, run_dir, backbone)
     from llamafactory.train.tuner import run_exp
     try:
-        run_exp(args=lf, callbacks=[runtime_callback(run_dir, method)])
+        run_exp(args=lf, callbacks=[runtime_callback(run_dir, method, backbones.expected_p8(backbone))])
         row["status"] = "done"
     except BaseException:
         row["status"] = "failed"
