@@ -18,9 +18,11 @@ MedGemma (Gemma3), same two render paths, against LF's real `gemma3` template an
 the real Gemma3Processor (needs LF importable, the processor files, and the deck's images). It checks,
 per row: prompt token ids identical; exactly one <bos>; 256 image soft tokens (+ one <start_of_image>
 and <end_of_image>) per image on both sides; the prompt ends at "<start_of_turn>model\n"; the training
-target is the deck's answer verbatim + "<end_of_turn>\n" (detection coordinates untouched); EOS pinned
-to <end_of_turn>; pixel_values bit-identical (training path = LF's own image loading, inference path =
-journal_render.load_images + the processor); token_type_ids identical, with the LF patch journal_train
+target is the deck's answer verbatim + "<end_of_turn>\n" (detection coordinates untouched); the pinned
+stop tokens equal the model's own generation_config.eos_token_id and the first one ends the target
+(not the tokenizer's default eos_token, which is <eos> in Google's files); pixel_values bit-identical
+(training path = LF's own image loading, inference path = journal_render.load_images + the
+processor); token_type_ids identical, with the LF patch journal_train
 installs (backbones.patch_lf_gemma3_token_type_ids; --unpatched shows the unpatched mismatch). Then, once
 per deck, a left-padded multi-prompt batch must reproduce every single-prompt row, and the ZS-prompt
 system fold must match LF's system handling. Text-template equality (ids) and full multimodal
@@ -37,7 +39,8 @@ from transformers import AutoProcessor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from journal_render import (IMAGE_MAX_PIXELS, ZS_PROMPT_SYSTEM, capped_images, chat_text,  # noqa: E402
-                            encode_batch, eos_ids, image_rules, load_images)
+                            declared_stop_ids, encode_batch, eos_contract, eos_ids, image_rules,
+                            load_images)
 from methods import backbones  # noqa: E402
 
 MODELS_DIR = os.environ.get("MODELS_DIR", "/data/ugrip2026/models")
@@ -135,7 +138,7 @@ def collapse_gemma(s):
     return re.sub(r"(<image_soft_token>)+", "<image_soft_token>xN", s)
 
 
-def check_row_gemma(r, processor, template):
+def check_row_gemma(r, processor, template, declared_stop):
     import torch
     tok = processor.tokenizer
     gpt = r["conversations"][1]["value"]
@@ -156,7 +159,7 @@ def check_row_gemma(r, processor, template):
         "generation_boundary": all(x.endswith("<start_of_turn>model\n") and x.count("<end_of_turn>") == 1
                                    for x in (lf_prompt, inf_prompt)),
         "target_verbatim": tok.decode(r_ids) == gpt + "<end_of_turn>\n" and r_ids[-2] == eot,
-        "eos_pinned": eos_ids(tok, "mg15")[0] == eot == tok.eos_token_id,
+        **eos_contract(eos_ids(tok, "mg15"), declared_stop, r_ids),
     }
     mm_ok = {
         "pixel_values_equal": torch.equal(torch.as_tensor(mmi["pixel_values"]), enc.pixel_values),
@@ -195,7 +198,13 @@ def check_zs_system_gemma(r, processor, template):
 
 def run_gemma_gate(decks, model_dir=None, verbose=False, patched=True):
     """Returns True only if every check ran and passed."""
-    processor, template = gemma_setup(model_dir or MEDGEMMA, patched=patched)
+    model_dir = model_dir or MEDGEMMA
+    processor, template = gemma_setup(model_dir, patched=patched)
+    declared = declared_stop_ids(model_dir)
+    tok = processor.tokenizer
+    print(f"stop tokens: pinned {eos_ids(tok, 'mg15')} | generation_config {declared} | tokenizer default "
+          f"eos_token {tok.eos_token!r} (id {tok.eos_token_id}; informational: LF sets it to <end_of_turn> in "
+          f"training, generation passes the pinned list explicitly)")
     all_ok = True
     for deck in decks:
         rows = pick_rows(deck)
@@ -204,7 +213,7 @@ def run_gemma_gate(decks, model_dir=None, verbose=False, patched=True):
             all_ok = False
             continue
         for r in rows:
-            text_ok, mm_ok, lf_p, inf_p, resp = check_row_gemma(r, processor, template)
+            text_ok, mm_ok, lf_p, inf_p, resp = check_row_gemma(r, processor, template, declared)
             passed = all(text_ok.values()) and all(mm_ok.values())
             all_ok &= passed
             tag = f"{os.path.basename(deck)} | {r['task']}/{r['dataset']} | images={len(r['images'])}"

@@ -16,6 +16,7 @@ Backbones (`backbone=`, default "q35" = the original behaviour of every function
        itself (PLAN.md §1.1); only LF's own min-pixels rule is mirrored. EOS [<end_of_turn>, <eos>].
        The processor wants one list of images per prompt (a flat list is one prompt's images).
 """
+import json
 import math
 import os
 import sys
@@ -104,3 +105,24 @@ def eos_ids(tokenizer, backbone="q35"):
     ids = [tokenizer.convert_tokens_to_ids(n) for n in names]
     assert all(isinstance(i, int) and i >= 0 for i in ids), ids
     return ids
+
+
+def declared_stop_ids(model_dir):
+    """The stop tokens the model itself declares: generation_config.json `eos_token_id`, sorted.
+
+    Not the tokenizer's default `eos_token`: Google's MedGemma files have `<eos>` (id 1) there, while
+    LF replaces it with `<end_of_turn>` in training, and generation uses the explicit list from
+    eos_ids() either way. A missing key raises (a gate must not skip)."""
+    with open(os.path.join(model_dir, "generation_config.json")) as f:
+        eos = json.load(f)["eos_token_id"]
+    return sorted(set([eos] if isinstance(eos, int) else eos))
+
+
+def eos_contract(pinned, declared, target_ids):
+    """Gate checks on the stopping tokens (template_gate.py, MedGemma):
+    - the pinned set equals the set the model declares in its generation config;
+    - the first pinned token, <end_of_turn>, is the token LF's gemma3 template ends the training
+      target with (`...<end_of_turn>\\n`: the second-to-last target token), so what the model is trained
+      to emit is what generation stops on."""
+    return {"stop_tokens_match_generation_config": sorted(set(pinned)) == sorted(set(declared)),
+            "target_ends_with_pinned_stop": len(target_ids) >= 2 and target_ids[-2] == pinned[0]}

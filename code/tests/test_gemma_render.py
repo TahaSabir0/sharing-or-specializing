@@ -13,6 +13,7 @@ CPU only. Needs Pillow (journal_render imports it). Two groups:
 """
 import contextlib
 import io
+import json
 import os
 import sys
 import tempfile
@@ -103,6 +104,38 @@ def test_eos_ids():
     t = FakeTok()
     assert jr.eos_ids(t) == [5, 6] and jr.eos_ids(t, "q35") == [5, 6]
     assert jr.eos_ids(t, "mg15") == [106, 1]
+
+
+def test_eos_contract():
+    """Google's MedGemma: generation_config stops on [<eos>=1, <end_of_turn>=106]; the tokenizer's own
+    default eos_token is <eos>, which the contract must not look at."""
+    pinned = jr.eos_ids(FakeTok(), "mg15")
+    assert pinned == [106, 1]
+    ok = jr.eos_contract(pinned, [1, 106], [10, 11, 106, 107])           # LF target: ... <end_of_turn> "\n"
+    assert ok == {"stop_tokens_match_generation_config": True, "target_ends_with_pinned_stop": True}
+    assert jr.eos_contract(pinned, [106], [10, 106, 107])["stop_tokens_match_generation_config"] is False
+    assert jr.eos_contract(pinned, [1, 106, 5], [10, 106, 107])["stop_tokens_match_generation_config"] is False
+    assert jr.eos_contract(pinned, [1, 106], [10, 106])["target_ends_with_pinned_stop"] is False      # no "\n" after it
+    assert jr.eos_contract(pinned, [1, 106], [10, 1, 107])["target_ends_with_pinned_stop"] is False   # ends on <eos>
+    assert jr.eos_contract(pinned, [1, 106], [])["target_ends_with_pinned_stop"] is False
+
+
+def test_declared_stop_ids():
+    with tempfile.TemporaryDirectory() as tmp:
+        def gen(v):
+            with open(os.path.join(tmp, "generation_config.json"), "w") as f:
+                json.dump(v, f)
+        gen({"eos_token_id": [106, 1], "do_sample": True})
+        assert jr.declared_stop_ids(tmp) == [1, 106]
+        gen({"eos_token_id": 106})                                            # a bare int is a one-token list
+        assert jr.declared_stop_ids(tmp) == [106]
+        gen({"do_sample": True})
+        try:
+            jr.declared_stop_ids(tmp)
+        except KeyError:
+            pass
+        else:
+            raise AssertionError("a generation config without eos_token_id must raise, not pass")
 
 
 def test_pixel_rules():
@@ -197,6 +230,54 @@ def test_real_gate_passes_and_catches_the_known_failures():
             assert naive_passes is False
         finally:
             jr._gemma3_chat_text = good
+
+
+def _google_style_model_dir(src, tmp, generation_eos):
+    """A copy of the processor/tokenizer folder with Google's original EOS settings: the tokenizer's default
+    eos_token is <eos> (id 1), generation_config.eos_token_id is `generation_eos`. Big files are symlinked."""
+    dst = os.path.join(tmp, "google_style")
+    os.makedirs(dst)
+    for f in ("tokenizer.json", "tokenizer.model", "added_tokens.json", "preprocessor_config.json",
+              "processor_config.json", "chat_template.jinja", "chat_template.json", "config.json"):
+        if os.path.exists(os.path.join(src, f)):
+            os.symlink(os.path.realpath(os.path.join(src, f)), os.path.join(dst, f))
+    for f in ("tokenizer_config.json", "special_tokens_map.json"):
+        p = os.path.join(src, f)
+        if os.path.exists(p):
+            j = json.load(open(p))
+            j["eos_token"] = {**j["eos_token"], "content": "<eos>"} if isinstance(j.get("eos_token"), dict) else "<eos>"
+            json.dump(j, open(os.path.join(dst, f), "w"))
+    json.dump({"bos_token_id": 2, "do_sample": True, "eos_token_id": generation_eos, "pad_token_id": 0,
+               "top_k": 64, "top_p": 0.95}, open(os.path.join(dst, "generation_config.json"), "w"))
+    return dst
+
+
+def test_real_gate_with_googles_original_eos_config():
+    """Regression: the gate once required tokenizer.eos_token_id == <end_of_turn> (true for a re-packaged
+    copy, false for Google's files, where it is <eos> = 1) and failed on the box. Google's configuration
+    must pass; a model that declares a different stop set must not."""
+    d, why = _real_env()
+    if d is None:
+        print(f"SKIP test_real_gate_with_googles_original_eos_config ({why})")
+        return
+    import template_gate as tg
+    from transformers import AutoProcessor
+    with tempfile.TemporaryDirectory() as tmp:
+        deck = _deck(tmp)
+        good = _google_style_model_dir(d, tmp, [1, 106])
+        tok = AutoProcessor.from_pretrained(good).tokenizer
+        assert tok.eos_token == "<eos>" and tok.eos_token_id == 1                    # the condition that broke
+        assert tok.convert_tokens_to_ids("<end_of_turn>") == 106
+        assert tg.run_gemma_gate([deck], model_dir=good, patched=True) is True
+        other = os.path.join(tmp, "other")
+        os.makedirs(other)
+        for f in os.listdir(good):
+            os.symlink(os.path.realpath(os.path.join(good, f)), os.path.join(other, f))
+        os.remove(os.path.join(other, "generation_config.json"))
+        json.dump({"eos_token_id": [106]}, open(os.path.join(other, "generation_config.json"), "w"))
+        with contextlib.redirect_stdout(io.StringIO()):
+            declared_other = tg.run_gemma_gate([deck], model_dir=other, patched=True)
+        assert declared_other is False
 
 
 def test_real_processor_flat_vs_nested_images():
