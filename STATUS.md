@@ -10,28 +10,29 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   slightly ahead on cls, detection and counting; TaskLoRA on regression (boneresorption) and reports
   (CRIMSON, omission); multi-label tied. Every gap is ~1–1.5 seed SDs. Shared r48 (6× parameters) is no
   better than Shared on any task.
-- **GPU 1 is idle since 23 Oct 08:17.** The remaining Phase A runs need code from teammates:
-  - MedGemma port (Alberto): branch `alberto/medgemma-port` pushed 22 Oct; smoke test on the box 23 Oct
-    ran end to end (0 malformed / 0 truncated on dev-select), detection 0.0 on its 10 questions: check
-    in review before the gate.
-  - Hydra-T / Reversed Hydra (Veronika): nothing pushed yet (target was 23 Oct).
+- **MedGemma port (W9) merged 23 Oct** (Alberto; reviewed: template gate `GATE_PASS` on the real decks,
+  smoke P8 = 14,901,248). **E0 and E2 MedGemma launched 23 Oct 12:45–12:47** (Active runs).
+  Open W9 item: check detection outputs on the Shared s1337 epoch-1 checkpoint (its smoke run predicted
+  near-constant boxes after 50 steps, normal that early).
+- Hydra-T / Reversed Hydra (Veronika): nothing pushed yet (target was 23 Oct).
 
 ## Phase A tracker (5 arms × 3 seeds × 2 backbones = 30 training runs)
 
 | Arm | Qwen s1337 | Qwen s2026 | Qwen s42 | MedGemma (×3) |
 |---|---|---|---|---|
-| Shared | done | done | done | port in review |
-| TaskLoRA (6 adapters) | done | done | done | port in review |
-| Shared r48 | done | done | done | port in review |
+| Shared | done | done | done | training (chains H, J, I) |
+| TaskLoRA (6 adapters) | done | done | done | training / queued (chains I, H, J) |
+| Shared r48 | done | done | done | training / queued (chains J, I, H) |
 | Hydra-T | needs plug-in | | | needs plug-in + port |
 | Reversed Hydra | needs plug-in | | | needs plug-in + port |
 
 "done" = trained, holdout-evaluated, CRIMSON-scored. Zero-shot (E0): Qwen done (bare + prompt, incl.
-CRIMSON); MedGemma needs the port.
+CRIMSON); MedGemma running (`evalchain_mgE0`).
 
 ## Next steps (Taha)
-1. Review Alberto's MedGemma PR (detection outputs first); if it passes, launch MedGemma E0 + E2
-   Shared / TaskLoRA / r48 to fill the idle GPU.
+1. MedGemma: score ZS CRIMSON once E0 finishes; write E2 holdout eval jobs (eval_harness `--batch_size 1`,
+   `EVAL_PY=code/eval/eval_harness.py`; TaskLoRA via `--mode oracle --adapter_set`) as runs finish;
+   detection check on Shared s1337 epoch 1.
 2. Check in with Veronika on Hydra (6 Qwen runs, ~320 slot-h: the largest Phase A block left).
 3. Stats (`bootstrap.py`: CIs and paired contrasts for E1): deferred for now.
 4. E1 extras (PLAN E1 "also report"): per-dataset deltas by modality, output-format error table, μ.
@@ -44,9 +45,18 @@ CRIMSON); MedGemma needs the port.
    matched" = Shared r48 control; RQ3 "visual content" → E7 input similarity; RQ4 "measured before
    training" vs E8's trained-adapter predictors.
 
-## Active runs
-None (23 Oct). Logs of the finished chains in `/data/ugrip2026/journal/runs/`: training `chain_{E,F,G}.log`,
-evals `evalchain_E1chain{1,2}.log`, CRIMSON `crimsonchain_{1,2}.log`.
+## Active runs (launched 23 Oct, box time +04, repo `fd0a803`; logs in `/data/ugrip2026/journal/runs/`)
+
+| Chain (PID) | Runs, in order | State / ETA |
+|---|---|---|
+| `evalchain_mgE0` (1528780) | ZS-prompt → ZS-bare, full holdout, batch 1 | ~2–4 h total |
+| `chain_mgH` (1530566) | Shared s1337 → 6 TaskLoRAs s1337 → r48 s2026 | Shared: 15,036 steps, ~6.4 s/it with 4 jobs (~26 h) |
+| `chain_mgI` (1530568) | 6 TaskLoRAs s2026 (cls, report, ml, det, reg, count) → r48 s1337 → Shared s42 | cls: 5,709 steps (~9 h) |
+| `chain_mgJ` (1530570) | r48 s42 → Shared s2026 → 6 TaskLoRAs s42 | r48: trainable 89,407,488 = 6 × P8 (~25 h) |
+
+First launch at 12:45 aborted after 2 min: the Shared/r48 configs were cp1252, not UTF-8 (fixed in `fd0a803`);
+logs `chain_mg{H,I,J}_aborted_cp1252.log`, partial run dirs removed. Finished Qwen chains: `chain_{E,F,G}.log`,
+`evalchain_E1chain{1,2}.log`, `crimsonchain_{1,2}.log`.
 
 Check: `ssh blackwell 'nvidia-smi -i 1; cat /data/ugrip2026/journal/runs/smoke/.holder'`.
 
