@@ -7,7 +7,7 @@
 | `run_chain.sh` | real runs: a list of configs, one after another, on GPU 1 | **Taha only** |
 | `journal_loss.py` | per-example loss (PLAN.md §1.5); unit test in `code/tests/` | |
 | `target_modules_qwen35.json` | the frozen LoRA target set (248 language-model linears) and P8 = 21,639,168 | |
-| `target_modules_medgemma15.json` | the same for MedGemma-1.5-4B: 238 decoder linears, vision tower and projector excluded, P8 = 14,901,248 (checked against the checkpoint's tensor shapes; the first smoke run confirms it on the box) | |
+| `target_modules_medgemma15.json` | the same for MedGemma-1.5-4B: 238 decoder linears, vision tower and projector excluded, P8 = 14,901,248 (checked against the checkpoint's tensor shapes; confirmed by the smoke run on the box, 2026-10-23) | |
 | `launch_template_ws.sh` | the old ws launcher, reference only | nobody |
 
 ```bash
