@@ -7,7 +7,8 @@ A plug-in is a module `code/methods/<name>.py` exposing
 The harness calls it on the loaded, frozen 4-bit model (instead of LF's own LoRA setup) in both
 training and evaluation. This file gives plug-ins what they need:
 
-- `iter_target_modules(model)`: the frozen target set (train/target_modules_qwen35.json).
+- `iter_target_modules(model)`: the frozen target set of the loaded backbone
+  (train/target_modules_qwen35.json or target_modules_medgemma15.json, see methods/backbones.py).
 - `routing`: the current batch's oracle labels, set by the harness before every forward.
 - `aux_loss`: any module may set `self.aux_loss` (scalar tensor) in forward; the harness sums
   all of them into the loss and clears them (`pop_aux_loss`).
@@ -21,6 +22,8 @@ from contextlib import contextmanager
 import numpy as np
 import torch
 
+from methods import backbones
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 TARGETS_PATH = os.path.join(_HERE, "..", "train", "target_modules_qwen35.json")
 ROUTING_KEYS = ("task_id", "modality_id", "dataset_id")
@@ -32,15 +35,18 @@ def load_targets(path=TARGETS_PATH):
         return json.load(f)
 
 
-def iter_target_modules(model, path=TARGETS_PATH):
-    """Yield (qualified_name, module) for every frozen target linear (248 on Qwen3.5-9B).
+def iter_target_modules(model, path=None):
+    """Yield (qualified_name, module) for every frozen target linear (248 on Qwen3.5-9B, 238 on
+    MedGemma-1.5-4B).
 
-    Matches LF `lora_target: all`: leaf name in the frozen list, inside the language model."""
+    Matches LF `lora_target: all`: leaf name in the frozen list, inside the language model. The
+    file is chosen from the model's config.model_type (methods/backbones.py); Qwen's when unknown."""
+    if path is None:
+        path = backbones.targets_path_for_model_type(getattr(getattr(model, "config", None), "model_type", None))
     spec = load_targets(path)
-    leaves, scope = set(spec["target_modules"]), spec["scope_prefix"]
     found = []
     for name, mod in model.named_modules():
-        if name.rsplit(".", 1)[-1] in leaves and scope in name and isinstance(mod, torch.nn.Linear):
+        if backbones.matches_target(name, spec) and isinstance(mod, torch.nn.Linear):
             found.append((name, mod))
     if len(found) != spec["n_modules"]:
         raise RuntimeError(f"expected {spec['n_modules']} target modules, found {len(found)}")

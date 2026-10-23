@@ -1,0 +1,21 @@
+{
+  "_doc": "Frozen LoRA target set for MedGemma-1.5-4B-it (Gemma3ForConditionalGeneration; PLAN.md §1.2, W9). Every nn.Linear of the Gemma3 text decoder layers: 7 per layer x 34 layers = 238. Excluded: the SigLIP vision tower (its q_proj/k_proj/v_proj share leaf names with the decoder, 81 of them, so the scope prefix is what separates them), multi_modal_projector (a bare Parameter, not a Linear), embed_tokens and lm_head. Same set as LF `lora_target: all` with freeze_vision_tower and freeze_multi_modal_projector (LF v0.9.5 registers gemma3 with vision_tower / multi_modal_projector as forbidden keys). Recorded 2026-10-22 from the safetensors headers (tensor names and shapes, no weights) of the unsloth/medgemma-1.5-4b-it mirror of google/medgemma-1.5-4b-it, and the module paths from transformers 5.16.1 modeling_gemma3.py. NOT yet checked on the box against /data/ugrip2026/models/medgemma-1.5-4b-it: the smoke run's printed 'trainable params' must equal P8.",
+  "model": "google/medgemma-1.5-4b-it",
+  "model_type": "gemma3",
+  "scope_prefix": "language_model",
+  "scope_note": "Substring match on the qualified name. transformers 5.x names are model.language_model.layers.N...; the checkpoint's legacy names (language_model.model.layers.N...) also contain it. Vision names contain 'vision_tower', never 'language_model'.",
+  "n_modules": 238,
+  "layers": {"total": 34},
+  "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+  "shapes_in_x_out": {
+    "q_proj": [34, "2560x2048"],
+    "k_proj": [34, "2560x1024"],
+    "v_proj": [34, "2560x1024"],
+    "o_proj": [34, "2048x2560"],
+    "gate_proj": [34, "2560x10240"],
+    "up_proj": [34, "2560x10240"],
+    "down_proj": [34, "10240x2560"]
+  },
+  "P8": 14901248,
+  "P8_note": "Exact trainable-parameter count of one r=8 LoRA on this set: 8*sum(in+out) over the 238 modules (54,784 per layer x 8 x 34). Computed from the tensor shapes in the safetensors headers; to be confirmed by the first smoke run on the box."
+}
