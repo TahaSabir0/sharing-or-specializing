@@ -1,0 +1,12 @@
+# E2 TaskLoRA (reg) on MedGemma-1.5-4B, seed 2026 (PLAN.md v2 E2). Dev loss on the reg slice of dev-select.
+run_id: j26_mg15_taskreg_full_896_s2026
+owner: taha
+study: E2
+backbone: mg15
+method: lora
+method_cfg: {}
+deck: j26_train_reg
+data_tag: full
+seed: 2026
+eval_deck: j26_devselect_reg
+overrides: {}

@@ -1,0 +1,12 @@
+# E2 TaskLoRA (count) on MedGemma-1.5-4B, seed 42 (PLAN.md v2 E2). Dev loss on the count slice of dev-select.
+run_id: j26_mg15_taskcount_full_896_s42
+owner: taha
+study: E2
+backbone: mg15
+method: lora
+method_cfg: {}
+deck: j26_train_count
+data_tag: full
+seed: 42
+eval_deck: j26_devselect_count
+overrides: {}

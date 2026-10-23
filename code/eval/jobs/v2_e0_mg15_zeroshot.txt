@@ -1,0 +1,5 @@
+# E0 MedGemma zero-shot on the full holdout (PLAN v2 E0): ZS-prompt (anchor) first, then ZS-bare.
+# Run with EVAL_PY=code/eval/eval_harness.py (eval_arm.py is Qwen-only). --batch_size 1: one question
+# at a time, as eval_arm.py does for every Qwen holdout eval, so no left-padding enters MedGemma's decoding.
+j26_mg15_zsprompt_holdout_896 --mode zs --protocol prompt --backbone mg15 --batch_size 1 --data /data/ugrip2026/journal/data/j26_holdout.jsonl --surface holdout --out_dir /data/ugrip2026/journal/runs/j26_mg15_zsprompt_holdout_896
+j26_mg15_zsbare_holdout_896 --mode zs --protocol bare --backbone mg15 --batch_size 1 --data /data/ugrip2026/journal/data/j26_holdout.jsonl --surface holdout --out_dir /data/ugrip2026/journal/runs/j26_mg15_zsbare_holdout_896
