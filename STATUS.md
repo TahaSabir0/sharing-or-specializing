@@ -36,6 +36,13 @@ CRIMSON); MedGemma needs the port.
 3. Stats (`bootstrap.py`: CIs and paired contrasts for E1): deferred for now.
 4. E1 extras (PLAN E1 "also report"): per-dataset deltas by modality, output-format error table, μ.
 5. Restructure `paper/main.tex` to v2 (week of 26 Oct); draft the Qwen E0/E1 results.
+   **Waiting on Tausifa (asked 23 Oct):** her revised proposal replaces the 8 RQs with 4 that match
+   PLAN.md RQ1–RQ4, but the rest of it is unchanged from `proposal_original.tex`, so it still has the
+   studies v2 dropped (Soft-LoRA, latent experts/router, location, practical factors; N5/N6). Asked
+   whether it is her latest copy and whether I can rewrite the body to v2. Her file isn't in the repo
+   yet (only the RQ list differs). Small RQ wording points to raise when restructuring: RQ1 "capacity
+   matched" = Shared r48 control; RQ3 "visual content" → E7 input similarity; RQ4 "measured before
+   training" vs E8's trained-adapter predictors.
 
 ## Active runs
 None (23 Oct). Logs of the finished chains in `/data/ugrip2026/journal/runs/`: training `chain_{E,F,G}.log`,
