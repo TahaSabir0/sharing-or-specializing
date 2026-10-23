@@ -1,4 +1,4 @@
-# E2 Shared LoRA rank 48 on MedGemma-1.5-4B, seed 2026 (PLAN.md v2 ง1.3, E2): the parameter control (6 x P8).
+# E2 Shared LoRA rank 48 on MedGemma-1.5-4B, seed 2026 (PLAN.md v2 ยง1.3, E2): the parameter control (6 x P8).
 # alpha 96 keeps alpha/r = 2 as in every r8 arm (decision N2); logged as overrides by design.
 run_id: j26_mg15_shared48_full_896_s2026
 owner: taha

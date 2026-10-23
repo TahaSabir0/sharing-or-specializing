@@ -1,5 +1,5 @@
 # E2 Shared LoRA on MedGemma-1.5-4B, seed 1337 (PLAN.md v2 E2). Protocol: journal_train.py PROTOCOL
-# + backbones.lf_overrides("mg15") (model, gemma3 template, native 896², 238 targets).
+# + backbones.lf_overrides("mg15") (model, gemma3 template, native 896Â², 238 targets).
 run_id: j26_mg15_shared_full_896_s1337
 owner: taha
 study: E2
