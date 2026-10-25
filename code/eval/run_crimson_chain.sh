@@ -3,6 +3,7 @@
 #   nohup bash code/eval/run_crimson_chain.sh JOBFILE > /data/ugrip2026/journal/runs/crimsonchain_X.log 2>&1 &
 # JOBFILE: one job per line, "<name> <run_dir>"; blank lines and # comments skipped.
 # For each job: if <run_dir>/crimson/reportgen_pairs.jsonl is missing, build it from
+# <run_dir>/reportgen_pairs.jsonl (an eval_harness.py folder) or from
 # <run_dir>/predictions_holdout.json (eval_arm_pairs.py), then score it with crimson_box.sh
 # (batch size 1, fixed for everything compared). Output: <run_dir>/crimson/crimson_metrics.json.
 # A line "WAIT_FOR <file> <pattern>" blocks until <pattern> appears in <file>.
@@ -27,6 +28,10 @@ while read -r NAME ARGS; do
   PAIRS="$DIR/crimson/reportgen_pairs.jsonl"
   LOG="$RUNS/crimson_$NAME.log"
   echo "[$(date -Is)] GPU $GPU start crimson $NAME"
+  if [ ! -f "$PAIRS" ] && [ -f "$DIR/reportgen_pairs.jsonl" ]; then
+    # eval_harness.py folder (MedGemma): score_run.py already wrote the pairs
+    mkdir -p "$DIR/crimson" && cp "$DIR/reportgen_pairs.jsonl" "$PAIRS"
+  fi
   if [ ! -f "$PAIRS" ]; then
     ( source "$CONDA_SH" && conda activate "${CONDA_ENV:-flare-blackwell-v5}" && \
       python code/eval/eval_arm_pairs.py "$DIR/predictions_holdout.json" "$PAIRS" ) > "$LOG" 2>&1
