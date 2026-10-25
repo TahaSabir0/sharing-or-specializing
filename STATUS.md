@@ -20,9 +20,9 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 | Arm | Qwen s1337 | Qwen s2026 | Qwen s42 | MedGemma (×3) |
 |---|---|---|---|---|
-| Shared | done | done | done | training (chains H, J, I) |
-| TaskLoRA (6 adapters) | done | done | done | training / queued (chains I, H, J) |
-| Shared r48 | done | done | done | training / queued (chains J, I, H) |
+| Shared | done | done | done | s1337, s2026 trained; s42 queued (chain I) |
+| TaskLoRA (6 adapters) | done | done | done | s1337, s2026 trained; s42 training (chain J) |
+| Shared r48 | done | done | done | s42 trained; s1337 finishing; s2026 training (chain H) |
 | Hydra-T | needs plug-in | | | needs plug-in + port |
 | Reversed Hydra | needs plug-in | | | needs plug-in + port |
 
@@ -49,7 +49,9 @@ CRIMSON); MedGemma running (`evalchain_mgE0`).
 
 | Chain (PID) | Runs, in order | State / ETA |
 |---|---|---|
-| `evalchain_mgE0` (1528780) | ZS-prompt → ZS-bare, full holdout, batch 1 | ~2–4 h total |
+| `evalchain_mgE0` (1528780) | ZS-prompt → ZS-bare, full holdout, batch 1 | **done** 24 Oct 04:54 (4.7 h + 11.4 h: untrained outputs are long) |
+| `evalchain_mgE2` (1709582, from 25 Oct 10:11, `52368b1`) | `code/eval/jobs/v2_e2_mg15_holdout.txt`: holdout evals of the finished runs, then each later run as its chain ends | running |
+| `crimsonchain_mg15` (1709583) | `code/eval/jobs/v2_crimson_mg15.txt`: ZS-prompt, ZS-bare, then each report-bearing E2 eval as it ends | running |
 | `chain_mgH` (1530566) | Shared s1337 → 6 TaskLoRAs s1337 → r48 s2026 | Shared: 15,036 steps, ~6.4 s/it with 4 jobs (~26 h) |
 | `chain_mgI` (1530568) | 6 TaskLoRAs s2026 (cls, report, ml, det, reg, count) → r48 s1337 → Shared s42 | cls: 5,709 steps (~9 h) |
 | `chain_mgJ` (1530570) | r48 s42 → Shared s2026 → 6 TaskLoRAs s42 | r48: trainable 89,407,488 = 6 × P8 (~25 h) |
