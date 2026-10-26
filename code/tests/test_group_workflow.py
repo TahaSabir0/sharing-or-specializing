@@ -13,7 +13,7 @@ CODE = Path(__file__).resolve().parents[1]
 for folder in ('data', 'train', 'eval', 'analysis'):
     sys.path.insert(0, str(CODE / folder))
 from build_group_decks import build_group_decks
-from grouping import CLASSIFICATION_DATASET_SLUGS, MODALITY_SLUGS
+from grouping import CLASSIFICATION_DATASET_SLUGS, E5_REUSES_E4, MODALITY_SLUGS
 from plan_e4_e5 import load_configs, schedule, write_plan
 from group_artifacts import digest, read_json, read_jsonl, validate_predictions, crimson_scores
 from group_pipeline import check_plan, trained, evaluated
@@ -43,10 +43,11 @@ def row(key, modality, dataset, task='classification', answer='a'):
 def workflow(tmp_path):
     source, grouped = tmp_path / 'source', tmp_path / 'groups'
     rows = []
-    mods = list(MODALITY_SLUGS)
+    # as in the real data, three modalities hold exactly one classification dataset
+    others = [m for m in MODALITY_SLUGS if m not in E5_REUSES_E4.values()]
     for i, ds in enumerate(CLASSIFICATION_DATASET_SLUGS):
         for j, answer in enumerate(('a', 'b')):
-            rows.append(row(f'{ds}-{j}', mods[i % 7], ds, answer=answer))
+            rows.append(row(f'{ds}-{j}', E5_REUSES_E4.get(ds, others[i % len(others)]), ds, answer=answer))
     rows += [row('report', 'Xray', 'IU_XRay', 'report_generation', 'Normal.'),
              row('reg', 'Xray', 'boneresorption', 'regression', '2'),
              row('det', 'Ultrasound', 'BUSI-det', 'detection', '[[0,0,2,2]]'),
@@ -74,6 +75,8 @@ def predictions(deck):
 
 def fake_run(w, job):
     run = Path(w['plan']['runs_dir']) / job['run_id']
+    if job.get('reuses_e4'):  # the E4 job writes this run
+        return run, Path(job['pred_dir']), read_jsonl(w['grouped'] / (job['holdout_deck'] + '.jsonl'))
     run.mkdir(parents=True, exist_ok=True)
     cfg = yaml.safe_load((CODE.parent / job['config']).read_text(encoding='utf-8'))
     cfg.update(smoke={}, deviations={}, llamafactory_args=dict(dataset=cfg['deck'], num_train_epochs=3.0))
@@ -104,8 +107,9 @@ def test_plan_covers_102_jobs_once_and_six_report_judges(workflow):
     w = workflow
     check_plan(w['plan'])
     jobs = w['plan']['jobs']
-    assert len(jobs) == len({j['run_id'] for j in jobs}) == 102
+    assert len(jobs) == 102 and len({j['run_id'] for j in jobs}) == 84
     assert sum(j['study'] == 'E4' for j in jobs) == 42
+    assert sum(bool(j.get('reuses_e4')) for j in jobs) == 18
     assert sum(j['reports'] for j in jobs) == 6
     assert {j['chain'] for j in jobs} == {1, 2, 3}
     assert max(c['weight'] for c in w['chains']) - min(c['weight'] for c in w['chains']) <= 4
@@ -114,10 +118,10 @@ def test_plan_covers_102_jobs_once_and_six_report_judges(workflow):
         lines = (w['tmp'] / f'jobs/train_chain_{i}.txt').read_text().splitlines()
         assert all(s.startswith('code/configs/e') and s.endswith('.yaml') for s in lines)
         trained_cfgs += lines
-    assert len(trained_cfgs) == len(set(trained_cfgs)) == 102
+    assert len(trained_cfgs) == len(set(trained_cfgs)) == 84
     q35 = (w['tmp'] / 'jobs/eval_q35.txt').read_text().splitlines()[1:]
     mg15 = (w['tmp'] / 'jobs/eval_mg15.txt').read_text().splitlines()[1:]
-    assert len(q35) == len(mg15) == 51
+    assert len(q35) == len(mg15) == 42
     assert all('--output_file' in s and '/predictions_holdout.json' in s for s in q35)
     assert all('--batch_size 1' in s and '--surface holdout' in s and '/eval_holdout' in s for s in mg15)
     assert len((w['tmp'] / 'jobs/crimson.txt').read_text().splitlines()) == 7

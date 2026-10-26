@@ -30,6 +30,8 @@ import yaml
 CODE = Path(__file__).resolve().parents[1]
 REPO = CODE.parent
 CONFIG_ROOT = CODE / "configs"
+sys.path.insert(0, str(CODE / "data"))
+from grouping import CLASSIFICATION_DATASET_SLUGS, E5_REUSES_E4  # noqa: E402
 BACKBONE_COST = {"q35": 1.0, "mg15": 0.6}
 RUNS = "/data/ugrip2026/journal/runs"
 DATA = "/data/ugrip2026/journal/data"
@@ -55,8 +57,8 @@ def load_configs(config_root=CONFIG_ROOT):
                 raise ValueError(f"{path}: config differs from the fixed E4/E5 matrix")
             cfg["_path"] = path
             configs.append(cfg)
-    if len(configs) != 102:
-        raise ValueError(f"expected 102 E4/E5 configs, found {len(configs)}")
+    if len(configs) != len(expected):
+        raise ValueError(f"expected {len(expected)} E4/E5 configs, found {len(configs)}")
     ids = [cfg["run_id"] for cfg in configs]
     if len(ids) != len(set(ids)):
         raise ValueError("duplicate E4/E5 run_id")
@@ -148,6 +150,16 @@ def write_plan(chains, manifest_path, out_dir, data_dir=DATA, runs_dir=RUNS):
                                "train_job_file": str(train_path)})
     for backbone, lines in evals.items():
         (out_dir / f"eval_{backbone}.txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    # E5 slots filled by an E4 adapter trained on the identical deck: no extra training or eval.
+    reverse = {modality: dataset for dataset, modality in E5_REUSES_E4.items()}
+    for job in [j for j in plan["jobs"] if j["study"] == "E4"]:
+        label = manifest["decks"][job["train_deck"]]["group_label"]
+        if label not in reverse:
+            continue
+        holdout = f"j26_holdout_ds{CLASSIFICATION_DATASET_SLUGS[reverse[label]]}"
+        if manifest["decks"][holdout]["md5"] != manifest["decks"][job["holdout_deck"]]["md5"]:
+            raise ValueError(f"{holdout} differs from {job['holdout_deck']}: cannot reuse {job['run_id']}")
+        plan["jobs"].append(dict(job, study="E5", holdout_deck=holdout, reports=False, reuses_e4=True))
     crimson_path = out_dir / "crimson.txt"
     crimson_lines = ["# E4 X-ray modality adapters contain report generation; score after eval chains."]
     crimson_lines += [f"{name} {path}" for name, path in sorted(crimson)]

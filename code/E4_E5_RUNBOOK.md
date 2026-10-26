@@ -1,8 +1,11 @@
 # E4/E5: preparation, real training, evaluation and analysis
 
-102 runs: 42 E4 modality adapters (7 modalities) and 60 E5 classification-dataset adapters
-(10 datasets), each on Qwen and MedGemma, seeds 1337/2026/42, the fixed 3-epoch r8 protocol.
-Only the grouping level differs from PLAN.md §1 (the subject of E4/E5).
+84 runs: 42 E4 modality adapters (7 modalities) and 42 E5 classification-dataset adapters
+(7 of the 10 datasets), each on Qwen and MedGemma, seeds 1337/2026/42, the fixed 3-epoch r8
+protocol. Only the grouping level differs from PLAN.md §1 (the subject of E4/E5).
+Clinical, Dermatology and Mammography each hold a single dataset (neojaundice, bcn20000, CMMD),
+so those E4 and E5 decks are byte-identical (`build_group_decks.py` asserts it): E5 reuses the
+E4 adapter for those three datasets (`grouping.E5_REUSES_E4`; `reuses_e4` jobs in `plan.json`).
 
 Real runs launch the same way as E1/E2: `run_chain.sh`, `run_eval_chain.sh` and
 `run_crimson_chain.sh` with committed job files. Taha only (PLAN.md §7.3). The E4/E5 scripts
@@ -69,7 +72,7 @@ A failed run is logged (`rc=` in the chain log) and the chain moves on, as in E1
 
 ```bash
 bash code/train/e4_e5.sh status   # which runs have runtime.json / predictions
-bash code/train/e4_e5.sh verify   # all 102: protocol run, exact holdout coverage, CRIMSON; exit 1 otherwise
+bash code/train/e4_e5.sh verify   # all 102 slots (84 runs): protocol run, exact holdout coverage, CRIMSON; exit 1 otherwise
 ```
 
 `verify` rejects smoke or deviating configs, a wrong training deck or deck hash, a step cap,

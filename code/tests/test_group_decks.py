@@ -7,7 +7,7 @@ from pathlib import Path
 CODE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CODE / "data"))
 from build_group_decks import build_group_decks  # noqa: E402
-from grouping import CLASSIFICATION_DATASET_SLUGS, MODALITY_SLUGS  # noqa: E402
+from grouping import CLASSIFICATION_DATASET_SLUGS, E5_REUSES_E4, MODALITY_SLUGS  # noqa: E402
 
 
 def _row(i, task, modality, dataset):
@@ -37,10 +37,11 @@ def test_group_decks_partition_frozen_rows(tmp_path):
     # Cover all ten classification datasets and all seven modalities. Some modality
     # groups also get a non-classification row to verify E4/E5 differ as designed.
     modalities = list(MODALITY_SLUGS)
+    others = [m for m in modalities if m not in E5_REUSES_E4.values()]
     for dataset in CLASSIFICATION_DATASET_SLUGS:
-        train.append(_row(i, "classification", modalities[i % len(modalities)], dataset))
+        train.append(_row(i, "classification", E5_REUSES_E4.get(dataset, others[i % len(others)]), dataset))
         i += 1
-    for modality in modalities:
+    for modality in others:  # the reused modalities hold only their one classification dataset
         train.append(_row(i, "regression", modality, "iugc"))
         i += 1
     dev = [dict(row) for row in train]
@@ -73,7 +74,7 @@ def test_generated_config_matrix_is_complete_and_importable():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     configs = list(module.expected_configs())
-    assert len(configs) == (7 + 10) * 2 * 3
+    assert len(configs) == (7 + 10 - len(E5_REUSES_E4)) * 2 * 3
     texts = [text for _, text in configs]
     run_ids = [next(line for line in text.splitlines() if line.startswith("run_id: ")) for text in texts]
     assert len(run_ids) == len(set(run_ids))

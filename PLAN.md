@@ -37,6 +37,14 @@ the changes marked **(v2)**.
   --batch_size 1` (`eval_arm.py` is Qwen-only; one question at a time, as for Qwen). E0 and
   E2 (Shared, TaskLoRA, Shared r48 × 3 seeds) launched; the detection-coordinate check of W9
   is done on the first E2 Shared checkpoint.
+- 2026-10-26: **E4/E5 decks and configs** (Alex's `alex/modality-decks`, reworked and merged by
+  Taha). Group decks are cut from the frozen W1 decks into `/data/ugrip2026/journal/data_e4e5`.
+  Clinical, Dermatology and Mammography each hold one cls dataset (neojaundice, bcn20000, CMMD),
+  so those E4 and E5 decks are byte-identical: E5 reuses the E4 adapter for them (84 runs, not
+  102). E4/E5 launch through `run_chain.sh` / `run_eval_chain.sh`; each backbone is evaluated
+  with its baselines' script (Qwen `eval_arm.py`, MedGemma `eval_harness.py --batch_size 1`).
+  Scorer fix: `score_single.py` skipped a score equal to the question count; rescoring all 52
+  existing holdout prediction files changed no task macro.
 
 ---
 
@@ -154,7 +162,7 @@ other change is a logged deviation.
 | TaskLoRA | 6 independent r8 adapters; oracle task picks one | P8 | 6 · P8 |
 | Shared r48 | A r48, B r48, α 96 | 6 · P8 | 6 · P8 |
 | Modality adapters (E4) | 7 independent r8 adapters; oracle modality picks one | P8 | 7 · P8 |
-| Dataset adapters (E5) | 10 independent r8 cls adapters; oracle dataset picks one | P8 | 10 · P8 |
+| Dataset adapters (E5) | 10 independent r8 cls adapters (3 shared with E4: one-dataset modalities); oracle dataset picks one | P8 | 10 · P8 |
 
 For Qwen, A and B are close in size on most target modules, so 1A + 6B and 6A + 1B are each
 about 3.5 · P8. The exact counts are printed at load and recorded in `runtime.json`.

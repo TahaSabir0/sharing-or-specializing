@@ -24,7 +24,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from grouping import CLASSIFICATION_DATASET_SLUGS, MODALITY_SLUGS
+from grouping import CLASSIFICATION_DATASET_SLUGS, E5_REUSES_E4, MODALITY_SLUGS
 
 TRAIN_SOURCE = "j26_train_mix"
 DEV_SOURCE = "j26_devselect"
@@ -156,6 +156,13 @@ def build_group_decks(source_dir, out_dir):
                     "task_counts": dict(sorted(collections.Counter(r["task"] for r in rows).items())),
                     "dataset_counts": dict(sorted(collections.Counter(r["dataset"] for r in rows).items())),
                 })
+
+    # E5 reuses the E4 adapter only where the two decks are the same rows, split by split.
+    md5s = {(x["group_type"], x["group_label"], x["kind"]): x["md5"] for x in outputs}
+    for dataset, modality in E5_REUSES_E4.items():
+        for split in ("train", "devselect", "holdout"):
+            if md5s[("classification_dataset", dataset, split)] != md5s[("modality", modality, split)]:
+                raise ValueError(f"E5 {dataset} {split} deck differs from E4 {modality}: cannot reuse its adapter")
 
     # Every source row belongs to exactly one E4 modality group.  E5 is intentionally
     # only classification, where every classification row belongs to one dataset group.

@@ -26,3 +26,11 @@ CLASSIFICATION_DATASET_SLUGS = {
     "neojaundice": "neojaundice",
     "retino": "retino",
 }
+
+# E5 datasets that are the only data of their E4 modality: the two decks are byte-identical
+# (build_group_decks.py asserts it), so E5 reuses the E4 adapter instead of training it twice.
+E5_REUSES_E4 = {
+    "neojaundice": "Clinical",
+    "bcn20000": "Dermatology",
+    "CMMD": "Mammography",
+}

@@ -13,7 +13,7 @@ from pathlib import Path
 
 CODE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CODE / "data"))
-from grouping import CLASSIFICATION_DATASET_SLUGS, MODALITY_SLUGS  # noqa: E402
+from grouping import CLASSIFICATION_DATASET_SLUGS, E5_REUSES_E4, MODALITY_SLUGS  # noqa: E402
 
 SEEDS = (1337, 2026, 42)
 BACKBONES = {
@@ -54,6 +54,8 @@ def expected_configs():
         folder = study.lower()
         prefix = "mod" if group_type == "modality" else "ds"
         for label, slug in mapping.items():
+            if study == "E5" and label in E5_REUSES_E4:
+                continue  # same deck as an E4 modality adapter: reused, not retrained
             for backbone in BACKBONES:
                 for seed in SEEDS:
                     name = f"{prefix}{slug}_{backbone}_s{seed}.yaml"
