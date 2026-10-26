@@ -12,8 +12,8 @@ Teammate smoke-test example (writes only in the teammate's area)::
     --source_dir /data/ugrip2026/journal/data \
     --out_dir /data/ugrip2026/journal/people/alex/group_decks
 
-For real runs, Taha runs the same command with the shared journal data directory as
-``--out_dir`` after reviewing ``GROUP_MANIFEST.json``.
+For real runs, ``bash code/train/e4_e5.sh prepare`` in the shared repo writes to
+``/data/ugrip2026/journal/data_e4e5`` (never into the frozen W1 data directory).
 """
 
 import argparse

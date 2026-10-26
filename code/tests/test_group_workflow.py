@@ -85,14 +85,18 @@ def fake_run(w, job):
     (run / 'git_commit.txt').write_text('synthetic-fixture', encoding='utf-8')
     write_json(run / 'decks.json', {'train': {'name': job['train_deck'],
                'md5': digest(w['grouped'] / (job['train_deck'] + '.jsonl'))}})
-    out = run / 'eval_holdout'
+    out = Path(job['pred_dir'])
     deck = read_jsonl(w['grouped'] / (job['holdout_deck'] + '.jsonl'))
-    write_json(out / 'all_predictions.json', predictions(deck))
-    write_json(out / 'run_meta.json', dict(surface='holdout', backbone=job['backbone'], mode='adapter',
-               per_task=0, batch_size=1, finished='fixture', adapter=str(run)))
+    if job['backbone'] == 'q35':  # eval_arm.py layout, as the E1 baselines
+        write_json(out / 'predictions_holdout.json', predictions(deck))
+    else:  # eval_harness.py layout, as E2
+        write_json(out / 'all_predictions.json', predictions(deck))
+        write_json(out / 'run_meta.json', dict(surface='holdout', backbone=job['backbone'], mode='adapter',
+                   per_task=0, batch_size=1, finished='fixture', adapter=str(run)))
     reports = [r for r in deck if r['task'] == 'report_generation']
-    if reports:
-        write_rows(out / 'crimson_per_sample.jsonl', [dict(sample_key=r['id'], crimson_score=0.75) for r in reports])
+    if reports:  # run_crimson_chain.sh scores into <pred_dir>/crimson/
+        write_rows(out / 'crimson/crimson_per_sample.jsonl',
+                   [dict(sample_key=r['id'], crimson_score=0.75) for r in reports])
     return run, out, deck
 
 
@@ -105,9 +109,17 @@ def test_plan_covers_102_jobs_once_and_six_report_judges(workflow):
     assert sum(j['reports'] for j in jobs) == 6
     assert {j['chain'] for j in jobs} == {1, 2, 3}
     assert max(c['weight'] for c in w['chains']) - min(c['weight'] for c in w['chains']) <= 4
+    trained_cfgs = []
     for i in (1, 2, 3):
-        lines = (w['tmp'] / f'jobs/eval_chain_{i}.txt').read_text().splitlines()[1:]
-        assert all('--batch_size 1' in s and '--surface holdout' in s for s in lines)
+        lines = (w['tmp'] / f'jobs/train_chain_{i}.txt').read_text().splitlines()
+        assert all(s.startswith('code/configs/e') and s.endswith('.yaml') for s in lines)
+        trained_cfgs += lines
+    assert len(trained_cfgs) == len(set(trained_cfgs)) == 102
+    q35 = (w['tmp'] / 'jobs/eval_q35.txt').read_text().splitlines()[1:]
+    mg15 = (w['tmp'] / 'jobs/eval_mg15.txt').read_text().splitlines()[1:]
+    assert len(q35) == len(mg15) == 51
+    assert all('--output_file' in s and '/predictions_holdout.json' in s for s in q35)
+    assert all('--batch_size 1' in s and '--surface holdout' in s and '/eval_holdout' in s for s in mg15)
     assert len((w['tmp'] / 'jobs/crimson.txt').read_text().splitlines()) == 7
 
 
@@ -136,7 +148,7 @@ def test_prediction_integrity_failures(workflow, corruption):
 
 
 def test_completed_stage_validation_rejects_smoke_and_wrong_adapter(workflow):
-    job = workflow['plan']['jobs'][0]
+    job = next(j for j in workflow['plan']['jobs'] if j['backbone'] == 'mg15')
     run, out, deck = fake_run(workflow, job)
     assert trained(run, job)
     assert evaluated(out, job, workflow['grouped'] / (job['holdout_deck'] + '.jsonl'))
@@ -248,42 +260,16 @@ def test_plan_rejects_recipe_override(tmp_path):
         load_configs(cfg_root)
 
 
-def test_real_stage_commands_and_completed_run_skips(workflow, monkeypatch):
-    """Exercise orchestration with simulated subprocesses, never a model/GPU."""
-    from types import SimpleNamespace
-    import group_pipeline as pipeline
+def test_verify_passes_complete_runs_and_reports_missing_ones(workflow, capsys):
+    """verify is the post-chain audit: every run trained, evaluated and (reports) CRIMSON-scored."""
+    from group_pipeline import run_stage
     w = workflow
-    job = next(j for j in w['plan']['jobs'] if j['reports'])
-    plan = dict(w['plan'], jobs=[job])
-    monkeypatch.setitem(sys.modules, 'fcntl', SimpleNamespace(LOCK_EX=1, LOCK_NB=2,
-                                                            flock=lambda *args: None))
-    monkeypatch.setenv('CUDA_VISIBLE_DEVICES', '1')
-    # run_stage sets these variables; ensure monkeypatch restores the calling environment.
-    for key in ('JOURNAL_DATA', 'JOURNAL_RUNS', 'OMP_NUM_THREADS', 'MKL_NUM_THREADS',
-                'OPENBLAS_NUM_THREADS', 'NUMEXPR_NUM_THREADS'):
-        monkeypatch.setenv(key, 'test')
-    commands = []
-
-    def fake_process(cmd, **kwargs):
-        commands.append(cmd)
-        if any(str(c).endswith(('journal_train.py', 'eval_harness.py')) for c in cmd):
-            fake_run(w, job)
-        return SimpleNamespace(returncode=0)
-
-    monkeypatch.setattr(pipeline.subprocess, 'run', fake_process)
-    pipeline.run_stage(plan, 'train')
-    train_commands = [c for c in commands if any(str(x).endswith('journal_train.py') for x in c)]
-    assert len(train_commands) == 1 and '--max_steps' not in train_commands[0]
-    pipeline.run_stage(plan, 'train')
-    assert sum(any(str(x).endswith('journal_train.py') for x in c) for c in commands) == 1
-    run = Path(plan['runs_dir']) / job['run_id']
-    (run / 'eval_holdout').rename(run / 'saved_fixture_eval')
-    pipeline.run_stage(plan, 'eval')
-    eval_command = next(c for c in commands if any(str(x).endswith('eval_harness.py') for x in c))
-    assert eval_command[eval_command.index('--batch_size') + 1] == '1'
-    assert eval_command[eval_command.index('--surface') + 1] == 'holdout'
-    assert '--per_task' not in eval_command
-    pipeline.run_stage(plan, 'eval')
-    assert sum(any(str(x).endswith('eval_harness.py') for x in c) for c in commands) == 1
-    pipeline.run_stage(plan, 'crimson')  # valid existing scores must not call judge again
-    assert not any('crimson_box.sh' in str(c) for c in commands)
+    for job in w['plan']['jobs']:
+        fake_run(w, job)
+    run_stage(w['plan'], 'verify')
+    assert 'VERIFY: 102/102' in capsys.readouterr().out
+    job = next(j for j in w['plan']['jobs'] if j['reports'] and j['backbone'] == 'q35')
+    (Path(job['pred_dir']) / 'crimson/crimson_per_sample.jsonl').unlink()
+    with pytest.raises(SystemExit):
+        run_stage(w['plan'], 'verify')
+    assert f"FAIL {job['run_id']}: no CRIMSON scores" in capsys.readouterr().out

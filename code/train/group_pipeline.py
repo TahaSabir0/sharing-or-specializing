@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Execute or audit an E4/E5 plan. GPU stages: designated operator only, after Phase A.
+"""Audit an E4/E5 plan (CPU only; it never launches anything).
 
-Stages: check (CPU, verify data/config hashes), status (CPU), train, eval, crimson.
-Each GPU stage stops on failure. Finished training/evaluation is validated and skipped;
-partial training is preserved and rejected, never silently overwritten. Resume a stopped
-queue by rerunning the stage after resolving its reported failure.
+Stages:
+  check   before launch: every config and train/dev/holdout deck still matches the plan's hashes
+  status  which runs have a runtime.json and holdout predictions
+  verify  after the chains: each run is a complete protocol run, its holdout predictions cover
+          its deck exactly, and X-ray report runs have CRIMSON scores. Exit 1 if anything is
+          missing or wrong.
+Real runs go through code/train/run_chain.sh and code/eval/run_eval_chain.sh with the job files
+from plan_e4_e5.py (Taha only, PLAN.md section 7.3).
 """
 import argparse
 import csv
-import json
-import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -25,6 +26,7 @@ def check_plan(plan):
         raise ValueError('group manifest changed since planning; regenerate and review the plan')
     manifest = read_json(plan['manifest'])
     import yaml
+    info = read_json(Path(plan['data_dir']) / 'dataset_info.json')
     for job in plan['jobs']:
         path = REPO / job['config']
         if digest(path) != job['config_md5']:
@@ -34,7 +36,6 @@ def check_plan(plan):
             deck_path = Path(plan['data_dir']) / f'{name}.jsonl'
             if digest(deck_path) != manifest['decks'][name]['md5']:
                 raise ValueError(f'deck hash mismatch: {deck_path}')
-        info = read_json(Path(plan['data_dir']) / 'dataset_info.json')
         for name in (job['train_deck'], cfg['eval_deck']):
             if info.get(name, {}).get('file_name') != f'{name}.jsonl':
                 raise ValueError(f'dataset_info missing or wrong for {name}')
@@ -65,16 +66,36 @@ def trained(run, job):
     return True
 
 
+def predictions_file(out):
+    """eval_arm.py (q35) leaves predictions_holdout.json; eval_harness.py (mg15) all_predictions.json."""
+    for name in ('predictions_holdout.json', 'all_predictions.json'):
+        if (out / name).is_file():
+            return out / name
+    return None
+
+
+def crimson_file(out):
+    """run_crimson_chain.sh scores into <pred_dir>/crimson/; crimson_box.sh on a folder writes in place."""
+    for path in (out / 'crimson' / 'crimson_per_sample.jsonl', out / 'crimson_per_sample.jsonl'):
+        if path.is_file():
+            return path
+    return None
+
+
 def evaluated(out, job, deck):
-    if not (out / 'all_predictions.json').exists():
+    path = predictions_file(out)
+    if path is None:
         return False
-    meta = read_json(out / 'run_meta.json')
-    if (meta['surface'] != 'holdout' or meta['backbone'] != job['backbone']
-            or meta['mode'] != 'adapter' or meta.get('per_task', 0) != 0
-            or meta.get('batch_size') != 1 or not meta.get('finished')
-            or Path(meta['adapter']).name != job['run_id']):
-        raise ValueError(f'{out}: incompatible evaluation provenance')
-    validate_predictions(read_json(out / 'all_predictions.json'), read_jsonl(deck))
+    if (out / 'run_meta.json').exists():
+        meta = read_json(out / 'run_meta.json')
+        if (meta['surface'] != 'holdout' or meta['backbone'] != job['backbone']
+                or meta['mode'] != 'adapter' or meta.get('per_task', 0) != 0
+                or meta.get('batch_size') != 1 or not meta.get('finished')
+                or Path(meta['adapter']).name != job['run_id']):
+            raise ValueError(f'{out}: incompatible evaluation provenance')
+    elif job['backbone'] != 'q35':
+        raise ValueError(f'{out}: harness evaluation without run_meta.json')
+    validate_predictions(read_json(path), read_jsonl(deck))
     return True
 
 
@@ -84,84 +105,43 @@ def run_stage(plan, stage, chain=None):
         raise ValueError('no jobs selected')
     if stage == 'status':
         for job in jobs:
-            run = Path(plan['runs_dir']) / job['run_id']
+            run, out = Path(plan['runs_dir']) / job['run_id'], Path(job['pred_dir'])
             print(job['run_id'], 'runtime=' + str((run / 'runtime.json').exists()),
-                  'predictions=' + str((run / 'eval_holdout/all_predictions.json').exists()))
+                  'predictions=' + str(predictions_file(out) is not None))
         return
     check_plan(plan)
     if stage == 'check':
         print(f"CHECK PASS: {len(plan['jobs'])} configs and their train/dev/holdout hashes")
         return
-    if os.environ.get('CUDA_VISIBLE_DEVICES') != '1':
-        raise ValueError('GPU stages require CUDA_VISIBLE_DEVICES=1')
-    subprocess.run(['nvidia-smi', '-i', '1'], check=True)
-    os.environ.update(JOURNAL_DATA=plan['data_dir'], JOURNAL_RUNS=plan['runs_dir'])
-    for key in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'NUMEXPR_NUM_THREADS'):
-        os.environ[key] = '4'
+    problems = []
     for job in jobs:
-        run = Path(plan['runs_dir']) / job['run_id']
-        out = run / 'eval_holdout'
+        run, out = Path(plan['runs_dir']) / job['run_id'], Path(job['pred_dir'])
         deck = Path(plan['data_dir']) / (job['holdout_deck'] + '.jsonl')
-        print(f"{stage}: {job['run_id']}", flush=True)
-        # The account is shared: prevent two workers from mutating the same run.
-        import fcntl
-        lock_root = Path(plan['runs_dir']) / '.e4e5_locks'
-        lock_root.mkdir(parents=True, exist_ok=True)
-        lock = open(lock_root / job['run_id'], 'a')
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        if stage == 'train':
-            if trained(run, job):
-                print('validated completed training; skipping', flush=True)
-                lock.close()
-                continue
-            if run.exists() and any(run.iterdir()):
-                raise ValueError(f'{run}: partial training preserved. Operator must inspect before retrying.')
-            cmd = [sys.executable, str(CODE / 'train/journal_train.py'), '--config', job['config']]
-        elif stage == 'eval':
+        try:
             if not trained(run, job):
-                raise ValueError(f'{run}: training not complete')
+                raise ValueError('not trained')
             if read_json(run / 'decks.json')['train']['md5'] != digest(
                     Path(plan['data_dir']) / (job['train_deck'] + '.jsonl')):
-                raise ValueError(f'{run}: trained deck hash differs from plan')
+                raise ValueError('trained deck hash differs from plan')
             if not evaluated(out, job, deck):
-                if out.exists() and any(out.iterdir()):
-                    raise ValueError(f'{out}: partial evaluation preserved; inspect before resuming')
-                cmd = [sys.executable, str(CODE / 'eval/eval_harness.py'), '--mode', 'adapter',
-                       '--adapter', str(run), '--backbone', job['backbone'], '--batch_size', '1',
-                       '--data', str(deck), '--surface', 'holdout', '--out_dir', str(out)]
-            else:
-                cmd = None
-        else:
-            if not job['reports']:
-                lock.close()
-                continue
-            if not evaluated(out, job, deck):
-                raise ValueError(f'{out}: evaluate before CRIMSON')
-            report_ids = [r['id'] for r in read_jsonl(deck) if r['task'] == 'report_generation']
-            scores = out / 'crimson_per_sample.jsonl'
-            if scores.exists():
-                crimson_scores([scores], report_ids)
-                print('validated completed CRIMSON; skipping', flush=True)
-                lock.close()
-                continue
-            cmd = ['bash', str(CODE / 'eval/crimson_box.sh'), str(out)]
-        if cmd:
-            subprocess.run(cmd, cwd=REPO, check=True)
-        if stage == 'train' and not trained(run, job):
-            raise ValueError(f'{run}: training returned without complete artifacts')
-        if stage == 'eval':
-            if not evaluated(out, job, deck):
-                raise ValueError(f'{out}: incomplete evaluation')
-            subprocess.run([sys.executable, str(CODE / 'eval/score_run.py'), '--out_dir', str(out)], check=True)
-        if stage == 'crimson':
-            crimson_scores([out / 'crimson_per_sample.jsonl'], report_ids)
-        lock.close()
-    print(f'{stage.upper()} COMPLETE', flush=True)
+                raise ValueError('no holdout predictions')
+            if job['reports']:
+                scores = crimson_file(out)
+                if scores is None:
+                    raise ValueError('no CRIMSON scores')
+                crimson_scores([scores], [r['id'] for r in read_jsonl(deck) if r['task'] == 'report_generation'])
+        except (ValueError, KeyError, FileNotFoundError) as e:
+            problems.append(f"{job['run_id']}: {e}")
+    for p in problems:
+        print('FAIL', p)
+    print(f"VERIFY: {len(jobs) - len(problems)}/{len(jobs)} runs complete")
+    if problems:
+        raise SystemExit(1)
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('stage', choices=['check', 'status', 'train', 'eval', 'crimson'])
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument('stage', choices=['check', 'status', 'verify'])
     p.add_argument('--plan', required=True)
     p.add_argument('--chain', type=int)
     args = p.parse_args()

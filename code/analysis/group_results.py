@@ -86,8 +86,9 @@ def assemble(sources, deck, out, backbone, seed, arm, subset=False, score=True):
 def collect(plan, holdout, out, score=True):
     from collections import defaultdict
     sys.path.insert(0, str(CODE / 'train'))
-    from group_pipeline import check_plan, evaluated, trained
-    check_plan(plan)
+    from group_pipeline import run_stage
+    # Preflight all inputs before writing any assembled result (exits if a run is incomplete).
+    run_stage(plan, 'verify')
     deck = read_jsonl(holdout)
     manifest = read_json(plan['manifest'])
     if digest(holdout) != manifest['sources']['j26_holdout']['md5']:
@@ -97,23 +98,11 @@ def collect(plan, holdout, out, score=True):
         groups[(job['study'], job['backbone'], job['seed'])].append(job)
     if len(groups) != 12:
         raise ValueError('expected E4/E5 x 2 backbones x 3 seeds')
-    # Preflight all inputs before writing any assembled result.
-    for jobs in groups.values():
-        for job in jobs:
-            run = Path(plan['runs_dir']) / job['run_id']
-            group_deck = Path(plan['data_dir']) / (job['holdout_deck'] + '.jsonl')
-            if not trained(run, job) or not evaluated(run / 'eval_holdout', job, group_deck):
-                raise ValueError(f'{run}: incomplete training/evaluation')
-            if read_json(run / 'decks.json')['train']['md5'] != manifest['decks'][job['train_deck']]['md5']:
-                raise ValueError(f'{run}: training deck hash mismatch')
-            if job['reports']:
-                crimson_scores([run / 'eval_holdout/crimson_per_sample.jsonl'],
-                               [r['id'] for r in read_jsonl(group_deck) if r['task'] == REPORT])
     index = []
     for (study, backbone, seed), jobs in sorted(groups.items()):
         selected = deck if study == 'E4' else [r for r in deck if r['task'] == 'classification']
         dest = Path(out) / f'{study}_{backbone}_s{seed}'
-        assemble([Path(plan['runs_dir']) / j['run_id'] / 'eval_holdout' for j in jobs],
+        assemble([Path(j['pred_dir']) for j in jobs],
                  selected, dest, backbone, seed, study, score=score)
         index.append({'study': study, 'backbone': backbone, 'seed': seed, 'directory': str(dest.resolve())})
     (Path(out) / 'index.json').write_text(json.dumps(index, indent=2) + '\n', encoding='utf-8')

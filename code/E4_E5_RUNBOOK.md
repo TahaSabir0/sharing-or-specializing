@@ -1,101 +1,84 @@
 # E4/E5: preparation, real training, evaluation and analysis
 
-The code implements 42 E4 modality runs and 60 E5 classification-dataset runs:
-both Qwen/MedGemma, seeds 1337/2026/42, the frozen 3-epoch r8 protocol. A smoke
-test is only a gate; it does not produce the experimental results.
+102 runs: 42 E4 modality adapters (7 modalities) and 60 E5 classification-dataset adapters
+(10 datasets), each on Qwen and MedGemma, seeds 1337/2026/42, the fixed 3-epoch r8 protocol.
+Only the grouping level differs from PLAN.md §1 (the subject of E4/E5).
 
-Alex's actual clone is `/data/ugrip2026/journal/people/thinh/repo`.
-GPU 1 is shared. Under PLAN section 7.3 Taha launches the real stages after
-Phase A training finishes. The commands below are the operator handoff as well
-as the CPU preparation commands Alex can run now. No new scheduler permissions
-or hardware allocation are implied by these scripts.
+Real runs launch the same way as E1/E2: `run_chain.sh`, `run_eval_chain.sh` and
+`run_crimson_chain.sh` with committed job files. Taha only (PLAN.md §7.3). The E4/E5 scripts
+themselves are CPU-only: they build decks, plan, check and audit; they never launch GPU work.
 
-## 1. Update and prepare (Alex; CPU)
-
-Do not update a checkout while a queue is running from it. In a fresh SSH shell:
+## 1. Decks and job files (CPU; done once, in the shared repo)
 
 ```bash
-cd /data/ugrip2026/journal/people/thinh/repo &&
-git pull --ff-only origin alex/modality-decks &&
+cd /data/ugrip2026/journal/repo
 bash code/train/e4_e5.sh prepare
 ```
 
-The wrapper activates `flare-blackwell-v5` before using Python and caps threads.
-It writes 51 group decks, `dataset_info.json`, and `GROUP_MANIFEST.json` to
-`../group_decks`, then makes `../e4e5_jobs/plan.json` plus training, evaluation,
-and CRIMSON job lists. Expected final message: `CHECK PASS: 102 configs ...`.
-Every question/prompt/image field is preserved; dev-select is train-seen and
-holdout IDs/image groups must be disjoint. Source/derived hashes are checked.
+- `build_group_decks.py` cuts the frozen W1 decks (`j26_train_mix`, `j26_devselect`,
+  `j26_holdout`, md5-checked against `MANIFEST.json`) into 51 group decks in
+  `/data/ugrip2026/journal/data_e4e5/` with `dataset_info.json` and `GROUP_MANIFEST.json`.
+  Rows are copied unchanged; the frozen data dir is never written.
+- `plan_e4_e5.py` writes `code/eval/jobs/e4e5/`: `train_chain_{1,2,3}.txt` (balanced by
+  training rows; MedGemma weighted 0.6), `eval_q35.txt`, `eval_mg15.txt`, `crimson.txt`,
+  `plan.json` (config and deck hashes). These are committed.
+- Each backbone is evaluated with the script its baselines used (research rule 3): Qwen with
+  `eval_arm.py` (as E1), MedGemma with `eval_harness.py --batch_size 1` (as E2).
+
+A teammate can run `prepare` from a personal clone: decks and job files then stay next to the
+clone (`../group_decks`, `../e4e5_jobs`), for smoke tests:
 
 ```bash
-bash code/train/e4_e5.sh test     # CPU regression/integration tests; requires pytest
-bash code/train/e4_e5.sh check    # checks real deck and config hashes, no GPU
-bash code/train/e4_e5.sh status   # reports artifacts present; not a claim of completion
+JOURNAL_DATA=/data/ugrip2026/journal/people/<you>/group_decks \
+  bash code/train/smoke.sh <you> code/configs/e4/modxray_q35_s1337.yaml
 ```
 
-Overrides (set before prepare and keep identical for all stages): `JOURNAL_SOURCE`
-(original W1 decks), `JOURNAL_DATA` (derived decks), `JOURNAL_RUNS`, `E4E5_JOBS`.
-On Taha's merged checkout, explicitly set writable data/job directories before
-preparation. No shared data directory is modified unless selected explicitly.
+## 2. Launch (Taha; after Phase A frees GPU 1)
 
-## 2. Gates (Alex, before handing off)
-
-Run CPU template gates after activating the frozen environment:
+Check first: `nvidia-smi -i 1` and `bash code/train/e4_e5.sh check` (configs and decks still
+match `plan.json`). Training reads the group decks, so export `JOURNAL_DATA`:
 
 ```bash
-source /data/ugrip2026/miniconda3/etc/profile.d/conda.sh
-conda activate flare-blackwell-v5
-export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 NUMEXPR_NUM_THREADS=4
-export JOURNAL_DATA=/data/ugrip2026/journal/people/thinh/group_decks
-CUDA_VISIBLE_DEVICES= python code/eval/template_gate.py --backbone q35 \
-  "$JOURNAL_DATA/j26_train_modxray.jsonl" "$JOURNAL_DATA/j26_devselect_modxray.jsonl"
-CUDA_VISIBLE_DEVICES= python code/eval/template_gate.py --backbone mg15 \
-  "$JOURNAL_DATA/j26_train_dsbonemarrow.jsonl" "$JOURNAL_DATA/j26_devselect_dsbonemarrow.jsonl"
+cd /data/ugrip2026/journal/repo
+export JOURNAL_DATA=/data/ugrip2026/journal/data_e4e5
+for i in 1 2 3; do
+  nohup bash code/train/run_chain.sh $(cat code/eval/jobs/e4e5/train_chain_$i.txt) \
+    > /data/ugrip2026/journal/runs/chain_e4e5_$i.log 2>&1 &
+done
 ```
 
-The existing smoke gate remains `bash code/train/smoke.sh thinh <config>`.
-Representative configs are modxray and dsbonemarrow on both backbones, seed 1337.
-Training now streams to the terminal and its saved log; evaluation failures return
-nonzero. Save the summaries for review. No smoke result is a journal result.
-
-## 3. Real execution (designated operator)
-
-Use the reviewed/merged checkout and the prepared plan. A single chain performs
-its full training queue, followed by exact grouped holdout inference and CRIMSON.
-The scripts pin GPU 1; inference is batch 1 on both backbones. Training settings
-come unchanged from `journal_train.py` and the 102 configs (no step cap).
+When the training chains end (`chain done` in each log):
 
 ```bash
-nvidia-smi -i 1
-tmux new -s e4e5-chain1
+nohup bash code/eval/run_eval_chain.sh code/eval/jobs/e4e5/eval_q35.txt \
+  > /data/ugrip2026/journal/runs/evalchain_e4e5_q35.log 2>&1 &
+EVAL_PY=code/eval/eval_harness.py nohup bash code/eval/run_eval_chain.sh code/eval/jobs/e4e5/eval_mg15.txt \
+  > /data/ugrip2026/journal/runs/evalchain_e4e5_mg15.log 2>&1 &
 ```
 
-Inside tmux, from the prepared checkout:
+Then CRIMSON on the six X-ray modality runs:
 
 ```bash
-set -o pipefail
-{ bash code/train/e4_e5.sh train 1 &&
-  bash code/train/e4_e5.sh eval 1 &&
-  bash code/train/e4_e5.sh crimson 1; } 2>&1 | tee ../e4e5_chain1.log
+nohup bash code/eval/run_crimson_chain.sh code/eval/jobs/e4e5/crimson.txt \
+  > /data/ugrip2026/journal/runs/crimsonchain_e4e5.log 2>&1 &
 ```
 
-Detach with **Ctrl+B, release, D**. SSH can disconnect; tmux keeps running.
-Reconnect with `tmux attach -t e4e5-chain1`. Logs stream actual training progress.
-The operator can run chains 2 and 3 in their own tmux sessions by replacing every
-`1` above; there are at most three concurrent jobs, on the same allocated GPU 1.
-Do not launch extra chains alongside an already full Phase A allocation.
+A failed run is logged (`rc=` in the chain log) and the chain moves on, as in E1/E2.
 
-Use the Python runner via the wrapper instead of passing raw job lists to legacy
-chain scripts: it stops on failures, checks completion, checks exact coverage,
-and locks each run against duplicate workers. It skips completed stages only
-after artifact checks. An interrupted training/eval directory is preserved and
-causes an actionable error; it is never automatically deleted or restarted over.
-The operator should inspect it and deliberately recover or archive it before
-retrying. Do not delete another person's files or clear locks held by live jobs.
+## 3. Audit
+
+```bash
+bash code/train/e4_e5.sh status   # which runs have runtime.json / predictions
+bash code/train/e4_e5.sh verify   # all 102: protocol run, exact holdout coverage, CRIMSON; exit 1 otherwise
+```
+
+`verify` rejects smoke or deviating configs, a wrong training deck or deck hash, a step cap,
+missing adapter files, predictions that miss, duplicate or alter holdout questions, `Error:`
+answers, and missing or incomplete CRIMSON scores.
 
 ## 4. CPU results and comparisons (Alex)
 
-After **all 102 runs**, grouped holdout evaluations and six X-ray CRIMSON jobs finish:
+After `verify` passes:
 
 ```bash
 bash code/train/e4_e5.sh analyze
@@ -117,14 +100,15 @@ scores. JSON includes mean/SD across seeds, 10k two-level bootstrap contrast CIs
 raw and Holm-adjusted p-values across tasks; cell comparisons have a separate
 Holm family. CSV benefit is oriented positive=better (MAE differences negated).
 Error predictions, missing/duplicate IDs, wrong ground truth and incomplete
-report scores fail validation. A non-finite numeric metric is preserved in the
-raw scores but statistical comparison stops rather than reporting a fake CI.
+report scores fail validation (bootstrap.py would otherwise drop reports silently).
+A non-finite numeric metric is preserved in the raw scores but statistical
+comparison stops rather than reporting a fake CI.
 
-If a Phase-A arm is not available yet, explicitly label a partial analysis:
+If a Phase-A arm is not available yet (Hydra), explicitly label a partial analysis:
 
 ```bash
 python code/analysis/analyze_e4_e5.py \
-  --plan ../e4e5_jobs/plan.json \
+  --plan code/eval/jobs/e4e5/plan.json \
   --holdout /data/ugrip2026/journal/data/j26_holdout.jsonl \
   --train /data/ugrip2026/journal/data/j26_train_mix.jsonl \
   --out ../e4e5_results_plain_lora --arms shared task shared48
@@ -135,11 +119,8 @@ Historical artifacts may be `predictions_holdout.json` plus `crimson/`, or
 run uses a different directory name, use `group_results.py baseline --sources
 <file-or-folder> ...` and then `compare_groups.py --a <three normalized dirs>
 --b <three grouped dirs> --train <train deck> --out <new analysis dir>`.
-Baseline metadata supplied by the caller for legacy files is recorded as such;
-validate it against RUNS.csv before making paper claims. No holdout is re-inferred.
+No holdout is re-inferred.
 
-The new analysis directories include source paths/hashes and metadata, and the
-training directories retain the existing config/commit/deck/runtime/registry
-artifacts. Submit results and log paths to Taha for RUNS.csv/LEDGER integration.
-E3 transfer, E6 routing and E7/E8 representations/synthesis are separate tasks;
-this package implements E4/E5.
+The analysis directories record source paths, hashes and metadata; the run directories keep
+config, commit, deck, runtime and registry. Send results and log paths to Taha for
+RUNS.csv/LEDGER. E3, E6 and E7/E8 are separate tasks.

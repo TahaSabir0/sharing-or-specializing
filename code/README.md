@@ -11,7 +11,7 @@ branch `Taha/qwen35-sprint`, commit `bec2d1f`) into fresh history. Develop here,
 
 | Folder | What's here | State (2026-10-19) | Owner of what's left |
 |---|---|---|---|
-| `train/` | `journal_train.py` (LF v0.9.5 wrapper: pinned protocol, per-example loss, routing ids, plug-in hook, run registry), `journal_loss.py`, `run_chain.sh` (real runs, Taha only), **`smoke.sh`** (teammates' smoke tests), `target_modules_qwen35.json` | done; trained every run so far | MedGemma port (target list, `backbone: mg15` switch, Gemma3 render and gate): Alberto, passes the smoke gate (2026-10-23) |
+| `train/` | `journal_train.py` (LF v0.9.5 wrapper: pinned protocol, per-example loss, routing ids, plug-in hook, run registry), `journal_loss.py`, `run_chain.sh` (real runs, Taha only), **`smoke.sh`**, `e4_e5.sh` + `plan_e4_e5.py` + `group_pipeline.py` (E4/E5 prepare/plan/audit, CPU) (teammates' smoke tests), `target_modules_qwen35.json` | done; trained every run so far | MedGemma port (target list, `backbone: mg15` switch, Gemma3 render and gate): Alberto, passes the smoke gate (2026-10-23) |
 | `methods/` | `base.py` (plug-in plumbing), `lora_ref.py` (reference plug-in, copy it) | done | `hydra.py` (`hydraT` + `hydraR`): Veronika |
 | `eval/` | `eval_harness.py` (batched; zs / adapter / oracle / plugin), `eval_arm.py` (simple one-at-a-time, used for the first runs), `score_single.py` + `evaluation.py` (the scorer), `score_run.py`, `crimson_box.sh` + `score_crimson.py` (reports), `template_gate.py`, `run_eval_chain.sh` + `jobs/` (Taha's eval queue) | done; harness tested on the box 2026-10-19 | E3 transfer jobs: Alex; E6 predicted-route eval: Alex |
 | `data/` | `build_journal_decks.py` (W1), `build_group_decks.py` (E4/E5 partitions of the frozen W1 decks), `journal_format.py` (row schema), `label_ids.json` (frozen routing ids), `build_decks.py` (challenge exporter), `build_splits_REFERENCE.py` (provenance, never rerun) | W1 done; E4/E5 builder + manifest done | stage E4/E5 decks for real runs: Taha |
@@ -40,25 +40,13 @@ override with `JOURNAL_DATA`, `JOURNAL_RUNS`, `MODELS_DIR`, `QWEN35_MODEL`, `CON
 - No personal paths in shared code: arguments or environment variables.
 - CPU-heavy scripts cap threads (`OMP_NUM_THREADS=4` etc.); the box has 512 cores.
 
-## Alex: E4/E5 smoke test on Blackwell
+## E4/E5 (Alex's group adapters)
 
-For the full experiment workflow (preparation, all 102 real runs, holdout evaluation,
-CRIMSON and statistical comparisons), see [E4_E5_RUNBOOK.md](E4_E5_RUNBOOK.md).
-The entry point is `bash code/train/e4_e5.sh prepare`; Alex's personal clone on
-Blackwell is `/data/ugrip2026/journal/people/thinh/repo`.
-
-The group-deck builder reads the frozen shared W1 decks and writes derived decks plus
-`GROUP_MANIFEST.json` to Alex's personal directory. From Windows, after pushing/pulling the
-branch into Alex's personal clone, run:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File code/train/smoke_blackwell.ps1 `
-  -Config code/configs/e4/modxray_q35_s1337.yaml -Pull
-```
-
-The launcher checks GPU 1, prepares decks under
-`/data/ugrip2026/journal/people/thinh/group_decks`, and invokes only the permitted
-`code/train/smoke.sh`. It never writes shared decks or starts a real/holdout run.
+`code/E4_E5_RUNBOOK.md`. `bash code/train/e4_e5.sh prepare` builds the 51 group decks from the
+frozen W1 decks into `/data/ugrip2026/journal/data_e4e5` (a personal clone: `../group_decks`) and
+writes the job files for `run_chain.sh` / `run_eval_chain.sh` / `run_crimson_chain.sh`. The E4/E5
+scripts are CPU-only (prepare, check, status, verify, analyze); real runs launch through the usual
+runners (Taha). Smoke tests: `JOURNAL_DATA=<your group_decks> bash code/train/smoke.sh <you> <e4/e5 config>`.
 
 ## Carried from the challenge (provenance)
 
