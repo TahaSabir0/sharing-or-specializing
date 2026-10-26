@@ -45,6 +45,9 @@ the changes marked **(v2)**.
   with its baselines' script (Qwen `eval_arm.py`, MedGemma `eval_harness.py --batch_size 1`).
   Scorer fix: `score_single.py` skipped a score equal to the question count; rescoring all 52
   existing holdout prediction files changed no task macro.
+- 2026-10-26 22:46: **E4/E5 training launched** (Taha) on the idle GPU 1, before Phase A's Hydra
+  arms. **Deviation from §3.3:** no MedGemma smoke on the new decks (Taha's call; plain LoRA on
+  MedGemma already passed the gate and all E2 runs, the decks are unchanged W1 rows, hash-checked).
 
 ---
 

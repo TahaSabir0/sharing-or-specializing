@@ -19,9 +19,9 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   (`code/E4_E5_RUNBOOK.md`). 51 group decks in `/data/ugrip2026/journal/data_e4e5`; job files in
   `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
   Clinical/Derm/Mammo hold one dataset each, so E5 reuses those E4 adapters (PLAN changelog 26 Oct).
-  Not launched: Phase B waits for Phase A (Hydra) unless Taha decides to use the idle GPU now.
-  Smoke gate: Qwen E4 training passed in Alex's smoke (50 steps, loss 0.77); the MedGemma smoke is
-  blocked because Alex's smoke process (pid 1856908) is suspended and still holds the smoke lock.
+  **Training launched 26 Oct 22:46** (3 chains on GPU 1, PIDs 1955262/3/4; logs
+  `/data/ugrip2026/journal/runs/chain_e4e5_{1,2,3}.log`). No MedGemma smoke (deviation, PLAN changelog);
+  the first MedGemma runs are 3rd in each chain. Then evals and CRIMSON (runbook §2), then `e4_e5.sh verify`.
 - Scorer fix merged (`score_single.py` dropped a score equal to the question count): rescoring all 52
   existing holdout prediction files changed no number in the LEDGER.
 
