@@ -50,7 +50,7 @@ export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 NUMEXPR_NUM_TH
 export JOURNAL_RUNS="$SMOKE_ROOT" CUDA_VISIBLE_DEVICES=$GPU
 cd "$REPO"
 
-STAMP=$(date +%m%d%H%M)
+STAMP=$(date +%m%d%H%M%S)_$$
 SUFFIX="smoke_${WHO}_${STAMP}"
 RID=$(python -c "import yaml,sys;print(yaml.safe_load(open(sys.argv[1]))['run_id'])" "$CFG")_$SUFFIX
 METHOD=$(python -c "import yaml,sys;print(yaml.safe_load(open(sys.argv[1])).get('method','lora'))" "$CFG")
@@ -61,15 +61,15 @@ echo "[smoke] $WHO: $RID  backbone $BACKBONE  (branch $(git rev-parse --abbrev-r
 echo "[smoke] training 50 steps -> $LOG"
 
 timeout 3600 python code/train/journal_train.py --config "$CFG" --max_steps 50 --no_eval \
-    --run_suffix "$SUFFIX" > "$LOG" 2>&1
-TRC=$?
+    --run_suffix "$SUFFIX" 2>&1 | tee "$LOG"
+TRC=${PIPESTATUS[0]}
 [ $TRC -eq 124 ] && echo "[smoke] training hit the 1-hour limit"
 
 ERC=skipped
 if [ $TRC -eq 0 ] && [ $DO_EVAL -eq 1 ]; then
   echo "[smoke] eval: 10 questions per task on dev-select -> $RUN_DIR/eval_smoke"
   if [ "$METHOD" = "lora" ]; then MODE=(--mode adapter --adapter "$RUN_DIR"); else MODE=(--mode plugin --run_dir "$RUN_DIR"); fi
-  timeout 1800 python code/eval/eval_harness.py "${MODE[@]}" --backbone "$BACKBONE" \
+  timeout 1800 python code/eval/eval_harness.py "${MODE[@]}" --backbone "$BACKBONE" --batch_size 1 \
       --data /data/ugrip2026/journal/data/j26_devselect.jsonl --surface devselect --per_task 10 \
       --out_dir "$RUN_DIR/eval_smoke" >> "$LOG" 2>&1 \
     && python code/eval/score_run.py --out_dir "$RUN_DIR/eval_smoke" >> "$LOG" 2>&1
@@ -119,4 +119,6 @@ if "Traceback" in txt:
     print(txt[txt.rfind("Traceback"):][:2000])
 print(f"log: {log}")
 EOF
-exit $(( TRC != 0 ))
+if [ "$TRC" -ne 0 ]; then exit "$TRC"; fi
+if [ "$ERC" != "skipped" ] && [ "$ERC" -ne 0 ]; then exit "$ERC"; fi
+exit 0

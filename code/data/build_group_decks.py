@@ -93,6 +93,26 @@ def build_group_decks(source_dir, out_dir):
     _validate_source(train, TRAIN_SOURCE)
     _validate_source(dev, DEV_SOURCE)
     _validate_source(holdout, HOLDOUT_SOURCE)
+    train_by_id = {r['id']: r for r in train}
+    for row in dev:
+        if train_by_id.get(row['id']) != row:
+            raise ValueError('dev-select must contain unchanged train-seen rows from the frozen train pool')
+    if set(train_by_id) & {r['id'] for r in holdout}:
+        raise ValueError('train/holdout question leakage')
+    train_groups = {r['image_group'] for r in train if 'image_group' in r}
+    if train_groups & {r['image_group'] for r in holdout if 'image_group' in r}:
+        raise ValueError('train/holdout image-group leakage')
+    source_manifest = source_dir / 'MANIFEST.json'
+    if source_manifest.exists():
+        frozen = json.loads(source_manifest.read_text(encoding='utf-8'))['decks']
+        for name in (TRAIN_SOURCE, DEV_SOURCE, HOLDOUT_SOURCE):
+            if _md5(source_dir / f'{name}.jsonl') != frozen[name]['md5']:
+                raise ValueError(f'{name}: source differs from frozen W1 manifest')
+    for split in (dev, holdout):
+        if {r['modality'] for r in split} != set(MODALITY_SLUGS):
+            raise ValueError('evaluation modality labels differ from frozen set')
+        if {r['dataset'] for r in split if r['task'] == CLASSIFICATION} != set(CLASSIFICATION_DATASET_SLUGS):
+            raise ValueError('evaluation classification datasets differ from frozen set')
 
     seen_modalities = {row["modality"] for row in train}
     if seen_modalities != set(MODALITY_SLUGS):

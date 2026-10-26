@@ -42,6 +42,11 @@ override with `JOURNAL_DATA`, `JOURNAL_RUNS`, `MODELS_DIR`, `QWEN35_MODEL`, `CON
 
 ## Alex: E4/E5 smoke test on Blackwell
 
+For the full experiment workflow (preparation, all 102 real runs, holdout evaluation,
+CRIMSON and statistical comparisons), see [E4_E5_RUNBOOK.md](E4_E5_RUNBOOK.md).
+The entry point is `bash code/train/e4_e5.sh prepare`; Alex's personal clone on
+Blackwell is `/data/ugrip2026/journal/people/thinh/repo`.
+
 The group-deck builder reads the frozen shared W1 decks and writes derived decks plus
 `GROUP_MANIFEST.json` to Alex's personal directory. From Windows, after pushing/pulling the
 branch into Alex's personal clone, run:
@@ -52,7 +57,7 @@ powershell -ExecutionPolicy Bypass -File code/train/smoke_blackwell.ps1 `
 ```
 
 The launcher checks GPU 1, prepares decks under
-`/data/ugrip2026/journal/people/alex/group_decks`, and invokes only the permitted
+`/data/ugrip2026/journal/people/thinh/group_decks`, and invokes only the permitted
 `code/train/smoke.sh`. It never writes shared decks or starts a real/holdout run.
 
 ## Carried from the challenge (provenance)

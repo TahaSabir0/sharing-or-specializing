@@ -16,7 +16,7 @@ param(
     [string]$Config,
 
     [ValidatePattern('^[a-z0-9_]+$')]
-    [string]$Who = 'alex',
+    [string]$Who = 'thinh',
 
     [string]$RemoteRepo = '',
 
@@ -40,6 +40,9 @@ if (-not $RemoteRepo.StartsWith($personalRoot) -or -not $RemoteDecks.StartsWith(
 if ($RemoteRepo -notmatch '^/[A-Za-z0-9_./-]+$' -or $RemoteDecks -notmatch '^/[A-Za-z0-9_./-]+$') {
     throw 'Remote paths contain unsupported shell characters.'
 }
+if (($RemoteRepo.Split('/') -contains '..') -or ($RemoteDecks.Split('/') -contains '..')) {
+    throw 'Parent traversal is not allowed in remote paths.'
+}
 $pullCommand = if ($Pull) { 'git pull --ff-only' } else { ':' }
 $noEvalArg = if ($NoEval) { ' --no-eval' } else { '' }
 
@@ -54,6 +57,8 @@ if [ -f /data/ugrip2026/journal/runs/smoke/.holder ]; then
   echo "[blackwell] smoke holder: `$(cat /data/ugrip2026/journal/runs/smoke/.holder)"
 fi
 export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 NUMEXPR_NUM_THREADS=4
+source /data/ugrip2026/miniconda3/etc/profile.d/conda.sh
+conda activate flare-blackwell-v5
 python code/data/build_group_decks.py \
   --source_dir /data/ugrip2026/journal/data \
   --out_dir '$RemoteDecks'
@@ -61,7 +66,7 @@ export JOURNAL_DATA='$RemoteDecks'
 bash code/train/smoke.sh '$Who' '$Config'$noEvalArg
 "@
 
-$bytes = [System.Text.Encoding]::UTF8.GetBytes($remoteScript)
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($remoteScript.Replace("`r`n", "`n"))
 $encoded = [Convert]::ToBase64String($bytes)
 Write-Host "Running Alex smoke test through SSH alias 'blackwell' (GPU 1 only)..."
 & ssh blackwell "echo '$encoded' | base64 --decode | bash"

@@ -43,7 +43,7 @@ def test_group_decks_partition_frozen_rows(tmp_path):
     for modality in modalities:
         train.append(_row(i, "regression", modality, "iugc"))
         i += 1
-    dev = [dict(row, id=f"dev-{row['id']}") for row in train]
+    dev = [dict(row) for row in train]
     holdout = [dict(row, id=f"holdout-{row['id']}") for row in train]
     _write(source / "j26_train_mix.jsonl", train)
     _write(source / "j26_devselect.jsonl", dev)

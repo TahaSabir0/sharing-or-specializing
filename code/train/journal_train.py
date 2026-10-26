@@ -153,13 +153,14 @@ def deck_record(name):
         raise SystemExit(f"deck {name!r} not in {DATA_DIR}/dataset_info.json")
     path = os.path.join(DATA_DIR, info[name]["file_name"])
     rec = {"name": name, "path": path, "md5": md5(path)}
-    man_path = os.path.join(DATA_DIR, "MANIFEST.json")
-    if os.path.exists(man_path):
-        man = json.load(open(man_path))["decks"].get(name)
-        if man is not None:
-            rec["manifest_md5"] = man["md5"]
-            if man["md5"] != rec["md5"]:
-                raise SystemExit(f"deck {name} md5 {rec['md5']} != manifest {man['md5']}")
+    for manifest_name in ("MANIFEST.json", "GROUP_MANIFEST.json"):
+        man_path = os.path.join(DATA_DIR, manifest_name)
+        if os.path.exists(man_path):
+            man = json.load(open(man_path))["decks"].get(name)
+            if man is not None:
+                rec["manifest_md5"] = man["md5"]
+                if man["md5"] != rec["md5"]:
+                    raise SystemExit(f"deck {name} md5 {rec['md5']} != manifest {man['md5']}")
     return rec
 
 

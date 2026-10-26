@@ -24,18 +24,25 @@ while read -r NAME ARGS; do
     continue
   fi
   DIR="$ARGS"
-  PAIRS="$DIR/crimson/reportgen_pairs.jsonl"
   LOG="$RUNS/crimson_$NAME.log"
   echo "[$(date -Is)] GPU $GPU start crimson $NAME"
-  if [ ! -f "$PAIRS" ]; then
-    ( source "$CONDA_SH" && conda activate "${CONDA_ENV:-flare-blackwell-v5}" && \
-      python code/eval/eval_arm_pairs.py "$DIR/predictions_holdout.json" "$PAIRS" ) > "$LOG" 2>&1
-  fi
-  if [ -f "$PAIRS" ]; then
-    GPU=$GPU bash code/eval/crimson_box.sh "$PAIRS" < /dev/null >> "$LOG" 2>&1
+  # eval_harness layout: score_run.py already created pairs in the eval directory.
+  if [ -f "$DIR/run_meta.json" ] && [ -f "$DIR/reportgen_pairs.jsonl" ]; then
+    GPU=$GPU bash code/eval/crimson_box.sh "$DIR" < /dev/null > "$LOG" 2>&1
     RC=$?
   else
-    echo "no pairs for $NAME" >> "$LOG"; RC=1
+    # Legacy eval_arm layout: first convert predictions_holdout.json under crimson/.
+    PAIRS="$DIR/crimson/reportgen_pairs.jsonl"
+    if [ ! -f "$PAIRS" ]; then
+    ( source "$CONDA_SH" && conda activate "${CONDA_ENV:-flare-blackwell-v5}" && \
+      python code/eval/eval_arm_pairs.py "$DIR/predictions_holdout.json" "$PAIRS" ) > "$LOG" 2>&1
+    fi
+    if [ -f "$PAIRS" ]; then
+      GPU=$GPU bash code/eval/crimson_box.sh "$PAIRS" < /dev/null >> "$LOG" 2>&1
+      RC=$?
+    else
+      echo "no pairs for $NAME" >> "$LOG"; RC=1
+    fi
   fi
   echo "[$(date -Is)] GPU $GPU end crimson $NAME rc=$RC"
 done <<< "$JOBS"

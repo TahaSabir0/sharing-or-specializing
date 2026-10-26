@@ -15,12 +15,13 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   Open W9 item: check detection outputs on the Shared s1337 epoch-1 checkpoint (its smoke run predicted
   near-constant boxes after 50 steps, normal that early).
 - Hydra-T / Reversed Hydra (Veronika): nothing pushed yet (target was 23 Oct).
-- **E4/E5 code (Alex):** group-deck builder (train, dev-select and holdout slices), manifest,
-  and the complete 102-config matrix
-  (7 modalities + 10 classification datasets, both backbones, 3 seeds) are implemented on
-  `alex/modality-decks`; local partition/config tests pass. Blackwell smoke is pending; use
-  `code/train/smoke_blackwell.ps1` from Alex's Windows session after the branch is on his personal
-  box clone. This is smoke-only; Phase B real runs still wait for all Phase A training to finish.
+- **E4/E5 code (Alex):** 51 group decks and 102 configs, balanced real-training plans,
+  validated train/holdout/CRIMSON stages, oracle result assembly, and three-seed
+  task/cell comparisons are implemented on `alex/modality-decks`. Runbook:
+  `code/E4_E5_RUNBOOK.md`; entry point: `bash code/train/e4_e5.sh prepare` from
+  `/data/ugrip2026/journal/people/thinh/repo`. CPU tests cover synthetic end-to-end
+  artifacts. Real model training/evaluation remains unverified; no E4/E5 journal
+  results are claimed. GPU gates and Phase B scheduling still follow PLAN section 7.3.
 
 ## Phase A tracker (5 arms × 3 seeds × 2 backbones = 30 training runs)
 
