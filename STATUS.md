@@ -15,8 +15,15 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   +0.06 on every seed); Shared r48 again no better. MedGemma trails Qwen on detection (0.47 vs 0.90: ultrasound
   boxes poorly placed along x; coordinate convention verified), counting and multi-label; ties elsewhere.
 - Hydra-T / Reversed Hydra (Veronika): nothing pushed yet (target was 23 Oct). **GPU 1 idle since 26 Oct 13:54.**
-- Alex pushed `alex/modality-decks` (E4/E5 code, runbook; touches `journal_train.py`, `score_single.py`,
-  `run_crimson_chain.sh`, `smoke.sh`): needs review before any E4/E5 run.
+- **E4/E5 ready to launch (26 Oct):** Alex's `alex/modality-decks` reviewed, reworked and merged
+  (`code/E4_E5_RUNBOOK.md`). 51 group decks in `/data/ugrip2026/journal/data_e4e5`; job files in
+  `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
+  Clinical/Derm/Mammo hold one dataset each, so E5 reuses those E4 adapters (PLAN changelog 26 Oct).
+  Not launched: Phase B waits for Phase A (Hydra) unless Taha decides to use the idle GPU now.
+  Smoke gate: Qwen E4 training passed in Alex's smoke (50 steps, loss 0.77); the MedGemma smoke is
+  blocked because Alex's smoke process (pid 1856908) is suspended and still holds the smoke lock.
+- Scorer fix merged (`score_single.py` dropped a score equal to the question count): rescoring all 52
+  existing holdout prediction files changed no number in the LEDGER.
 
 ## Phase A tracker (5 arms × 3 seeds × 2 backbones = 30 training runs)
 

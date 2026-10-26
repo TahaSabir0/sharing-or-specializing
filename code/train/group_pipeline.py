@@ -111,7 +111,7 @@ def run_stage(plan, stage, chain=None):
         return
     check_plan(plan)
     if stage == 'check':
-        print(f"CHECK PASS: {len(plan['jobs'])} configs and their train/dev/holdout hashes")
+        print(f"CHECK PASS: {len(plan['jobs'])} E4/E5 slots ({len({j['run_id'] for j in plan['jobs']})} runs): configs and train/dev/holdout hashes")
         return
     problems = []
     for job in jobs:
