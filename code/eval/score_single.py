@@ -70,10 +70,9 @@ def main():
         m = E.calculate_task_metrics(by_td_pred[(t, ds)], by_td_gt[(t, ds)], t)
         m["num_examples"] = len(by_td_gt[(t, ds)])
         results["by_task_dataset"][f"{t}/{ds}"] = m
-        # Select by metric name: a valid score can equal num_examples (e.g. F1=1
-        # on a singleton dataset). Filtering by numeric value silently dropped it.
-        scalar = next((m[k] for k in ("balanced_accuracy", "f1_score", "detection_f1",
-                                      "mean_absolute_error") if k in m), None)
+        # pull the headline scalar for the macro (first numeric metric value)
+        scalar = next((v for v in m.values() if isinstance(v, (int, float)) and not isinstance(v, bool)
+                       and v != m.get("num_examples")), None)
         if scalar is not None:
             macro_acc[t].append(scalar)
         print(f"  [{t}/{ds}] n={len(by_td_gt[(t, ds)])} {m}")
