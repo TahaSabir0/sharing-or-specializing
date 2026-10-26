@@ -70,9 +70,10 @@ def main():
         m = E.calculate_task_metrics(by_td_pred[(t, ds)], by_td_gt[(t, ds)], t)
         m["num_examples"] = len(by_td_gt[(t, ds)])
         results["by_task_dataset"][f"{t}/{ds}"] = m
-        # pull the headline scalar for the macro (first numeric metric value)
-        scalar = next((v for v in m.values() if isinstance(v, (int, float)) and not isinstance(v, bool)
-                       and v != m.get("num_examples")), None)
+        # pull the headline scalar for the macro (first numeric metric value). Skip num_examples by
+        # key, not value: a real score can equal the count (F1 1.0 on one question, MAE 12 on 12).
+        scalar = next((v for k, v in m.items() if k != "num_examples" and isinstance(v, (int, float))
+                       and not isinstance(v, bool)), None)
         if scalar is not None:
             macro_acc[t].append(scalar)
         print(f"  [{t}/{ds}] n={len(by_td_gt[(t, ds)])} {m}")
