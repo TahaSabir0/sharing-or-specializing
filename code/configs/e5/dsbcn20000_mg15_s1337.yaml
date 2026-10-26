@@ -1,0 +1,13 @@
+# E5 bcn20000 classification dataset adapter on mg15, seed 1337 (PLAN.md v2 E5).
+# One independent rank-8 LoRA; only the grouping level differs from the fixed protocol.
+run_id: j26_mg15_dsbcn20000_full_896_s1337
+owner: alex
+study: E5
+backbone: mg15
+method: lora
+method_cfg: {}
+deck: j26_train_dsbcn20000
+data_tag: full
+seed: 1337
+eval_deck: j26_devselect_dsbcn20000
+overrides: {}

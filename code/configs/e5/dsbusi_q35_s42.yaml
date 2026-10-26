@@ -1,0 +1,13 @@
+# E5 BUSI classification dataset adapter on q35, seed 42 (PLAN.md v2 E5).
+# One independent rank-8 LoRA; only the grouping level differs from the fixed protocol.
+run_id: j26_q35_dsbusi_full_768_s42
+owner: alex
+study: E5
+backbone: q35
+method: lora
+method_cfg: {}
+deck: j26_train_dsbusi
+data_tag: full
+seed: 42
+eval_deck: j26_devselect_dsbusi
+overrides: {}

@@ -1,0 +1,13 @@
+# E4 Clinical modality adapter on mg15, seed 2026 (PLAN.md v2 E4).
+# One independent rank-8 LoRA; only the grouping level differs from the fixed protocol.
+run_id: j26_mg15_modclinical_full_896_s2026
+owner: alex
+study: E4
+backbone: mg15
+method: lora
+method_cfg: {}
+deck: j26_train_modclinical
+data_tag: full
+seed: 2026
+eval_deck: j26_devselect_modclinical
+overrides: {}

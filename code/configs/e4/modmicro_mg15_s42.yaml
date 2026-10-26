@@ -1,0 +1,13 @@
+# E4 Microscopy modality adapter on mg15, seed 42 (PLAN.md v2 E4).
+# One independent rank-8 LoRA; only the grouping level differs from the fixed protocol.
+run_id: j26_mg15_modmicro_full_896_s42
+owner: alex
+study: E4
+backbone: mg15
+method: lora
+method_cfg: {}
+deck: j26_train_modmicro
+data_tag: full
+seed: 42
+eval_deck: j26_devselect_modmicro
+overrides: {}

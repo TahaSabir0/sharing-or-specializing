@@ -1,6 +1,6 @@
 # Status
 
-**Updated 2026-10-23.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-10-26.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
@@ -15,6 +15,12 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   Open W9 item: check detection outputs on the Shared s1337 epoch-1 checkpoint (its smoke run predicted
   near-constant boxes after 50 steps, normal that early).
 - Hydra-T / Reversed Hydra (Veronika): nothing pushed yet (target was 23 Oct).
+- **E4/E5 code (Alex):** group-deck builder (train, dev-select and holdout slices), manifest,
+  and the complete 102-config matrix
+  (7 modalities + 10 classification datasets, both backbones, 3 seeds) are implemented on
+  `alex/modality-decks`; local partition/config tests pass. Blackwell smoke is pending; use
+  `code/train/smoke_blackwell.ps1` from Alex's Windows session after the branch is on his personal
+  box clone. This is smoke-only; Phase B real runs still wait for all Phase A training to finish.
 
 ## Phase A tracker (5 arms × 3 seeds × 2 backbones = 30 training runs)
 

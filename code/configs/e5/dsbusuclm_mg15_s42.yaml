@@ -1,0 +1,13 @@
+# E5 BUS-UCLM classification dataset adapter on mg15, seed 42 (PLAN.md v2 E5).
+# One independent rank-8 LoRA; only the grouping level differs from the fixed protocol.
+run_id: j26_mg15_dsbusuclm_full_896_s42
+owner: alex
+study: E5
+backbone: mg15
+method: lora
+method_cfg: {}
+deck: j26_train_dsbusuclm
+data_tag: full
+seed: 42
+eval_deck: j26_devselect_dsbusuclm
+overrides: {}
