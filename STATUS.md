@@ -45,14 +45,14 @@ incl. CRIMSON).
    (~3× the planned 8 slot-h).
 3. Stats (`bootstrap.py`: CIs and paired contrasts for E1): deferred for now.
 4. E1 extras (PLAN E1 "also report"): per-dataset deltas by modality, output-format error table, μ.
-5. Restructure `paper/main.tex` to v2 (week of 26 Oct); draft the Qwen E0/E1 results.
-   **Waiting on Tausifa (asked 23 Oct):** her revised proposal replaces the 8 RQs with 4 that match
-   PLAN.md RQ1–RQ4, but the rest of it is unchanged from `proposal_original.tex`, so it still has the
-   studies v2 dropped (Soft-LoRA, latent experts/router, location, practical factors; N5/N6). Asked
-   whether it is her latest copy and whether I can rewrite the body to v2. Her file isn't in the repo
-   yet (only the RQ list differs). Small RQ wording points to raise when restructuring: RQ1 "capacity
-   matched" = Shared r48 control; RQ3 "visual content" → E7 input similarity; RQ4 "measured before
-   training" vs E8's trained-adapter predictors.
+5. **`paper/main.tex` restructured to v2 (28 Oct, branch `taha/paper-v2`).** Tausifa answered
+   (28 Oct): rewrite the body to v2 and keep the dropped studies (Soft-LoRA, latent experts/router,
+   location, practical factors) in a supplementary "if time permits" section. Done: RQ1–RQ4 with the
+   three wording clarifications, the five arms, setup, E0–E9 methods, E0/E1/E2 results drafted (3-seed
+   tables, Δ_spec, descriptive text; Hydra columns and CIs marked `\todo`). Compiles (checked with the
+   stock IEEEtran class; `ieeecolor.cls`/`generic.sty` are not in the repo). Next: copy it to Overleaf
+   and check it against Tausifa's Overleaf version (her RQ wording may differ); owners draft their
+   sections (target 7 Nov).
 
 ## Last runs (MedGemma E0/E2, 23–26 Oct, box time +04, repo `fd0a803`; logs in `/data/ugrip2026/journal/runs/`)
 

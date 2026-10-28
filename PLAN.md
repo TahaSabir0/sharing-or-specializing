@@ -48,6 +48,9 @@ the changes marked **(v2)**.
 - 2026-10-26 22:46: **E4/E5 training launched** (Taha) on the idle GPU 1, before Phase A's Hydra
   arms. **Deviation from §3.3:** no MedGemma smoke on the new decks (Taha's call; plain LoRA on
   MedGemma already passed the gate and all E2 runs, the decks are unchanged W1 rows, hash-checked).
+- 2026-10-28: **paper restructured to v2** (Taha). Tausifa agreed to rewrite the proposal body to v2
+  and to keep the dropped studies (Soft-LoRA, latent experts and router, location, practical
+  factors) as a supplementary section, run only if time permits after E0–E9.
 
 ---
 
@@ -644,8 +647,8 @@ runs, (4) Phase B (only after all Phase A training).
 
 ### 7.5 Paper
 
-`paper/main.tex` is still structured as v1 and is restructured to v2 first (Taha, week of
-26 Oct). Each owner then drafts the methods and results of their part. Target: section drafts by
+`paper/main.tex` was restructured to v2 on 28 Oct (Taha); the dropped v1 studies sit in its
+supplementary section. Each owner now drafts the methods and results of their part. Target: section drafts by
 7 Nov; full draft by 11 Nov; submission ~15 Nov.
 
 ---
