@@ -7,13 +7,15 @@
 \usepackage{graphicx}
 \usepackage{algorithm,algorithmic}
 \usepackage{hyperref}
-\hypersetup{hidelinks=true}
+\hypersetup{hidelinks}
 \usepackage{textcomp}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{array}
+\let\labelindent\relax % ieeecolor already defines \labelindent; enumitem redefines it
 \usepackage{enumitem}
-\usepackage{xcolor}
+% No \usepackage{xcolor}: ieeecolor loads its own colour support, and xcolor on
+% top of it gives "Incompatible color definition" at every heading.
 
 % Placeholder for numbers and text that are not final yet. Remove every \todo
 % before submission.
@@ -220,29 +222,29 @@ $B_t\in\mathbb{R}^{d'\times r}$ maps it back up. The question is how
 $A_t$ and $B_t$ should be shared across tasks. We compare five arms
 (Table~\ref{tab:arms}).
 
-\subsubsection{Shared LoRA}
+\subsection{Shared LoRA}
 One adapter is trained on all tasks: $\Delta W_t=BA$ for every $t$.
 
-\subsubsection{Task-specific LoRA (TaskLoRA)}
+\subsection{Task-specific LoRA (TaskLoRA)}
 Six independent adapters, one per task family: $\Delta W_t=B_tA_t$.
 
-\subsubsection{HydraLoRA with task heads (Hydra-T)}
+\subsection{HydraLoRA with task heads (Hydra-T)}
 A shared input projection and one output head per task:
 $\Delta W_t=B_tA$. Tasks share input features but keep their own output
 mapping.
 
-\subsubsection{Reversed HydraLoRA (Hydra-R)}
+\subsection{Reversed HydraLoRA (Hydra-R)}
 One input projection per task and a shared output projection:
 $\Delta W_t=BA_t$. Comparing Hydra-T with Hydra-R asks whether it matters
 \emph{which} matrix is shared, or only how much is shared.
 
-\subsubsection{Shared LoRA, rank 48 (control)}
+\subsection{Shared LoRA, rank 48 (control)}
 A shared adapter with $r=48=6\times 8$ and $\alpha=96$, so that it stores
 about as many parameters as TaskLoRA and keeps the same scale $\alpha/r=2$.
 It separates a gain from specialization from a gain from having six times
 the parameters.
 
-\subsubsection{Specialization by modality and by dataset}
+\subsection{Specialization by modality and by dataset}
 The same TaskLoRA construction with a different grouping: one adapter per
 imaging modality (trained on all tasks of that modality), or, within
 classification, one adapter per dataset. These ask at which level sharing
