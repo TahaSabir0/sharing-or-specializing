@@ -24,7 +24,7 @@ export JOURNAL_RUNS=/data/ugrip2026/journal/runs
 export PHASE_B_DIR=/data/ugrip2026/journal/people/thinh/phase_b
 export PHASE_B_GPU_OUT=/data/ugrip2026/journal/runs/phase_b
 
-bash code/train/phase_b.sh preflight
+bash code/train/phase_b.sh preflight e3 &&
 bash code/train/phase_b.sh e3-prepare &&
 bash code/train/phase_b.sh e3-check
 bash code/train/phase_b.sh e7-probe &&
@@ -36,7 +36,10 @@ Wrappers activate `flare-blackwell-v5` before Python and cap CPU threads at four
 Use the same environment paths for every stage and every operator. If Taha uses a
 different checkout/path, regenerate the plans there: they record absolute paths
 and input hashes. `preflight` reports missing packages/assets without modifying
-the environment. The frozen shared environment must not be changed to install
+the environment. Use `preflight e3` for E3 alone: it does not require the E6
+router packages (`gliclass`, `torchvision`) or grouped decks. Plain `preflight`
+still checks all Phase B dependencies and must pass before the later stages.
+A missing `gliclass` blocks E6 task-router work, not E3. The frozen shared environment must not be changed to install
 pytest or router dependencies. Any additional environment is provisioned by Taha.
 
 Expected plans:

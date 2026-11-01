@@ -20,7 +20,7 @@ case "$STAGE" in
     EXTRA=()
     if [ -n "${GLICLASS_INITIAL:-}" ]; then EXTRA+=(--gliclass-initial "$GLICLASS_INITIAL"); fi
     if [ -n "${RESNET_INITIAL:-}" ]; then EXTRA+=(--resnet-initial "$RESNET_INITIAL"); fi
-    python code/train/phase_b_preflight.py --data "$DATA" --groups "$GROUPS_DIR" "${EXTRA[@]}" ;;
+    python code/train/phase_b_preflight.py --data "$DATA" --groups "$GROUPS_DIR" --experiment "${2:-all}" "${EXTRA[@]}" ;;
   e3-prepare)
     python code/eval/plan_e3.py prepare --data "$DATA" --runs "$RUNS_DIR" --outputs "$GPU_OUT/e3" --out "$PB/e3_jobs" ;;
   e3-check|e3-status|e3-eval|e3-crimson)

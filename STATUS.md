@@ -4,6 +4,11 @@
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **Blackwell preflight follow-up (Alex, 1 Nov):** user confirmed the code pull;
+  full preflight found missing `gliclass`, so the chained E3 preparation did not run.
+  Added `phase_b.sh preflight e3` to check E3 independently of E6 router packages
+  and grouped decks. E6 still requires its dependencies; no shared environment
+  changes or GPU runs were made.
 - **E3/E6/E7/E8 implementation (Alex, 1 Nov):** transfer jobs and CPU analysis;
   clean-split GLiClass/ResNet18 router training, frozen predicted routes and end-to-end
   routed evaluation; fixed probe generation, all-arm forward feature extraction,
