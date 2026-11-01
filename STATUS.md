@@ -19,9 +19,10 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   (`code/E4_E5_RUNBOOK.md`). 51 group decks in `/data/ugrip2026/journal/data_e4e5`; job files in
   `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
   Clinical/Derm/Mammo hold one dataset each, so E5 reuses those E4 adapters (PLAN changelog 26 Oct).
-  **Training launched 26 Oct 22:46** (3 chains on GPU 1, PIDs 1955262/3/4; logs
-  `/data/ugrip2026/journal/runs/chain_e4e5_{1,2,3}.log`). No MedGemma smoke (deviation, PLAN changelog);
-  the first MedGemma runs are 3rd in each chain. Then evals and CRIMSON (runbook §2), then `e4_e5.sh verify`.
+  **Training done 31 Oct 00:47:** all 84 runs rc=0 and pass the protocol check (3 epochs, deck hash,
+  P8). No MedGemma smoke (deviation, PLAN changelog). **Holdout evals launched 2 Nov 00:12** (logs
+  `runs/evalchain_e4e5_{q35,mg15}.log`); CRIMSON queued behind them (`runs/crimsonchain_e4e5.log`).
+  Then `e4_e5.sh verify` and `analyze`.
 - Scorer fix merged (`score_single.py` dropped a score equal to the question count): rescoring all 52
   existing holdout prediction files changed no number in the LEDGER.
 
