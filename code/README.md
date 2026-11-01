@@ -42,6 +42,12 @@ override with `JOURNAL_DATA`, `JOURNAL_RUNS`, `MODELS_DIR`, `QWEN35_MODEL`, `CON
 
 ## Alex: E4/E5 smoke test on Blackwell
 
+For the remaining E3/E6/E7/E8 implementation and full experiment commands, see
+[PHASE_B_RUNBOOK.md](PHASE_B_RUNBOOK.md). Entry point: `bash code/train/phase_b.sh`.
+E3 transfer planning/analysis, E6 router training and predicted-route evaluation,
+E7 feature extraction/analysis, and E8 synthesis are now implemented and have CPU
+synthetic tests. Real-model runtime gates and Hydra integration remain pending.
+
 For the full experiment workflow (preparation, all 102 real runs, holdout evaluation,
 CRIMSON and statistical comparisons), see [E4_E5_RUNBOOK.md](E4_E5_RUNBOOK.md).
 The entry point is `bash code/train/e4_e5.sh prepare`; Alex's personal clone on

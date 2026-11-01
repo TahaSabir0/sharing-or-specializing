@@ -54,6 +54,7 @@ from journal_render import (ZS_PROMPT_SYSTEM, capped_images, chat_text, encode_b
 from vlm_prompt import strip_think_block  # noqa: E402
 from methods import backbones  # noqa: E402
 from methods import base as mb  # noqa: E402
+from predicted_routes import load_routes, routing_ids  # noqa: E402
 
 MAX_NEW_TOKENS = 512
 MODELS_DIR = os.environ.get("MODELS_DIR", "/data/ugrip2026/models")
@@ -116,10 +117,12 @@ def build_model(a):
     elif a.mode == "adapter":
         model = load_peft_named(model, {"a": a.adapter})
         meta["adapter"] = a.adapter
-    elif a.mode == "oracle":
+    elif a.mode in ("oracle", "routed"):
         aset = json.load(open(a.adapter_set))
-        aset = {SHORT_TASK.get(k, k): v for k, v in aset.items()}
-        names = {t: TASK_SHORT[t] for t in aset}
+        if a.mode == "oracle":
+            aset = {SHORT_TASK.get(k, k): v for k, v in aset.items()}
+        names = ({t: TASK_SHORT[t] for t in aset} if a.mode == 'oracle'
+                 else {t: f"route{i}" for i, t in enumerate(aset)})
         model = load_peft_named(model, {names[t]: p for t, p in aset.items()})
         meta["adapter_set"] = aset
 
@@ -179,7 +182,9 @@ def git_commit():
 # --------------------------------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--mode", required=True, choices=["zs", "adapter", "oracle", "compose", "plugin"])
+    ap.add_argument("--mode", required=True, choices=["zs", "adapter", "oracle", "routed", "compose", "plugin"])
+    ap.add_argument("--routes", help="E6 frozen predicted routes; requires batch_size=1")
+    ap.add_argument("--route_axis", choices=["task", "modality"])
     ap.add_argument("--protocol", choices=["bare", "prompt"], default="bare", help="zero-shot only")
     ap.add_argument("--adapter")
     ap.add_argument("--adapter_set")
@@ -196,6 +201,16 @@ def main():
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--max_images_per_batch", type=int, default=12)
     a = ap.parse_args()
+    rows_all = [json.loads(l) for l in open(a.data) if l.strip()]
+    routes = None
+    if a.routes:
+        if a.batch_size != 1 or a.mode not in ('routed', 'plugin') or not a.route_axis:
+            raise SystemExit('predicted routing requires mode routed/plugin, --route_axis and batch_size=1')
+        if a.mode == 'plugin' and a.route_axis != 'task':
+            raise SystemExit('Hydra predicted routing uses the task route')
+        routes, route_meta = load_routes(a.routes, a.data, rows_all, a.route_axis)
+    elif a.mode == 'routed' or a.route_axis:
+        raise SystemExit('predicted routing requires --routes')
     if a.mode != "zs" and a.protocol == "prompt":
         raise SystemExit("ZS-prompt is zero-shot only; adapters are evaluated bare (PLAN.md §1.6)")
     for v in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_HUB_DISABLE_TELEMETRY"):
@@ -212,6 +227,10 @@ def main():
     eos = pinned_eos(tok, a.backbone)
     pad_id = tok.pad_token_id if tok.pad_token_id is not None else eos[0]
     model, select, meta = build_model(a)
+    if routes is not None:
+        from group_artifacts import digest
+        meta.update(routes=a.routes, routes_md5=digest(a.routes), route_axis=a.route_axis,
+                    router_metadata={k: v for k, v in route_meta.items() if k != 'predictions'})
     model_type = getattr(getattr(model, "config", None), "model_type", None)
     if a.backbone != "q35" and model_type is not None and model_type != backbones.get_backbone(a.backbone).model_type:
         raise SystemExit(f"--backbone {a.backbone} expects model_type "
@@ -232,7 +251,6 @@ def main():
     json.dump(meta, open(out_dir / "run_meta.json", "w"), indent=1)
     print(f"[eval] {json.dumps({k: meta[k] for k in ('mode', 'surface', 'system_prompt', 'eos_token_id')})}", flush=True)
 
-    rows_all = [json.loads(l) for l in open(a.data) if l.strip()]
     t_grand = time.time()
     timings = {}
     for task in tasks:
@@ -241,7 +259,8 @@ def main():
             rows = rows[:a.per_task]
         if not rows:
             continue
-        select(task)
+        if routes is None:
+            select(task)
         ckpt = out_dir / f"{TASK_SHORT[task]}.jsonl"
         done = set()
         if ckpt.exists():
@@ -253,12 +272,16 @@ def main():
 
         def write(r, raw, n_new, trunc, err=None):
             ans = f"Error: {err}" if err else parse_answer(strip_think_block(raw), r["task"])
+            route_info = ({'predicted_route': routes[r['id']]['label'], 'route_axis': a.route_axis,
+                           'route_confidence': routes[r['id']]['confidence']} if routes is not None else {})
             fout.write(json.dumps(dict(
                 id=r["id"], ImageName=r["images"], Question=r["question"], TaskType=r["task"],
                 dataset=r["dataset"], modality=r["modality"], gt_answer=r["answer"], raw_output=raw,
-                Answer=ans, n_new_tokens=n_new, truncated=trunc), ensure_ascii=False) + "\n")
+                Answer=ans, n_new_tokens=n_new, truncated=trunc, **route_info), ensure_ascii=False) + "\n")
 
         def process(batch):
+            if routes is not None and a.mode == 'routed':
+                select(routes[batch[0]['id']]['label'])
             texts, image_lists = [], []
             for r in batch:
                 paths = capped_images({"image": r["images"]})
@@ -266,7 +289,8 @@ def main():
                 image_lists.append(load_images(paths, **rules))
             inputs = encode_batch(proc, texts, image_lists, a.backbone).to("cuda:0")
             n_in = inputs["input_ids"].shape[1]
-            ids = {k: torch.tensor([r[k] for r in batch], device="cuda:0") for k in mb.ROUTING_KEYS}
+            labels = [routing_ids(r, routes[r['id']], a.route_axis) if routes is not None else r for r in batch]
+            ids = {k: torch.tensor([r[k] for r in labels], device="cuda:0") for k in mb.ROUTING_KEYS}
             with mb.routing.use(**ids), torch.inference_mode():
                 gen = model.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS, do_sample=False, num_beams=1,
                                      temperature=None, top_p=None, top_k=None,

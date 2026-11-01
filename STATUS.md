@@ -1,9 +1,21 @@
 # Status
 
-**Updated 2026-10-26.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-01 (Alex code; GPU run tracker below has not been re-audited).** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **E3/E6/E7/E8 implementation (Alex, 1 Nov):** transfer jobs and CPU analysis;
+  clean-split GLiClass/ResNet18 router training, frozen predicted routes and end-to-end
+  routed evaluation; fixed probe generation, all-arm forward feature extraction,
+  debiased CKA/RSA and target-cell permutation analysis; 19-cell RQ4 synthesis.
+  Entry point `code/train/phase_b.sh`; full commands in `code/PHASE_B_RUNBOOK.md`.
+  Validation: 54 CPU regression tests plus two focused GLiClass training/collation
+  tests passed locally; Python compilation, shell syntax and 102-config regeneration
+  checks passed. These tests exercise routing, tensor hooks and analysis. No new real
+  journal results or GPU passes are claimed. Remaining runtime inputs/gates:
+  real probe IDs generated and committed from Blackwell; clean router initial weights;
+  Veronika's Hydra plugin/checkpoints and reviewed head tensor maps; real-model
+  training/inference/feature validation on both backbones. E9 remains Alberto's scope.
 - **E0 and the E1 plain-LoRA arms on Qwen are complete:** Shared, TaskLoRA and Shared r48 × 3 seeds,
   all trained, evaluated on the holdout and CRIMSON-scored (LEDGER, 2026-10-23 section).
 - **Result so far (mean over 3 seeds, no CIs yet):** Shared vs TaskLoRA is close to a tie. Shared is

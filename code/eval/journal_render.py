@@ -88,13 +88,13 @@ def chat_text(processor, question, n_images, system=None, backbone="q35"):
                                          enable_thinking=False)
 
 
-def encode_batch(processor, texts, image_lists, backbone="q35"):
+def encode_batch(processor, texts, image_lists, backbone="q35", **kwargs):
     """Tokenize + preprocess a batch: `texts[i]` goes with the images `image_lists[i]`."""
     if backbone == "mg15":
         return processor(text=texts, images=image_lists, padding=True, add_special_tokens=False,
-                         do_pan_and_scan=False, return_tensors="pt")
+                         do_pan_and_scan=False, return_tensors="pt", **kwargs)
     flat = [im for images in image_lists for im in images]
-    return processor(text=texts, images=flat, padding=True, return_tensors="pt")
+    return processor(text=texts, images=flat, padding=True, return_tensors="pt", **kwargs)
 
 
 def eos_ids(tokenizer, backbone="q35"):
