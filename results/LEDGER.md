@@ -166,3 +166,104 @@ collapsed (fewest unique reports). ZS-bare omits less only because it calls 39% 
   report omission.
 - bone_marrow TaskLoRA s42 (0.597 vs 0.71–0.76 elsewhere) checked: all 72 answers are valid class letters; 10 classes
   with 4–12 questions each, so ~10 extra errors move BA by 0.1. Seed noise on a small dataset, not a bug.
+
+----
+
+## E0 / E2 — MedGemma-1.5-4B, 3 seeds, holdout (complete; 2026-10-26)
+
+**All E0 and plain-LoRA E2 arms on MedGemma: Shared, TaskLoRA, Shared r48 × seeds 1337 / 2026 / 42, plus CRIMSON
+for every report output. Mean ± SD over seeds (sample SD, n = 3). No bootstrap CIs yet (deferred).**
+
+- Runs (`results/RUNS.csv`): `j26_mg15_{shared,shared48}_full_896_s{1337,2026,42}`,
+  `j26_mg15_task{cls,ml,report,det,reg,count}_full_896_s{1337,2026,42}`, E0 `j26_mg15_zs{bare,prompt}_holdout_896`.
+- Backbone `mg15` (MedGemma-1.5-4B-it, native 896², LF `gemma3` template with the `token_type_ids` patch; port
+  merged `5aa8128`). P8 = 14,901,248; r48 = 89,407,488 (6× P8). Configs `code/configs/e2/`.
+- Training commits: chains launched at `fd0a803`; the repo moved to `52368b1` mid-chain (only eval job files,
+  `run_crimson_chain.sh` and STATUS changed), so 7 runs record `52368b1` (per-run commit in RUNS.csv).
+- Eval: `code/eval/eval_harness.py --batch_size 1` (one question at a time, like Qwen's `eval_arm.py`; greedy, EOS
+  pinned, 512 tokens), jobs `code/eval/jobs/v2_e0_mg15_zeroshot.txt` (commit `c0123ce`) and
+  `v2_e2_mg15_holdout.txt` (`52368b1`), box `mbz-yaqub` GPU 1. TaskLoRAs: own task slice (oracle route).
+- Surface: holdout, 4,447 questions. Scoring `score_run.py` (wraps `score_single.py`) →
+  `<run_dir>/eval_holdout/metrics.json`; raw outputs `<run_dir>/eval_holdout/{cls,ml,det,count,reg,report}.jsonl`.
+- CRIMSON: `run_crimson_chain.sh` → `crimson_box.sh` (same judge and settings as Qwen) →
+  `<run_dir>/eval_holdout/crimson/crimson_metrics.json`. Unscored by the judge: ZS-prompt 13/781, every other run 0.
+- Omission: `reportgen_omission.profile` via `score_run.py` → `<run_dir>/eval_holdout/omission.json` (same
+  definition as the Qwen table).
+- Truncated / malformed (fine-tuned): 0 / 0 on every task, except one Shared seed with ≤ 0.13% truncated on one task.
+  E0 is messy: ZS-bare detection 63% malformed; ZS-prompt multi-label 21% and reports 10% truncated.
+- Deviations from PLAN §1: none (896² is MedGemma's native input, per PLAN §1.1).
+
+### Task macro (mean ± SD over 3 seeds)
+
+| Task | ZS-bare | ZS-prompt | Shared | TaskLoRA | Shared r48 |
+|---|---:|---:|---:|---:|---:|
+| Classification, BA ↑ | 0.000 | 0.024 | 0.725 ± 0.009 | 0.720 ± 0.013 | 0.699 ± 0.012 |
+| Multi-label, micro-F1 ↑ | 0.052 | 0.219 | 0.569 ± 0.007 | 0.583 ± 0.007 | 0.568 ± 0.009 |
+| Detection, F1@0.5 ↑ | 0.019 | 0.000 | 0.468 ± 0.034 | 0.528 ± 0.028 | 0.442 ± 0.034 |
+| Counting, MAE ↓ | 117.69 | 75269.41 | 25.28 ± 2.54 | 29.20 ± 0.80 | 28.35 ± 2.57 |
+| Regression, MAE ↓ | 73.97 | 51.77 | 12.16 ± 0.39 | 11.91 ± 0.79 | 13.30 ± 0.46 |
+| Report generation, CRIMSON ↑ | 0.584 | 0.676 | 0.825 ± 0.003 | 0.832 ± 0.002 | 0.822 ± 0.000 |
+
+ZS-prompt counting MAE comes from a few huge numeric answers, not from generally bad counts.
+
+### Per seed (s1337 / s2026 / s42)
+
+| Task | Shared | TaskLoRA | Shared r48 |
+|---|---|---|---|
+| Classification | 0.733 / 0.727 / 0.714 | 0.727 / 0.705 / 0.728 | 0.707 / 0.706 / 0.685 |
+| Multi-label | 0.576 / 0.562 / 0.568 | 0.575 / 0.582 / 0.590 | 0.575 / 0.558 / 0.571 |
+| Detection | 0.459 / 0.506 / 0.440 | 0.502 / 0.558 / 0.525 | 0.466 / 0.456 / 0.403 |
+| Counting | 22.66 / 27.73 / 25.46 | 28.36 / 29.28 / 29.96 | 31.31 / 27.00 / 26.73 |
+| Regression | 12.58 / 12.09 / 11.81 | 12.27 / 11.00 / 12.45 | 12.90 / 13.20 / 13.80 |
+| Report (CRIMSON) | 0.823 / 0.829 / 0.824 | 0.833 / 0.829 / 0.833 | 0.822 / 0.822 / 0.823 |
+
+### Per dataset (mean ± SD over 3 seeds)
+
+| Task / dataset | n | ZS-bare | ZS-prompt | Shared | TaskLoRA | Shared r48 |
+|---|---:|---:|---:|---:|---:|---:|
+| classification/BUS-UCLM | 52 | 0.000 | 0.022 | 0.862 ± 0.040 | 0.877 ± 0.050 | 0.870 ± 0.055 |
+| classification/BUSI | 62 | 0.000 | 0.010 | 0.864 ± 0.014 | 0.849 ± 0.043 | 0.867 ± 0.009 |
+| classification/CMMD | 357 | 0.000 | 0.205 | 0.457 ± 0.016 | 0.456 ± 0.012 | 0.449 ± 0.011 |
+| classification/bcn20000 | 286 | 0.000 | 0.000 | 0.521 ± 0.040 | 0.526 ± 0.020 | 0.511 ± 0.012 |
+| classification/bone_marrow | 72 | 0.000 | 0.000 | 0.707 ± 0.014 | 0.708 ± 0.016 | 0.689 ± 0.014 |
+| classification/dental | 420 | 0.000 | 0.000 | 0.585 ± 0.009 | 0.578 ± 0.010 | 0.431 ± 0.008 |
+| classification/fundus | 138 | 0.000 | 0.000 | 0.724 ± 0.044 | 0.709 ± 0.018 | 0.718 ± 0.018 |
+| classification/iugc | 131 | 0.000 | 0.000 | 0.962 ± 0.022 | 0.965 ± 0.023 | 0.929 ± 0.007 |
+| classification/neojaundice | 60 | 0.000 | 0.000 | 0.731 ± 0.026 | 0.713 ± 0.048 | 0.715 ± 0.051 |
+| classification/retino | 111 | 0.000 | 0.000 | 0.834 ± 0.055 | 0.817 ± 0.035 | 0.812 ± 0.063 |
+| counting/neurips22cell (MAE) | 100 | 117.69 | 75269.41 | 25.28 ± 2.54 | 29.20 ± 0.80 | 28.35 ± 2.57 |
+| detection/BUS-UCLM-det | 22 | 0.000 | 0.000 | 0.178 ± 0.044 | 0.281 ± 0.051 | 0.163 ± 0.068 |
+| detection/BUSI-det | 50 | 0.057 | 0.000 | 0.251 ± 0.057 | 0.316 ± 0.053 | 0.178 ± 0.052 |
+| detection/iugc | 516 | 0.000 | 0.000 | 0.977 ± 0.007 | 0.988 ± 0.001 | 0.984 ± 0.002 |
+| multi-label/chestdr | 388 | 0.035 | 0.108 | 0.521 ± 0.015 | 0.537 ± 0.010 | 0.510 ± 0.006 |
+| multi-label/periapical | 315 | 0.069 | 0.330 | 0.617 ± 0.028 | 0.628 ± 0.020 | 0.626 ± 0.017 |
+| regression/boneresorption (MAE) | 70 | 61.62 | 26.27 | 21.75 ± 0.77 | 21.02 ± 1.47 | 24.19 ± 0.82 |
+| regression/iugc (MAE) | 516 | 86.32 | 77.28 | 2.57 ± 0.08 | 2.79 ± 0.20 | 2.42 ± 0.10 |
+| report_generation/iu_xray (CRIMSON) | 781 | 0.584 | 0.676 | 0.825 ± 0.003 | 0.832 ± 0.002 | 0.822 ± 0.000 |
+
+### Report omission (normal-on-abnormal; 223 of 781 gold reports abnormal)
+
+| Run | normal-on-abnormal ↓ | abnormal-on-normal | pred normal | unique-pred ratio | modal-pred fraction |
+|---|---:|---:|---:|---:|---:|
+| ZS-bare | 0.206 | 0.690 | 0.280 | 0.837 | 0.035 |
+| ZS-prompt | 0.471 | 0.283 | 0.647 | 0.607 | 0.035 |
+| Shared s1337 / s2026 / s42 | 0.731 / 0.691 / 0.686 | 0.027 / 0.034 / 0.032 | 0.904 / 0.887 / 0.887 | 0.108 / 0.127 / 0.118 | 0.256 / 0.248 / 0.239 |
+| TaskLoRA s1337 / s2026 / s42 | 0.735 / 0.700 / 0.709 | 0.030 / 0.032 / 0.029 | 0.903 / 0.891 / 0.896 | 0.099 / 0.109 / 0.105 | 0.227 / 0.245 / 0.257 |
+| Shared r48 s1337 / s2026 / s42 | 0.704 / 0.749 / 0.749 | 0.027 / 0.025 / 0.030 | 0.896 / 0.910 / 0.906 | 0.092 / 0.086 / 0.078 | 0.255 / 0.259 / 0.277 |
+
+Means: normal-on-abnormal Shared 0.703, TaskLoRA 0.715, r48 0.734 (Qwen: 0.611 / 0.568 / 0.727). MedGemma reports
+collapse to normal boilerplate more than Qwen's, yet score slightly higher on CRIMSON.
+
+### Reading (descriptive; no CIs yet)
+- **TaskLoRA − Shared:** TaskLoRA ahead on detection (+0.060, every seed; BUS-UCLM and BUSI, not iugc), multi-label
+  (+0.014), regression (−0.25 MAE) and reports (+0.007 CRIMSON); Shared ahead on counting (−3.9 MAE) and cls (+0.005).
+  On Qwen Shared led on detection and counting, so the arm ranking depends on the backbone.
+- **Shared r48 vs Shared:** no gain on any task, as on Qwen; worst on dental classification (0.431 vs 0.585).
+- **MedGemma vs Qwen (same arms):** close on cls, regression and reports (MedGemma +0.003 CRIMSON); behind on
+  multi-label (−0.04), counting (~2× the MAE) and detection (0.47 vs 0.90). Detection: iugc is fine (0.98); the
+  ultrasound sets (BUS-UCLM, BUSI) are 0.16–0.32 vs Qwen's ~0.85.
+- **Detection check (W9 item, closed).** Coordinate convention verified: on the Shared s1337 holdout, mean predicted
+  box centres match gold (cx/W 0.44 vs 0.47 BUSI, 0.52 vs 0.53 BUS-UCLM) and widths are right (ratio ≈ 1). But
+  predicted-vs-gold x-correlation is 0.22 (BUSI) / 0.14 (BUS-UCLM) against y 0.72 / 0.65 (Qwen x 0.67 / 0.92).
+  MedGemma localises poorly along x on these wide images (aspect 1.24–1.41, squashed to 896²). Hypothesis, untested.
+- Zero-shot MedGemma is weaker than zero-shot Qwen on every task except regression (with prompt).

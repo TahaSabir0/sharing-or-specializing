@@ -2,9 +2,9 @@
 # Run CRIMSON scoring jobs one after another on GPU 1 (durable queue, like run_eval_chain.sh).
 #   nohup bash code/eval/run_crimson_chain.sh JOBFILE > /data/ugrip2026/journal/runs/crimsonchain_X.log 2>&1 &
 # JOBFILE: one job per line, "<name> <run_dir>"; blank lines and # comments skipped.
-# For each job: if <run_dir>/crimson/reportgen_pairs.jsonl is missing, build it from
-# <run_dir>/predictions_holdout.json (eval_arm_pairs.py), then score it with crimson_box.sh
-# (batch size 1, fixed for everything compared). Output: <run_dir>/crimson/crimson_metrics.json.
+# Existing crimson/ pairs keep the legacy output location. New eval_harness folders
+# are scored in place, so score_run.py can find CRIMSON. Legacy predictions are
+# converted under crimson/. Batch size is 1, fixed for everything compared.
 # A line "WAIT_FOR <file> <pattern>" blocks until <pattern> appears in <file>.
 set -uo pipefail
 GPU="${GPU:-1}"
@@ -26,16 +26,22 @@ while read -r NAME ARGS; do
   DIR="$ARGS"
   LOG="$RUNS/crimson_$NAME.log"
   echo "[$(date -Is)] GPU $GPU start crimson $NAME"
+  # Keep the location of already-created pairs (including completed MedGemma jobs).
+  if [ -f "$DIR/crimson/reportgen_pairs.jsonl" ]; then
+    GPU=$GPU bash code/eval/crimson_box.sh "$DIR/crimson/reportgen_pairs.jsonl" < /dev/null > "$LOG" 2>&1
+    RC=$?
   # eval_harness layout: score_run.py already created pairs in the eval directory.
-  if [ -f "$DIR/run_meta.json" ] && [ -f "$DIR/reportgen_pairs.jsonl" ]; then
+  elif [ -f "$DIR/run_meta.json" ] && [ -f "$DIR/reportgen_pairs.jsonl" ]; then
     GPU=$GPU bash code/eval/crimson_box.sh "$DIR" < /dev/null > "$LOG" 2>&1
     RC=$?
   else
     # Legacy eval_arm layout: first convert predictions_holdout.json under crimson/.
     PAIRS="$DIR/crimson/reportgen_pairs.jsonl"
-    if [ ! -f "$PAIRS" ]; then
-    ( source "$CONDA_SH" && conda activate "${CONDA_ENV:-flare-blackwell-v5}" && \
-      python code/eval/eval_arm_pairs.py "$DIR/predictions_holdout.json" "$PAIRS" ) > "$LOG" 2>&1
+    if [ -f "$DIR/reportgen_pairs.jsonl" ]; then
+      mkdir -p "$DIR/crimson" && cp "$DIR/reportgen_pairs.jsonl" "$PAIRS"
+    elif [ ! -f "$PAIRS" ]; then
+      ( source "$CONDA_SH" && conda activate "${CONDA_ENV:-flare-blackwell-v5}" && \
+        python code/eval/eval_arm_pairs.py "$DIR/predictions_holdout.json" "$PAIRS" ) > "$LOG" 2>&1
     fi
     if [ -f "$PAIRS" ]; then
       GPU=$GPU bash code/eval/crimson_box.sh "$PAIRS" < /dev/null >> "$LOG" 2>&1

@@ -1,0 +1,22 @@
+# CRIMSON for MedGemma holdout reports (E0, E2). Job names carry mg15_ so the Qwen crimson_<name>.log stay.
+# Dirs are eval_harness output folders: run_crimson_chain.sh takes their reportgen_pairs.jsonl (score_run.py).
+mg15_zsprompt /data/ugrip2026/journal/runs/j26_mg15_zsprompt_holdout_896
+mg15_zsbare /data/ugrip2026/journal/runs/j26_mg15_zsbare_holdout_896
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_shared_full_896_s1337 rc=0
+mg15_shared_s1337 /data/ugrip2026/journal/runs/j26_mg15_shared_full_896_s1337/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_shared_full_896_s2026 rc=0
+mg15_shared_s2026 /data/ugrip2026/journal/runs/j26_mg15_shared_full_896_s2026/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_shared48_full_896_s42 rc=0
+mg15_shared48_s42 /data/ugrip2026/journal/runs/j26_mg15_shared48_full_896_s42/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_taskreport_full_896_s1337 rc=0
+mg15_taskreport_s1337 /data/ugrip2026/journal/runs/j26_mg15_taskreport_full_896_s1337/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_taskreport_full_896_s2026 rc=0
+mg15_taskreport_s2026 /data/ugrip2026/journal/runs/j26_mg15_taskreport_full_896_s2026/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_shared48_full_896_s1337 rc=0
+mg15_shared48_s1337 /data/ugrip2026/journal/runs/j26_mg15_shared48_full_896_s1337/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_taskreport_full_896_s42 rc=0
+mg15_taskreport_s42 /data/ugrip2026/journal/runs/j26_mg15_taskreport_full_896_s42/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_shared48_full_896_s2026 rc=0
+mg15_shared48_s2026 /data/ugrip2026/journal/runs/j26_mg15_shared48_full_896_s2026/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_mgE2.log end eval j26_mg15_shared_full_896_s42 rc=0
+mg15_shared_s42 /data/ugrip2026/journal/runs/j26_mg15_shared_full_896_s42/eval_holdout

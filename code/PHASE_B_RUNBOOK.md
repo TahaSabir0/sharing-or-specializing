@@ -262,7 +262,7 @@ Run CPU tests in a local test environment that already contains pytest:
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q \
   code/tests/test_group_decks.py code/tests/test_group_workflow.py \
   code/tests/test_backbones.py code/tests/test_transfer_matrix.py \
-  code/tests/test_phase_b.py code/tests/test_phase_b_analysis.py
+  code/tests/test_phase_b.py code/tests/test_phase_b_analysis.py code/tests/test_crimson_layouts.py
 ```
 
 Coverage includes full synthetic E3 collection, all 164 E7 configurations,
