@@ -39,6 +39,23 @@ predictions, model weights and images. The archive manifest records file hashes.
 
 ## Integrated-branch smoke checks
 
+For unattended sequential execution from a clean source checkout, use:
+
+```bash
+nohup python3 code/train/hydra_smoke_queue.py \
+  --out_root /data/ugrip2026/journal/people/veronika/hydra-integration-smokes \
+  > /data/ugrip2026/journal/people/veronika/hydra-integration-queue.log 2>&1 < /dev/null &
+```
+
+The queue calls only the existing `smoke.sh`, once for each config below. It
+advances only after train/eval exits 0, decreasing finite loss, correct
+stored/active counts and runtime fields, n=10 for all tasks, zero format/error/
+truncation counts, and the expected validated routing summary. Any other result
+stops for manual review; it does not adjust settings or classify a nonzero format
+rate automatically. At completion it collects small evidence into the queue's
+output directory. Use `--stage medgemma` to request only the two MedGemma smokes.
+Output directories must be new. Each smoke keeps its original lock and time cap.
+
 Run sequentially, reviewing each summary before starting the next. Qwen repeats
 validate the merged branch; earlier Qwen evidence remains preserved separately.
 

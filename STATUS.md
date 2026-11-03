@@ -20,14 +20,16 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   result placeholders; `code/HYDRA_RUNBOOK.md` documents the server handoff,
   remaining gates, collection and ownership. Small evidence collection is in
   `code/train/collect_hydra_smoke.py`; no weights or datasets are included.
-- Validation: **97 focused tests passed** (Hydra, tiny real Qwen/Gemma, both full
+- Validation: **107 focused tests passed** (Hydra, tiny real Qwen/Gemma, both full
   frozen target sets, config matrix, backbone/render/per-example loss and evidence
-  collection). Full suite: **140 passed, 2 failed**; the identical two failures
+  collection and the queue gate verifier). Full-suite comparison before queue additions: **140 passed, 2 failed**; the identical two failures
   reproduce on pristine `f123fa8` (**69 passed, 2 failed**): CRIMSON layout fixture
   expectations, and global routing state left by the per-example-loss test.
   The CRIMSON shell test also emits macOS `date -Is` compatibility warnings.
   These existing failures are documented, not silently attributed to Hydra or
   fixed by changing another owner's production runners.
+- `hydra_smoke_queue.py` runs only the approved smoke wrapper, sequentially,
+  and stops on incomplete gates; its positive/negative gate tests pass.
 - Pending: collect raw Qwen artifacts, revalidate the integrated branch on Qwen,
   pass both MedGemma smokes, and Taha's review/full runs. Full-run E7 analysis,
   paper results and ledger additions depend on those completed checkpoints.
