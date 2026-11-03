@@ -1,0 +1,7 @@
+# E4 X-ray modality adapters contain report generation; score after eval chains.
+j26_mg15_modxray_full_896_s1337 /data/ugrip2026/journal/runs/j26_mg15_modxray_full_896_s1337/eval_holdout
+j26_mg15_modxray_full_896_s2026 /data/ugrip2026/journal/runs/j26_mg15_modxray_full_896_s2026/eval_holdout
+j26_mg15_modxray_full_896_s42 /data/ugrip2026/journal/runs/j26_mg15_modxray_full_896_s42/eval_holdout
+j26_q35_modxray_full_768_s1337 /data/ugrip2026/journal/runs/j26_q35_modxray_full_768_s1337
+j26_q35_modxray_full_768_s2026 /data/ugrip2026/journal/runs/j26_q35_modxray_full_768_s2026
+j26_q35_modxray_full_768_s42 /data/ugrip2026/journal/runs/j26_q35_modxray_full_768_s42

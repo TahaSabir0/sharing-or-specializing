@@ -1,0 +1,6 @@
+# CRIMSON chain 2 (E0/E1 Qwen holdout reports).
+shared48_s1337 /data/ugrip2026/journal/runs/j26_q35_shared48_full_768_s1337
+zsprompt /data/ugrip2026/journal/runs/j26_q35_zsprompt_holdout_768
+taskreport_s42 /data/ugrip2026/journal/runs/j26_q35_taskreport_full_768_s42
+shared_s42 /data/ugrip2026/journal/runs/j26_q35_shared_full_768_s42
+shared48_s2026 /data/ugrip2026/journal/runs/j26_q35_shared48_full_768_s2026

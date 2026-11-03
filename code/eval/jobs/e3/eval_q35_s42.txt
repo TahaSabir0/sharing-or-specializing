@@ -1,0 +1,7 @@
+# E3 q35 s42: each TaskLoRA on the full holdout, eval_arm.py; plan_e3_jobs.py
+e3_q35_taskcls_s42 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskcls_full_768_s42 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/e3/e3_q35_taskcls_s42/predictions_holdout.json
+e3_q35_taskml_s42 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskml_full_768_s42 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/e3/e3_q35_taskml_s42/predictions_holdout.json
+e3_q35_taskdet_s42 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskdet_full_768_s42 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/e3/e3_q35_taskdet_s42/predictions_holdout.json
+e3_q35_taskcount_s42 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskcount_full_768_s42 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/e3/e3_q35_taskcount_s42/predictions_holdout.json
+e3_q35_taskreg_s42 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskreg_full_768_s42 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/e3/e3_q35_taskreg_s42/predictions_holdout.json
+e3_q35_taskreport_s42 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskreport_full_768_s42 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/e3/e3_q35_taskreport_s42/predictions_holdout.json

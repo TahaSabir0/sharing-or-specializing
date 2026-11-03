@@ -15,6 +15,7 @@ sys.path.insert(0, str(CODE))
 from methods.base import (count_trainable, load_method_state, load_targets, routing,
                           save_method_state, validate_routing_stats)
 from methods.hydra import HydraLinear, apply_method
+from methods import backbones
 
 
 @pytest.fixture(autouse=True)
@@ -258,10 +259,14 @@ def test_target_spec_roundtrip_and_prefill_decode_routing(tmp_path, mode, scope)
         np.testing.assert_array_equal(z["sample_id"], ["sample-a", "sample-b"])
 
 
-@pytest.mark.parametrize("mode, expected", [("hydraT", 78716928), ("hydraR", 72757248)])
-def test_full_frozen_qwen_target_set_parameter_counts_without_allocating_weights(mode, expected):
-    spec = load_targets()
+@pytest.mark.parametrize("backbone, mode, expected", [
+    ("q35", "hydraT", 78716928), ("q35", "hydraR", 72757248),
+    ("mg15", "hydraT", 55287808), ("mg15", "hydraR", 49020928)])
+def test_full_frozen_target_set_parameter_counts_without_allocating_weights(backbone, mode, expected):
+    from types import SimpleNamespace
+    spec = backbones.load_spec(backbone)
     model = nn.Module()
+    model.config = SimpleNamespace(model_type=backbones.get_backbone(backbone).model_type)
     model.model = nn.Module()
     model.model.language_model = nn.Module()
     # The frozen spec supplies the full 248 target shapes; meta avoids 9B-model allocation.
@@ -274,9 +279,9 @@ def test_full_frozen_qwen_target_set_parameter_counts_without_allocating_weights
             layers.append(layer)
     model.model.language_model.layers = layers
     apply_method(model, {"mode": mode})
-    assert len(layers) == spec["n_modules"] == 248
+    assert len(layers) == spec["n_modules"]
     assert count_trainable(model) == expected
-    assert model.journal_parameter_counts["active_params_per_example"] == spec["P8"] == 21639168
+    assert model.journal_parameter_counts["active_params_per_example"] == spec["P8"]
 
 
 def test_wrong_target_set_fails_before_freezing_model():
@@ -286,14 +291,16 @@ def test_wrong_target_set_fails_before_freezing_model():
     assert all(p.requires_grad for p in model.parameters())
 
 
-def test_qwen_configs_pin_all_modes_seeds_and_common_recipe():
+@pytest.mark.parametrize("backbone, folder, study, res", [
+    ("q35", "v2", "E1", 768), ("mg15", "e2", "E2", 896)])
+def test_configs_pin_all_modes_seeds_and_common_recipe(backbone, folder, study, res):
     import yaml
     for mode in ("hydraT", "hydraR"):
         for seed in (1337, 2026, 42):
-            cfg = yaml.safe_load((CODE / "configs" / "v2" / f"{mode}_s{seed}.yaml").read_text())
-            assert cfg["run_id"] == f"j26_q35_{mode}_full_768_s{seed}"
-            assert cfg["owner"] == "veronika" and cfg["study"] == "E1"
-            assert cfg["backbone"] == "q35" and cfg["method"] == "hydra"
+            cfg = yaml.safe_load((CODE / "configs" / folder / f"{mode}_s{seed}.yaml").read_text())
+            assert cfg["run_id"] == f"j26_{backbone}_{mode}_full_{res}_s{seed}"
+            assert cfg["owner"] == "veronika" and cfg["study"] == study
+            assert cfg["backbone"] == backbone and cfg["method"] == "hydra"
             assert cfg["seed"] == seed and cfg["deck"] == "j26_train_mix"
             assert cfg["data_tag"] == "full" and cfg["overrides"] == {}
             assert cfg["method_cfg"] == {"mode": mode, "r": 8, "alpha": 16, "dropout": .05,
@@ -301,7 +308,8 @@ def test_qwen_configs_pin_all_modes_seeds_and_common_recipe():
 
 
 @pytest.mark.parametrize("mode", ["hydraT", "hydraR"])
-def test_runtime_records_both_parameter_budgets(tmp_path, monkeypatch, mode):
+@pytest.mark.parametrize("p8", [21639168, 14901248])
+def test_runtime_records_both_parameter_budgets(tmp_path, monkeypatch, mode, p8):
     from types import SimpleNamespace
     sys.path.insert(0, str(CODE / "train"))
     import journal_train
@@ -311,12 +319,13 @@ def test_runtime_records_both_parameter_budgets(tmp_path, monkeypatch, mode):
     monkeypatch.setattr(torch.cuda, "reset_peak_memory_stats", lambda: None)
     monkeypatch.setattr(torch.cuda, "max_memory_allocated", lambda: 1024)
     monkeypatch.setattr(torch.cuda, "max_memory_reserved", lambda: 2048)
-    callback = journal_train.runtime_callback(str(tmp_path), "hydra")
+    callback = journal_train.runtime_callback(str(tmp_path), "hydra", p8)
     args = SimpleNamespace(per_device_train_batch_size=1, gradient_accumulation_steps=8)
     state = SimpleNamespace(global_step=50)
     callback.on_train_begin(args, state, None, model=model)
     callback.on_train_end(args, state, None)
     runtime = json.loads((tmp_path / "runtime.json").read_text())
+    assert runtime["P8"] == p8
     assert runtime["stored_params"] == count_trainable(model)
     assert runtime["active_params_per_example"] == 8 * (5 + 7)
 
@@ -324,7 +333,7 @@ def test_runtime_records_both_parameter_budgets(tmp_path, monkeypatch, mode):
 @pytest.mark.parametrize("mode, factor", [("hydraT", "B"), ("hydraR", "A")])
 def test_head_similarity_marks_undefined_heads_and_preserves_task_order(tmp_path, mode, factor):
     sys.path.insert(0, str(CODE / "analysis"))
-    from hydra_heads import summarize_heads
+    from hydra_heads import summarize_heads, head_mapping
     model, spec, name = toy_model()
     cfg = {"mode": mode, "target_spec": spec}
     apply_method(model, cfg)
@@ -343,3 +352,44 @@ def test_head_similarity_marks_undefined_heads_and_preserves_task_order(tmp_path
     assert matrix[0][0] == pytest.approx(1)
     assert matrix[0][1] == pytest.approx(-1)
     assert matrix[0][2] is None and matrix[2][2] is None
+    for group_by, group in (("target", name), ("decoder_layer", name.rsplit(".", 1)[0])):
+        mapping = head_mapping(tmp_path, group_by)
+        assert mapping["mode"] == mode
+        assert mapping["layers"][group][result["task_names"][0]] == [f"{name}.lora_{factor}.0.weight"]
+        map_path = tmp_path / f"head_map_{group_by}.json"
+        map_path.write_text(json.dumps(mapping))
+        from representations import head_similarity
+        alex = head_similarity(tmp_path / "method_state.safetensors", map_path,
+                               tmp_path / f"alex_{group_by}.json")
+        assert alex["layers"][group]["cls/ml"] == pytest.approx(-1)
+        assert alex["layers"][group]["cls/det"] is None
+
+
+@pytest.mark.parametrize("mode, factor", [("hydraT", "B"), ("hydraR", "A")])
+def test_e7_decoder_map_concatenates_multiple_targets_in_fixed_order(tmp_path, mode, factor):
+    sys.path.insert(0, str(CODE / "analysis"))
+    from hydra_heads import head_mapping
+    from representations import head_similarity
+    model, spec, name = toy_model()
+    block = model.model.language_model.layers[0]
+    block.v_proj = nn.Linear(5, 7)
+    spec.update(target_modules=["q_proj", "v_proj"], n_modules=2)
+    cfg = {"mode": mode, "target_spec": spec}
+    apply_method(model, cfg)
+    for target in (block.q_proj, block.v_proj):
+        randomize_b(target)
+    save_method_state(model, str(tmp_path), "hydra", cfg)
+    mapping = head_mapping(tmp_path, "decoder_layer")
+    layer = name.rsplit(".", 1)[0]
+    entries = mapping["layers"][layer]
+    assert len(entries["classification"]) == 2
+    vectors = []
+    for task in (0, 1):
+        heads = [target.lora_B if factor == "B" else target.lora_A
+                 for target in (block.q_proj, block.v_proj)]
+        vectors.append(torch.cat([head[task].weight.detach().flatten() for head in heads]))
+    expected = torch.nn.functional.cosine_similarity(*vectors, dim=0).item()
+    path = tmp_path / "mapping.json"
+    path.write_text(json.dumps(mapping))
+    result = head_similarity(tmp_path / "method_state.safetensors", path, tmp_path / "out.json")
+    assert result["layers"][layer]["cls/ml"] == pytest.approx(expected, abs=1e-6)

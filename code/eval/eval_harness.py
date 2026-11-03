@@ -3,8 +3,11 @@
 
 Rewritten from the challenge zeroshot_truetest.py (batched, left-padded greedy generation,
 resumable per-task checkpoints). Journal protocol: bare prompts rendered by journal_render.py
-(identical to training), 768² cap, max_new_tokens 512 for every task, greedy, EOS pinned to
-[<|im_end|>, <|endoftext|>], enable_thinking=False, no answer seeds, the repo parser.
+(identical to training), max_new_tokens 512 for every task, greedy, EOS pinned, no answer seeds,
+the repo parser. Per backbone (--backbone, default q35):
+  q35   Qwen3.5-9B: 768² cap, EOS [<|im_end|>, <|endoftext|>], enable_thinking=False
+  mg15  MedGemma-1.5-4B: native 896² (the processor resizes; no cap), EOS [<end_of_turn>, <eos>],
+        Gemma3 prompt built by hand, one image list per prompt (journal_render.py)
 
 Modes
   --mode zs --protocol bare|prompt         zero-shot base (ZS-bare / ZS-prompt)
@@ -46,12 +49,17 @@ CODE = HERE.parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(CODE))
 from infer_single_adapter import parse_answer  # noqa: E402  (repo parser, not re-implemented)
-from journal_render import (IMAGE_MAX_PIXELS, ZS_PROMPT_SYSTEM, capped_images, chat_text,  # noqa: E402
-                            eos_ids as pinned_eos, load_images)
+from journal_render import (ZS_PROMPT_SYSTEM, capped_images, chat_text, encode_batch,  # noqa: E402
+                            eos_ids as pinned_eos, image_rules, load_images)
 from vlm_prompt import strip_think_block  # noqa: E402
+from methods import backbones  # noqa: E402
 from methods import base as mb  # noqa: E402
+from predicted_routes import load_routes, routing_ids  # noqa: E402
 
 MAX_NEW_TOKENS = 512
+MODELS_DIR = os.environ.get("MODELS_DIR", "/data/ugrip2026/models")
+DEFAULT_BASE = {"q35": os.environ.get("QWEN35_MODEL", f"{MODELS_DIR}/Qwen3.5-9B"),
+                "mg15": os.environ.get("MEDGEMMA_MODEL", f"{MODELS_DIR}/medgemma-1.5-4b-it")}
 TASK_ORDER = ["counting", "detection", "regression", "multi-label classification",
               "classification", "report_generation"]
 TASK_SHORT = {"classification": "cls", "multi-label classification": "ml", "detection": "det",
@@ -109,10 +117,12 @@ def build_model(a):
     elif a.mode == "adapter":
         model = load_peft_named(model, {"a": a.adapter})
         meta["adapter"] = a.adapter
-    elif a.mode == "oracle":
+    elif a.mode in ("oracle", "routed"):
         aset = json.load(open(a.adapter_set))
-        aset = {SHORT_TASK.get(k, k): v for k, v in aset.items()}
-        names = {t: TASK_SHORT[t] for t in aset}
+        if a.mode == "oracle":
+            aset = {SHORT_TASK.get(k, k): v for k, v in aset.items()}
+        names = ({t: TASK_SHORT[t] for t in aset} if a.mode == 'oracle'
+                 else {t: f"route{i}" for i, t in enumerate(aset)})
         model = load_peft_named(model, {names[t]: p for t, p in aset.items()})
         meta["adapter_set"] = aset
 
@@ -172,13 +182,16 @@ def git_commit():
 # --------------------------------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--mode", required=True, choices=["zs", "adapter", "oracle", "compose", "plugin"])
+    ap.add_argument("--mode", required=True, choices=["zs", "adapter", "oracle", "routed", "compose", "plugin"])
+    ap.add_argument("--routes", help="E6 frozen predicted routes; requires batch_size=1")
+    ap.add_argument("--route_axis", choices=["task", "modality"])
     ap.add_argument("--protocol", choices=["bare", "prompt"], default="bare", help="zero-shot only")
     ap.add_argument("--adapter")
     ap.add_argument("--adapter_set")
     ap.add_argument("--compose")
     ap.add_argument("--run_dir")
-    ap.add_argument("--base_model", default=os.environ.get("QWEN35_MODEL", "/data/ugrip2026/models/Qwen3.5-9B"))
+    ap.add_argument("--backbone", choices=sorted(backbones.BACKBONES), default=backbones.DEFAULT_BACKBONE)
+    ap.add_argument("--base_model", default=None, help="default: the backbone's model on the box")
     ap.add_argument("--data", required=True, help="journal eval deck (j26_holdout.jsonl, j26_devselect.jsonl)")
     ap.add_argument("--surface", required=True, choices=["holdout", "dev", "devselect", "valpub"],
                     help="label of the evaluation surface (PLAN rule: always labelled)")
@@ -188,10 +201,22 @@ def main():
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--max_images_per_batch", type=int, default=12)
     a = ap.parse_args()
+    rows_all = [json.loads(l) for l in open(a.data) if l.strip()]
+    routes = None
+    if a.routes:
+        if a.batch_size != 1 or a.mode not in ('routed', 'plugin') or not a.route_axis:
+            raise SystemExit('predicted routing requires mode routed/plugin, --route_axis and batch_size=1')
+        if a.mode == 'plugin' and a.route_axis != 'task':
+            raise SystemExit('Hydra predicted routing uses the task route')
+        routes, route_meta = load_routes(a.routes, a.data, rows_all, a.route_axis)
+    elif a.mode == 'routed' or a.route_axis:
+        raise SystemExit('predicted routing requires --routes')
     if a.mode != "zs" and a.protocol == "prompt":
         raise SystemExit("ZS-prompt is zero-shot only; adapters are evaluated bare (PLAN.md §1.6)")
     for v in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_HUB_DISABLE_TELEMETRY"):
         os.environ.setdefault(v, "1")
+    a.base_model = a.base_model or DEFAULT_BASE[a.backbone]
+    rules = image_rules(a.backbone)
     out_dir = Path(a.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -199,24 +224,33 @@ def main():
     proc = AutoProcessor.from_pretrained(a.base_model, local_files_only=True)
     tok = proc.tokenizer
     tok.padding_side = "left"
-    eos = pinned_eos(tok)
+    eos = pinned_eos(tok, a.backbone)
     pad_id = tok.pad_token_id if tok.pad_token_id is not None else eos[0]
     model, select, meta = build_model(a)
+    if routes is not None:
+        from group_artifacts import digest
+        meta.update(routes=a.routes, routes_md5=digest(a.routes), route_axis=a.route_axis,
+                    router_metadata={k: v for k, v in route_meta.items() if k != 'predictions'})
+    model_type = getattr(getattr(model, "config", None), "model_type", None)
+    if a.backbone != "q35" and model_type is not None and model_type != backbones.get_backbone(a.backbone).model_type:
+        raise SystemExit(f"--backbone {a.backbone} expects model_type "
+                         f"{backbones.get_backbone(a.backbone).model_type!r}, loaded {model_type!r} from {a.base_model}")
     system = ZS_PROMPT_SYSTEM if (a.mode == "zs" and a.protocol == "prompt") else None
     stats = getattr(model, "journal_routing_stats", None)
     if stats is None and a.mode == "plugin":
         stats = getattr(getattr(model, "base_model", None), "journal_routing_stats", None)
 
     meta.update({"surface": a.surface, "data": a.data, "tasks": tasks, "per_task": a.per_task,
-                 "system_prompt": system, "max_new_tokens": MAX_NEW_TOKENS, "image_max_pixels": IMAGE_MAX_PIXELS,
+                 "backbone": a.backbone, "base_model": a.base_model, "model_type": model_type,
+                 "system_prompt": system, "max_new_tokens": MAX_NEW_TOKENS,
+                 "image_max_pixels": rules["max_pixels"], "image_min_pixels": rules["min_pixels"],
                  "eos_token_id": eos, "decoding": "greedy (do_sample=False, num_beams=1)",
-                 "enable_thinking": False, "batch_size": a.batch_size, "host": socket.gethostname(),
+                 "enable_thinking": False if a.backbone == "q35" else None, "batch_size": a.batch_size, "host": socket.gethostname(),
                  "gpu": os.environ.get("CUDA_VISIBLE_DEVICES", ""), "code_commit": git_commit(),
                  "started": datetime.datetime.now().isoformat(timespec="seconds")})
     json.dump(meta, open(out_dir / "run_meta.json", "w"), indent=1)
     print(f"[eval] {json.dumps({k: meta[k] for k in ('mode', 'surface', 'system_prompt', 'eos_token_id')})}", flush=True)
 
-    rows_all = [json.loads(l) for l in open(a.data) if l.strip()]
     t_grand = time.time()
     timings = {}
     for task in tasks:
@@ -225,7 +259,8 @@ def main():
             rows = rows[:a.per_task]
         if not rows:
             continue
-        select(task)
+        if routes is None:
+            select(task)
         ckpt = out_dir / f"{TASK_SHORT[task]}.jsonl"
         done = set()
         if ckpt.exists():
@@ -237,20 +272,25 @@ def main():
 
         def write(r, raw, n_new, trunc, err=None):
             ans = f"Error: {err}" if err else parse_answer(strip_think_block(raw), r["task"])
+            route_info = ({'predicted_route': routes[r['id']]['label'], 'route_axis': a.route_axis,
+                           'route_confidence': routes[r['id']]['confidence']} if routes is not None else {})
             fout.write(json.dumps(dict(
                 id=r["id"], ImageName=r["images"], Question=r["question"], TaskType=r["task"],
                 dataset=r["dataset"], modality=r["modality"], gt_answer=r["answer"], raw_output=raw,
-                Answer=ans, n_new_tokens=n_new, truncated=trunc), ensure_ascii=False) + "\n")
+                Answer=ans, n_new_tokens=n_new, truncated=trunc, **route_info), ensure_ascii=False) + "\n")
 
         def process(batch):
-            texts, imgs = [], []
+            if routes is not None and a.mode == 'routed':
+                select(routes[batch[0]['id']]['label'])
+            texts, image_lists = [], []
             for r in batch:
                 paths = capped_images({"image": r["images"]})
-                texts.append(chat_text(proc, r["question"], len(paths), system=system))
-                imgs.extend(load_images(paths))
-            inputs = proc(text=texts, images=imgs, padding=True, return_tensors="pt").to("cuda:0")
+                texts.append(chat_text(proc, r["question"], len(paths), system=system, backbone=a.backbone))
+                image_lists.append(load_images(paths, **rules))
+            inputs = encode_batch(proc, texts, image_lists, a.backbone).to("cuda:0")
             n_in = inputs["input_ids"].shape[1]
-            ids = {k: torch.tensor([r[k] for r in batch], device="cuda:0") for k in mb.ROUTING_KEYS}
+            labels = [routing_ids(r, routes[r['id']], a.route_axis) if routes is not None else r for r in batch]
+            ids = {k: torch.tensor([r[k] for r in labels], device="cuda:0") for k in mb.ROUTING_KEYS}
             with mb.routing.use(**ids), torch.inference_mode():
                 gen = model.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS, do_sample=False, num_beams=1,
                                      temperature=None, top_p=None, top_k=None,

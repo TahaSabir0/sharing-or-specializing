@@ -1,0 +1,17 @@
+# Smoke-gate config for MedGemma-1.5-4B plain LoRA (PLAN.md §3.3, W9). Plain LoRA is LF's own LoRA, no
+# plug-in. Rank 8 / alpha 16 / dropout 0.05 are the PROTOCOL values in code/train/journal_train.py, not
+# repeated here. The MedGemma model, `gemma3` template, native 896² images (no 768² cap) and the 238
+# language-model LoRA targets come from `backbone: mg15` (code/methods/backbones.py).
+#   bash code/train/smoke.sh <your_name> code/configs/smoke_lora_mg15.yaml
+# The run id is the E2 Shared one (smoke.sh appends _smoke_<name>_<time> and writes under runs/smoke/).
+# Pass: trainable params 14,901,248; loss decreasing; template gate GATE_PASS (code/train/README.md).
+run_id: j26_mg15_shared_full_896_s1337
+owner: alberto
+study: W9
+backbone: mg15
+method: lora
+method_cfg: {}
+deck: j26_train_mix
+data_tag: full
+seed: 1337
+overrides: {}

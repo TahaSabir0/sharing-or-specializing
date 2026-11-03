@@ -11,14 +11,14 @@ branch `Taha/qwen35-sprint`, commit `bec2d1f`) into fresh history. Develop here,
 
 | Folder | What's here | State (2026-10-19) | Owner of what's left |
 |---|---|---|---|
-| `train/` | `journal_train.py` (LF v0.9.5 wrapper: pinned protocol, per-example loss, routing ids, plug-in hook, run registry), `journal_loss.py`, `run_chain.sh` (real runs, Taha only), **`smoke.sh`** (teammates' smoke tests), `target_modules_qwen35.json` | done; trained every run so far | MedGemma target list + backbone switch: Alberto |
-| `methods/` | `base.py` (plug-in plumbing), `lora_ref.py` (reference plug-in), `hydra.py` (`hydraT` + `hydraR`; see `methods/HYDRA.md`) | Hydra implemented and CPU-tested; Blackwell smoke pending | Hydra gate + MedGemma integration: Veronika with Alberto |
+| `train/` | `journal_train.py` (LF v0.9.5 wrapper: pinned protocol, per-example loss, routing ids, plug-in hook, run registry), `journal_loss.py`, `run_chain.sh` (real runs, Taha only), **`smoke.sh`**, `e4_e5.sh` + `plan_e4_e5.py` + `group_pipeline.py` (E4/E5 prepare/plan/audit, CPU) (teammates' smoke tests), `target_modules_qwen35.json` | done; trained every run so far | MedGemma port (target list, `backbone: mg15` switch, Gemma3 render and gate): Alberto, passes the smoke gate (2026-10-23) |
+| `methods/` | `base.py` (plug-in plumbing), `lora_ref.py` (reference plug-in, copy it) | done | `hydra.py` (`hydraT` + `hydraR`): Veronika |
 | `eval/` | `eval_harness.py` (batched; zs / adapter / oracle / plugin), `eval_arm.py` (simple one-at-a-time, used for the first runs), `score_single.py` + `evaluation.py` (the scorer), `score_run.py`, `crimson_box.sh` + `score_crimson.py` (reports), `template_gate.py`, `run_eval_chain.sh` + `jobs/` (Taha's eval queue) | done; harness tested on the box 2026-10-19 | E3 transfer jobs: Alex; E6 predicted-route eval: Alex |
-| `data/` | `build_journal_decks.py` (W1, all journal decks), `journal_format.py` (row schema), `label_ids.json` (frozen routing ids), `build_decks.py` (challenge exporter), `build_splits_REFERENCE.py` (provenance, never rerun) | done | modality/dataset decks (E4, E5): Alex |
+| `data/` | `build_journal_decks.py` (W1), `build_group_decks.py` (E4/E5 partitions of the frozen W1 decks), `journal_format.py` (row schema), `label_ids.json` (frozen routing ids), `build_decks.py` (challenge exporter), `build_splits_REFERENCE.py` (provenance, never rerun) | W1 done; E4/E5 builder + manifest done | stage E4/E5 decks for real runs: Taha |
 | `analysis/` | `bootstrap.py` (CIs, paired bootstrap, seed bootstrap, Holm) | bootstrap done | `transfer_matrix.py` (E3), `representations.py` (E7), RQ4 synthesis (E8): Alex; `scaling_model.py` (E9): Alberto |
-| `configs/` | `v2/` (every v2 run), `s1/` (seed-1337 Shared/TaskLoRA, v1 naming, kept for provenance), `smoke_lora_ref.yaml`, `recipe_template_qwen35_768.yaml` (challenge recipe, reference) | | each owner adds theirs in `v2/` |
+| `configs/` | `v2/` (Qwen E1), `e2/` (MedGemma), `e4/` + `e5/` (generated Alex group-adapter matrices), `s1/` (seed-1337 provenance), smoke/reference recipes | | regenerate E4/E5 with `python code/configs/generate_e4_e5.py` |
 | `env/` | `requirements.txt`, `LF_VERSION.md`, `lf_v095_tf5_compat.patch` | frozen | |
-| `tests/` | `test_per_example_loss.py` | | add tests next to your code |
+| `tests/` | protocol/backbone tests plus `test_group_decks.py` for the E4/E5 partition and config matrix | | add tests next to your code |
 
 ## Environments (box `mbz-yaqub`)
 
@@ -40,6 +40,21 @@ override with `JOURNAL_DATA`, `JOURNAL_RUNS`, `MODELS_DIR`, `QWEN35_MODEL`, `CON
 - No personal paths in shared code: arguments or environment variables.
 - CPU-heavy scripts cap threads (`OMP_NUM_THREADS=4` etc.); the box has 512 cores.
 
+## E4/E5 (Alex's group adapters)
+
+`code/E4_E5_RUNBOOK.md`. `bash code/train/e4_e5.sh prepare` builds the 51 group decks from the
+frozen W1 decks into `/data/ugrip2026/journal/data_e4e5` (a personal clone: `../group_decks`) and
+writes the job files for `run_chain.sh` / `run_eval_chain.sh` / `run_crimson_chain.sh`. The E4/E5
+scripts are CPU-only (prepare, check, status, verify, analyze); real runs launch through the usual
+runners (Taha). Smoke tests: `JOURNAL_DATA=<your group_decks> bash code/train/smoke.sh <you> <e4/e5 config>`.
+
+## E3/E6/E7/E8 (Alex's Phase B)
+
+`code/PHASE_B_RUNBOOK.md`; CPU entry point `bash code/train/phase_b.sh` (collection and analysis).
+E3 inference runs through `run_eval_chain.sh` / `run_crimson_chain.sh` from the job files in
+`code/eval/jobs/e3/` (`plan_e3_jobs.py`): Qwen with `eval_arm.py`, MedGemma with
+`eval_harness.py --batch_size 1`, as their E0/E1/E2 baselines.
+
 ## Carried from the challenge (provenance)
 
 | File | Source (@ `bec2d1f` unless noted) |
@@ -54,3 +69,6 @@ override with `JOURNAL_DATA`, `JOURNAL_RUNS`, `MODELS_DIR`, `QWEN35_MODEL`, `CON
 Not carried (fetch when E6 needs them): the GLiClass task router (old repo
 `docker_qwen35/inference.py`, weights on ws `/share/sda/ugrip/models/FLARE-gliclass-small-v1.0`) and
 the ResNet-18 modality classifier (old branch `Taha/modality-adapters`).
+
+Hydra-T/R implementation, validation and server handoff:
+[`methods/HYDRA.md`](methods/HYDRA.md), [`HYDRA_RUNBOOK.md`](HYDRA_RUNBOOK.md).

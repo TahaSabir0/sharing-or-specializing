@@ -22,6 +22,11 @@ the adapter dtype; the delta returns to the base output dtype.
 | Hydra-T | 78,716,928 | 21,639,168 |
 | Reversed Hydra | 72,757,248 | 21,639,168 |
 
+| MedGemma-1.5-4B, r8 | Stored/trainable | Active per example |
+|---|---:|---:|
+| Hydra-T | 55,287,808 | 14,901,248 |
+| Reversed Hydra | 49,020,928 | 14,901,248 |
+
 Counts are derived from actual target shapes, checked at load, printed, and added
 to `runtime.json` as `stored_params` / `active_params_per_example`. Both Hydra
 modes expose all factors as trainable, but each example activates only its head.
@@ -29,11 +34,15 @@ Unselected heads are not evaluated and receive no gradient from that example.
 
 All method settings have explicit defaults: `mode: hydraT`, `r: 8`, `alpha: 16`,
 `dropout: 0.05`, `n_tasks: 6`, `log_routing: true`, `target_spec: null`.
+With null, the merged backbone registry selects the frozen target file from
+`model.config.model_type` (Qwen 248, Gemma3 238); an explicit `target_spec`
+remains supported for validated ports and tiny-model tests.
 Unknown settings and missing/invalid task routes fail. Generation expects one
 label per batch row, constant over prefill and decoding; beam expansion is not
 supported by this oracle contract (the protocol uses greedy generation).
 
-Six E1 configs are in `configs/v2/hydra{T,R}_s{1337,2026,42}.yaml`.
+Six E1 configs are in `configs/v2/hydra{T,R}_s{1337,2026,42}.yaml`;
+six E2 configs are in `configs/e2/hydra{T,R}_s{1337,2026,42}.yaml`.
 Each uses the full `j26_train_mix`, the unchanged training protocol, and no
 overrides. Data rendering, per-example loss, prompts, decoding and scoring use the
 existing harness; no holdout selection or parser changes are introduced.
@@ -115,20 +124,20 @@ Prompts/data are unchanged; rerun `template_gate.py` if those change during the 
 Submit the summaries and six configs in the PR. Only Taha queues real runs and
 holdout evaluations; never use the shared training checkout for personal work.
 
-## MedGemma integration boundary
+## MedGemma integration
 
-The Hydra wrapper contains no Qwen/Gemma layer names. To use the MedGemma port's
-frozen target list, pass its JSON object verbatim in `method_cfg.target_spec`.
-The schema is the existing `{scope_prefix, target_modules, n_modules, ...}`;
-the mapping is saved with the method config and reused identically in evaluation.
-With `null`, the current helper uses the frozen Qwen target list and fails if the
-count does not match. Do not invent a Gemma target count or use a Qwen run config
-for MedGemma.
+Alberto's port is merged from current main. The existing registry provides the
+Gemma3 model loader, frozen 238-target list, native 896-square image handling,
+EOS and template, and the training token_type_ids fix. Hydra calls the common
+target iterator and uses the same apply function at training and evaluation.
+The runtime callback records stored/active counts alongside the backbone's P8.
+No MedGemma-specific method hyperparameters or recipe overrides are introduced.
 
-Alberto owns the actual Gemma frozen list, template, model loading, image handling,
-EOS settings and train/eval backbone dispatch. E2 configs and MedGemma smoke-gate
-claims must wait for that port; changing the top-level `backbone` string alone
-does not switch the present Qwen-only harness. Each backbone needs its own gate.
+Both modes pass CPU shape/count tests against the full frozen MedGemma spec and
+training/checkpointing/generation tests on tiny real Gemma3 models. **Real NF4
+MedGemma Hydra smoke remains pending**; the original Qwen smoke does not certify
+the subsequently merged backbone integration. See `../HYDRA_RUNBOOK.md` for exact
+commands, source provenance, evidence collection and the remaining GPU gates.
 
 ## E7 head analysis (after training)
 
@@ -143,3 +152,10 @@ heads produce JSON null. Raw-factor cosine depends on the factor basis and rando
 initialization; treat it as descriptive, compare seeds, and do not infer task
 transfer or statistical significance from it alone. Alex owns the broader
 representation analysis and its layer/probe choices.
+
+E7 integration with Alex: `--head_map_out <path>` exports the exact checkpoint
+parameter map consumed by `representations.py heads`. `--group_by target` keeps
+targets separate; `--group_by decoder_layer` concatenates heads within each
+decoder block in a fixed order, giving a norm-weighted block cosine. Both map
+formats are integration-tested against Alex's actual analysis function.
+The layer grouping comes from parameter paths rather than assumed layer counts.

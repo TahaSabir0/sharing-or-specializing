@@ -38,6 +38,17 @@ training run needs ~17–20 GB; `smoke.sh` refuses if < 25 GB are free.
 | `/data/ugrip2026/LLaMA-Factory-v5` | LF v0.9.5 (`7af9095`) + tf5 patch | frozen |
 | envs | `flare-blackwell-v5` (train/eval), `crimson-score` (report judge); challenge-era `flare-blackwell` | frozen: never `pip install` |
 
+**Updating `/data/ugrip2026/journal/repo` (Taha).** Its `origin` is the git bundle
+`/data/ugrip2026/relay/journal.bundle`, not GitHub, and `main` has no upstream set, so a bare
+`git pull` fails. Push to GitHub, then relay:
+```
+git bundle create /tmp/journal.bundle main               # local, on main
+scp /tmp/journal.bundle blackwell:/data/ugrip2026/relay/journal.bundle
+ssh blackwell 'cd /data/ugrip2026/journal/repo && git pull --ff-only origin main && git log --oneline -1'
+```
+Check the printed commit before launching anything from it. Pull only when no chain is about to
+start a run with changed code (STATUS "Things to remember").
+
 **Never:** launch GPU work other than `smoke.sh` (unless you are Taha); use a GPU other than 1;
 kill a process you did not start; write outside your folder and `runs/smoke/`; install into
 shared envs; store credentials on the box.

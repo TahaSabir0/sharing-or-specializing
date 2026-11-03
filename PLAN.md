@@ -9,6 +9,19 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-03: **E3 launched before Phase A's Hydra arms** (Taha; Hydra-independent: it reuses the
+  E1/E2 TaskLoRA adapters). At review, E3 inference moved to `run_eval_chain.sh` with each
+  backbone's baseline evaluator (Qwen `eval_arm.py`, MedGemma `eval_harness.py --batch_size 1`),
+  full holdout per adapter (diagonal repeat = reproducibility check). Job files `code/eval/jobs/e3/`.
+- 2026-11-01: Alex's E3/E6/E7/E8 implementation choices recorded in
+  `code/PHASE_B_RUNBOOK.md`: E3 signed aggregates exclude diagonal primarily and
+  include it as sensitivity; 720 joint task-label permutations for pair covariates;
+  E7 SHA256-selected up-to-30/cell probe IDs (all rows when smaller), decoder-layer
+  lists capped at actual backbone depth, centroid input similarity primary with
+  anchor-profile RSA supplementary; E8 uses PGF benefits for cross-cell tests and
+  one-hot categorical predictors. E6 router recipes are fixed before evaluation
+  and trained on A∪B only, for each seed; no holdout model selection. No changes
+  to VLM adaptation/training/evaluation protocol or GPU launch ownership.
 - 2026-10-16: v2 written from the 14 Oct research update and Taha's decisions of 16 Oct:
   - the five arms of the update's table are the **main experiments**, run first;
   - 3 seeds and both backbones (Qwen3.5-9B, MedGemma) for **every** experiment;
@@ -29,6 +42,25 @@ the changes marked **(v2)**.
   runs and holdout evals stay with Taha. Smoke-gate eval moved from 50 holdout questions to 10 per
   task on dev-select (keeps the holdout untouched). W3 eval harness merged and tested on the box;
   MedGemma and the CRIMSON judge copied to the box; `crimson-score` env built there.
+- 2026-10-23: **W9 MedGemma port passes the gate** (Alberto; reviewed and merged by Taha).
+  Template gate `GATE_PASS` on the real decks; smoke run P8 = 14,901,248, loss 3.18 → 0.75.
+  One LF deviation for Gemma3 only: training `token_type_ids` patched to mark all 256 image
+  tokens, as the processor does at inference (stock LF marks 1; `code/train/README.md`).
+  §1.1 env and §1.2 target set recorded. MedGemma holdout evals use `eval_harness.py
+  --batch_size 1` (`eval_arm.py` is Qwen-only; one question at a time, as for Qwen). E0 and
+  E2 (Shared, TaskLoRA, Shared r48 × 3 seeds) launched; the detection-coordinate check of W9
+  is done on the first E2 Shared checkpoint.
+- 2026-10-26: **E4/E5 decks and configs** (Alex's `alex/modality-decks`, reworked and merged by
+  Taha). Group decks are cut from the frozen W1 decks into `/data/ugrip2026/journal/data_e4e5`.
+  Clinical, Dermatology and Mammography each hold one cls dataset (neojaundice, bcn20000, CMMD),
+  so those E4 and E5 decks are byte-identical: E5 reuses the E4 adapter for them (84 runs, not
+  102). E4/E5 launch through `run_chain.sh` / `run_eval_chain.sh`; each backbone is evaluated
+  with its baselines' script (Qwen `eval_arm.py`, MedGemma `eval_harness.py --batch_size 1`).
+  Scorer fix: `score_single.py` skipped a score equal to the question count; rescoring all 52
+  existing holdout prediction files changed no task macro.
+- 2026-10-26 22:46: **E4/E5 training launched** (Taha) on the idle GPU 1, before Phase A's Hydra
+  arms. **Deviation from §3.3:** no MedGemma smoke on the new decks (Taha's call; plain LoRA on
+  MedGemma already passed the gate and all E2 runs, the decks are unchanged W1 rows, hash-checked).
 
 ---
 
@@ -102,8 +134,8 @@ other change is a logged deviation.
     prompt, not the target).
   - Image budget: **768² area cap** (`image_max_pixels: 589824`).
 - **MedGemma-1.5-4B** (`google/medgemma-1.5-4b-it`; box `/data/ugrip2026/models/medgemma-1.5-4b-it`).
-  - Template: LF `gemma3`. Environment: `flare-blackwell-v5` if Gemma3 loads and trains there,
-    else a separate env; decided and recorded here by the MedGemma port (W9).
+  - Template: LF `gemma3`. Environment: `flare-blackwell-v5` (W9, 2026-10-23: Gemma3 loads,
+    trains and evaluates there; no separate env).
   - Image budget: **native fixed 896² (256 tokens)**. The SigLIP input size is fixed, so the
     768² cap cannot apply. This is a backbone-intrinsic difference, stated in the paper.
 - **Both:**
@@ -122,8 +154,10 @@ other change is a logged deviation.
   resolves to. Frozen list: `code/train/target_modules_qwen35.json` (248 linears). Vision
   tower and projector excluded. Every arm wraps exactly this set.
 - **MedGemma:** the equivalent set on the Gemma3 language model, frozen into a JSON file by the
-  MedGemma port (W9). Gemma 4 needed an explicit regex because PEFT could not wrap its vision
-  layers; check whether Gemma3 does too.
+  MedGemma port (W9): `code/train/target_modules_medgemma15.json`, 238 decoder linears,
+  P8 = 14,901,248. Gemma 4 needed an explicit regex because PEFT could not wrap its vision
+  layers; Gemma3 does not (W9, 2026-10-23): the leaf-name list plus LF's vision/projector
+  exclusion wraps exactly the 238, confirmed by the smoke run's trainable-parameter count.
 
 ### 1.3 Parameter counting (v2: replaces v1's active-parameter matching)
 - Arms are compared **as designed**, with their total stored parameters as in the table
@@ -144,7 +178,7 @@ other change is a logged deviation.
 | TaskLoRA | 6 independent r8 adapters; oracle task picks one | P8 | 6 · P8 |
 | Shared r48 | A r48, B r48, α 96 | 6 · P8 | 6 · P8 |
 | Modality adapters (E4) | 7 independent r8 adapters; oracle modality picks one | P8 | 7 · P8 |
-| Dataset adapters (E5) | 10 independent r8 cls adapters; oracle dataset picks one | P8 | 10 · P8 |
+| Dataset adapters (E5) | 10 independent r8 cls adapters (3 shared with E4: one-dataset modalities); oracle dataset picks one | P8 | 10 · P8 |
 
 For Qwen, A and B are close in size on most target modules, so 1A + 6B and 6A + 1B are each
 about 3.5 · P8. The exact counts are printed at load and recorded in `runtime.json`.
@@ -282,7 +316,7 @@ too (~1% in final loss); seeds cover it.
 | Qwen, Shared r48 | ≈ 55 | rank 48 adds a little compute; measure in its smoke gate |
 | Qwen, 6 TaskLoRAs | ≈ 58 | measured |
 | **Qwen, the 5 main arms, one seed** | **≈ 265** | |
-| MedGemma, one full-mixture run | ≈ 8 | v1 estimate (7.2 ws GPU-h); **unmeasured on the box** |
+| MedGemma, one full-mixture run | ≈ 8 | v1 estimate (7.2 ws GPU-h); W9 smoke on the box: 0.49 s/example on a shared card (≈ 16 h if that held for 3 epochs); measure on the first E2 run |
 | Qwen, one holdout eval (all tasks + CRIMSON) | ≈ 2.5 | v1: 2.1 h on ws |
 | MedGemma, one holdout eval | ≈ 1 | estimate |
 

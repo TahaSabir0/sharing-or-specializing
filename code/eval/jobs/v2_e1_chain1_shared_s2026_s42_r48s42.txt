@@ -1,0 +1,5 @@
+# E1 eval chain 1: Shared s2026, Shared s42 on the full holdout; then Shared r48 s42 once chain G (its training) is done.
+j26_q35_shared_full_768_s2026 --adapter_path /data/ugrip2026/journal/runs/j26_q35_shared_full_768_s2026 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/j26_q35_shared_full_768_s2026/predictions_holdout.json
+j26_q35_shared_full_768_s42 --adapter_path /data/ugrip2026/journal/runs/j26_q35_shared_full_768_s42 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/j26_q35_shared_full_768_s42/predictions_holdout.json
+WAIT_FOR /data/ugrip2026/journal/runs/chain_G.log chain done
+j26_q35_shared48_full_768_s42 --adapter_path /data/ugrip2026/journal/runs/j26_q35_shared48_full_768_s42 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --output_file /data/ugrip2026/journal/runs/j26_q35_shared48_full_768_s42/predictions_holdout.json

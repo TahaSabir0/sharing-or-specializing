@@ -39,3 +39,44 @@ No transcript saved.
   (§7).
 - Work starts: Taha on the shared foundation; everyone else codes their study modules
   against the interface doc.
+
+---
+
+### 2026-10-22 — Check-in (Tausifa Jan Saleem, Taha, Veronika)
+
+**Decisions:**
+- Working deadline: Tausifa suggests aiming for **end of November 2026** (TMI has no fixed
+  deadline). This is later than the ~15 Nov target in CLAUDE.md/PLAN.md.
+- Run model confirmed: only Taha launches full runs on the GPU; teammates build their part,
+  run smoke tests, and hand a ready run to Taha.
+
+**Results discussed (early, not of record):**
+- First E0/E1 numbers (zero-shot, format prompt, shared LoRA, shared rank 48, task LoRA on 2
+  seeds; third seed trained, not yet evaluated) are mixed: shared ≈ task LoRA on
+  multi-label; the rank-48 shared adapter wins classification, task LoRA second.
+- Taha's reading: the challenge-era task-adapter advantage was partly from prompts and
+  per-task tuning (e.g. classification rebalancing) the shared adapter didn't get. Bare
+  prompts remove that. Tausifa agreed the challenge comparison wasn't fair.
+- Tausifa: follow up with the transfer analysis (does one task help another, E3).
+
+**Mentor guidance:**
+- Tausifa: put results into the Overleaf TMI manuscript as they come in, so she can track
+  them and decide whether more experiments are needed.
+- Tausifa to Veronika: keep rank and all other settings identical to Taha's for a fair
+  comparison (PLAN.md §1).
+- If an experiment later needs one larger GPU or more time, ask Dr. Yaqub for 10–15 extra
+  days. For now, keep the current plan.
+
+**Action items:**
+- Taha: evaluate the third task-LoRA seed, average across seeds, then share with Tausifa.
+- Taha: add Tausifa to the GitHub repo; share next week's UAE schedule (sent in group chat).
+- Veronika: HydraLoRA code written and tested on CPU; next, test it on the box and push.
+- In-person meetings next week in the UAE: Taha arrives Tue 27 Oct around noon; meeting
+  with Dr. Yaqub on Wed 28 Oct (Taha also wants to discuss PhD applications). Veronika is
+  already in Abu Dhabi.
+
+**Open questions / blockers:**
+- Alex: not travelling to the UAE, hasn't asked for box access, and nobody had heard from
+  him recently.
+
+Raw: `10-22-2026.txt`.

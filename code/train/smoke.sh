@@ -54,9 +54,10 @@ STAMP=$(date +%m%d%H%M)
 SUFFIX="smoke_${WHO}_${STAMP}"
 RID=$(python -c "import yaml,sys;print(yaml.safe_load(open(sys.argv[1]))['run_id'])" "$CFG")_$SUFFIX
 METHOD=$(python -c "import yaml,sys;print(yaml.safe_load(open(sys.argv[1])).get('method','lora'))" "$CFG")
+BACKBONE=$(python -c "import yaml,sys;print(yaml.safe_load(open(sys.argv[1])).get('backbone','q35'))" "$CFG")
 RUN_DIR="$SMOKE_ROOT/$RID"
 LOG="$SMOKE_ROOT/$RID.log"
-echo "[smoke] $WHO: $RID  (branch $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse --short HEAD))"
+echo "[smoke] $WHO: $RID  backbone $BACKBONE  (branch $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse --short HEAD))"
 echo "[smoke] training 50 steps -> $LOG"
 
 timeout 3600 python code/train/journal_train.py --config "$CFG" --max_steps 50 --no_eval \
@@ -68,7 +69,7 @@ ERC=skipped
 if [ $TRC -eq 0 ] && [ $DO_EVAL -eq 1 ]; then
   echo "[smoke] eval: 10 questions per task on dev-select -> $RUN_DIR/eval_smoke"
   if [ "$METHOD" = "lora" ]; then MODE=(--mode adapter --adapter "$RUN_DIR"); else MODE=(--mode plugin --run_dir "$RUN_DIR"); fi
-  timeout 1800 python code/eval/eval_harness.py "${MODE[@]}" \
+  timeout 1800 python code/eval/eval_harness.py "${MODE[@]}" --backbone "$BACKBONE" \
       --data /data/ugrip2026/journal/data/j26_devselect.jsonl --surface devselect --per_task 10 \
       --out_dir "$RUN_DIR/eval_smoke" >> "$LOG" 2>&1 \
     && python code/eval/score_run.py --out_dir "$RUN_DIR/eval_smoke" >> "$LOG" 2>&1
