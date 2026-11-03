@@ -24,7 +24,9 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   **CRIMSON done 2 Nov 06:17** (6/6 rc=0). Next: `e4_e5.sh verify` and `analyze` (CPU), then LEDGER.
 - **E3/E6/E7/E8 code (Alex) merged 3 Nov** (`de4b21f`). At review E3 inference moved to the usual
   chain runners with each backbone's baseline evaluator (Qwen `eval_arm.py`, not the harness);
-  job files `code/eval/jobs/e3/`, launcher `launch_e3.sh` (3 seed slots, ~1 day). Asked Alex
+  job files `code/eval/jobs/e3/`. **E3 launched 3 Nov 10:52** (box `fcbe2fa`; eval slot PIDs
+  3630186/88/90, CRIMSON 3630187/89/91; logs `runs/evalchain_e3_{q35,mg15}_s<seed>.log`,
+  `runs/crimsonchain_e3_s<seed>.log`). ETA: Qwen ~3 Nov 20:00, MedGemma ~4 Nov 07:00, CRIMSON ~4 Nov 14:00. Asked Alex
   (3 Nov) to adapt `plan_e3.py collect` to those outputs, grade the output-structure covariate
   (6 distinct types make "same structure" 0 for every pair) and freeze the E7 probe IDs / list
   the E6 router packages. Veronika's Hydra: uncommitted in her box clone (`codex/veronika-hydra`).
