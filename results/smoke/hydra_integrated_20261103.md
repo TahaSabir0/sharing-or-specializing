@@ -2,9 +2,9 @@
 
 Tested commit: `87e58a07f2f15f44af1f3b500dad162f9147d26c` on
 `codex/veronika-hydra`, Blackwell GPU 1, frozen `flare-blackwell-v5` environment.
-Evidence source: Veronika's copied terminal summaries and the queue's PASS
-messages. The raw archive was collected on the server; local archive inspection
-is pending. The initial dirty-source Qwen checks and earlier timeout remain
+Evidence source: Veronika's copied terminal summaries, the queue's PASS
+messages, and the downloaded archive, verified locally against all 40 manifest
+SHA256 entries. Sanitized audit: `hydra_archive_audit_20261103.json`. The initial dirty-source Qwen checks and earlier timeout remain
 recorded separately in `hydra_q35_20261103.md`.
 
 | Backbone | Mode | Run suffix | First -> last loss | Stored/trainable | Active per example | s/step | Peak reserved GiB |
@@ -28,8 +28,12 @@ Routing statistics validated as 60 x 248 x 6 (Qwen) and 60 x 238 x 6 (MedGemma).
 The queue reported PASS for each run and ALL REQUESTED SMOKES PASSED. Its verifier
 checks the runtime stored/active counts, optimizer steps, finite positive runtime
 fields, saved method identity, loss decrease, all task rows, and routing summary.
-Active counts above are supported by those PASS checks; the copied wrapper
-summaries themselves do not print active-count runtime fields.
+Active counts above were independently confirmed in all four downloaded
+`runtime.json` files. The downloaded archive also confirms clean source `87e58a0`,
+matching resolved recipe fields, 50 optimizer steps (400 microbatch examples),
+positive training exposure for all six tasks, and exact oracle one-hot routing
+weights at every target. The same 60 unique evaluation sample IDs are used in
+all runs. Raw sample IDs and questions are kept locally, not committed.
 
 Archive on Blackwell:
 `/data/ugrip2026/journal/people/veronika/hydra-integration-smokes/smoke-evidence.tar.gz`.
@@ -42,3 +46,9 @@ No prompt/data change was introduced by Hydra; no new template-gate run is
 claimed. These are engineering gates, not medical task-performance evidence or
 controlled timing benchmarks. Full training, holdout evaluation, Taha's review,
 trained-checkpoint E7 findings and final manuscript results remain separate work.
+
+Downloaded archive SHA256: `54af449d9f4ecb490b0e96fe28ebb954d565ce2efbe46dc689947883b4a366b1`.
+Only documentation has changed since tested commit `87e58a0`; implementation and
+configs remain unchanged. Raw routing files contain question-based sample IDs,
+so only the sanitized audit report is committed. Full artifacts remain on the
+server for reviewer access.

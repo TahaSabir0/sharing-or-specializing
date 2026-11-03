@@ -1,4 +1,10 @@
-# Veronika: Hydra handoff and remaining server checks
+# Veronika: Hydra handoff and server checks
+
+**Completed:** all four integrated Qwen/MedGemma smokes on `87e58a0`; the archive
+has been downloaded and checked locally (40 file hashes, source, recipe, counts,
+losses and oracle routing). See `../results/smoke/hydra_integrated_20261103.md`
+and the sanitized archive audit alongside it. Further smoke launches are not
+needed for this unchanged implementation; commands below document reproduction.
 
 The Qwen smoke source was preserved in commit `ad7497e`; it was originally tested
 as an uncommitted update on base `dfbce98`. Subsequent integration merges the

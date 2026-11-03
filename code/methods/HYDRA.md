@@ -138,8 +138,9 @@ training/checkpointing/generation tests on tiny real Gemma3 models. **Both real
 NF4 MedGemma Hydra smokes and the integrated Qwen rechecks passed on `87e58a0`.**
 All four runs completed 50 steps plus 60 dev-select predictions with valid routing
 and zero format/truncation/errors. See `../../results/smoke/hydra_integrated_20261103.md`
-for run IDs, counts, losses, runtime and evidence limitations. Raw archive local
-inspection and Taha's full-run review remain pending.
+for run IDs, counts, losses, runtime and evidence limitations. The downloaded
+archive passed local integrity/config/routing checks (40 files); Taha's review
+and full runs remain pending.
 
 ## E7 head analysis (after training)
 

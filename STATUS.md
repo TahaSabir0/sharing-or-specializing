@@ -36,7 +36,12 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   format/truncation/errors, and valid six-head routing. The queue validated
   stored/active counts and collected its small evidence archive. Details:
   `results/smoke/hydra_integrated_20261103.md`.
-- Pending: download/inspect the server evidence archive and Taha's review/full runs. Full-run E7 analysis,
+- Archive downloaded and verified locally: all 40 file SHA256s match, all four
+  sources are clean `87e58a0`, 33 resolved recipe fields match per run, stored/active
+  counts and 50 steps match; all six heads saw training examples. Routing arrays
+  are exactly oracle one-hot for every layer, with the same 60 unique evaluation
+  samples across all runs. Sanitized report: `results/smoke/hydra_archive_audit_20261103.json`.
+- Pending: Taha's review/full runs. Full-run E7 analysis,
   paper results and ledger additions depend on those completed checkpoints.
 
 ## Hydra smoke follow-up (2026-11-03)

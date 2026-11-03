@@ -42,8 +42,8 @@ across seeds after completed training and holdout evaluation.
 | MedGemma-1.5-4B | Hydra-T | 55,287,808 | 14,901,248 |
 | MedGemma-1.5-4B | Reversed Hydra | 49,020,928 | 14,901,248 |
 
-Counts follow from the frozen target shapes; Qwen stored counts were also checked
-in the completed smoke tests. MedGemma Hydra requires its own real-model smoke.
+Counts follow from the frozen target shapes and were independently checked in
+the downloaded runtimes of all four completed Qwen/MedGemma smoke tests.
 The two partial-sharing arms have the same active parameter budget within each
 backbone, while their stored budgets differ because input/output widths differ.
 
@@ -66,9 +66,12 @@ must retain this limitation.
 
 ## Development validation (exclude from main task-performance results)
 
-Both Qwen arms completed a 50-step training smoke and 10 dev-select questions per
-task on 3 November 2026. Hydra-T loss decreased from 1.534 to 0.641 and Reversed
-Hydra loss from 1.611 to 0.630. Both produced 60 predictions without malformed
+All four Qwen/MedGemma arms completed a 50-step training smoke and 10 dev-select
+questions per task on 3 November 2026. Hydra-T loss decreased from 1.534 to 0.641 and Reversed
+Hydra loss from 1.611 to 0.630 in the initial Qwen checks. The integrated-branch
+checks are recorded separately in `results/smoke/hydra_integrated_20261103.md`;
+MedGemma losses decreased 3.206 to 0.722 (T) and 3.485 to 0.745 (R). Each
+arm produced 60 predictions without malformed
 outputs, truncations or evaluation errors, with valid routing statistics.
 The dev-select examples are training-seen and these checks establish operation,
 not comparative medical task quality. Full three-seed holdout results, confidence
