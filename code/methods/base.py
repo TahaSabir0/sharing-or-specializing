@@ -32,11 +32,12 @@ def load_targets(path=TARGETS_PATH):
         return json.load(f)
 
 
-def iter_target_modules(model, path=TARGETS_PATH):
+def iter_target_modules(model, path=TARGETS_PATH, *, spec=None):
     """Yield (qualified_name, module) for every frozen target linear (248 on Qwen3.5-9B).
 
     Matches LF `lora_target: all`: leaf name in the frozen list, inside the language model."""
-    spec = load_targets(path)
+    # A port may supply its frozen spec directly; default Qwen behavior is unchanged.
+    spec = load_targets(path) if spec is None else spec
     leaves, scope = set(spec["target_modules"]), spec["scope_prefix"]
     found = []
     for name, mod in model.named_modules():
@@ -53,6 +54,33 @@ def replace_module(model, name, new_module):
 
 
 # ------------------------------------------------------------------------------------ routing
+class _TaskGroups:
+    """Host route metadata, shared by all Hydra layers and checkpoint replays."""
+
+    def __init__(self, ids, n_tasks):
+        values = ids.detach().cpu().tolist()  # at most one device sync per routing batch
+        if any(task < 0 or task >= n_tasks for task in values):
+            raise ValueError(f"task_id must be in [0, {n_tasks})")
+        groups = {}
+        for row, task in enumerate(values):
+            groups.setdefault(task, []).append(row)
+        self.single_task = next(iter(groups)) if len(groups) == 1 else None
+        self._groups = sorted(groups.items())
+        self._device_rows = {}
+        # Statistics are collected on CPU; no need to copy one-hot GPU tensors
+        # back to the host in every layer and every generation step.
+        self.weights = torch.nn.functional.one_hot(
+            torch.tensor(values, dtype=torch.long), n_tasks).float()
+
+    def rows_on(self, device):
+        device = torch.device(device)
+        if device not in self._device_rows:
+            self._device_rows[device] = tuple(
+                (task, torch.tensor(rows, dtype=torch.long, device=device))
+                for task, rows in self._groups)
+        return self._device_rows[device]
+
+
 class _Routing:
     """Holds the oracle labels of the batch being processed: LongTensors of shape [batch].
 
@@ -60,25 +88,44 @@ class _Routing:
 
     def __init__(self):
         self._ids = {}
+        self._task_groups = {}
 
     def set(self, **ids):
         self._ids = {k: v for k, v in ids.items() if v is not None}
+        self._task_groups = {}
 
     def clear(self):
         self._ids = {}
+        self._task_groups = {}
 
     def get(self, key):
         """`routing.get("task_id")` -> LongTensor [batch], or None outside a labelled batch."""
         return self._ids.get(key)
 
+    def task_groups(self, n_tasks):
+        """Resolve immutable batch labels once, including during cached decoding.
+
+        Callers check task_id shape/dtype first. Normal tensor mutations invalidate
+        the cache; inference tensors have no version counter and, like the oracle
+        route itself, must remain constant until set()/clear()/use().
+        """
+        ids = self.get("task_id")
+        version = None if torch.is_inference(ids) else ids._version
+        key = n_tasks, version
+        if key not in self._task_groups:
+            # Retain only the current version if a caller mutated labels in place.
+            self._task_groups = {key: _TaskGroups(ids, n_tasks)}
+        return self._task_groups[key]
+
     @contextmanager
     def use(self, **ids):
-        prev = self._ids
+        prev, prev_groups = self._ids, self._task_groups
         self.set(**ids)
         try:
             yield
         finally:
             self._ids = prev
+            self._task_groups = prev_groups
 
 
 routing = _Routing()

@@ -253,6 +253,7 @@ def runtime_callback(run_dir, method):
             self.start = datetime.datetime.now().isoformat(timespec="seconds")
             self.gpu_begin = gpu_snapshot()
             self.trainable = mb.count_trainable(model) if model is not None else None
+            self.parameter_counts = dict(getattr(model, "journal_parameter_counts", {}))
             torch.cuda.reset_peak_memory_stats()
 
         def on_train_end(self, args, state, control, **kw):
@@ -268,6 +269,7 @@ def runtime_callback(run_dir, method):
                 "peak_mem_allocated_gb": round(torch.cuda.max_memory_allocated() / 2**30, 2),
                 "peak_mem_reserved_gb": round(torch.cuda.max_memory_reserved() / 2**30, 2),
                 "trainable_params": self.trainable,
+                **self.parameter_counts,
                 "P8": TARGETS["P8"],
                 "trainable_matches_P8": (self.trainable == TARGETS["P8"]) if method == "lora" else None,
                 "gpu_begin": self.gpu_begin, "gpu_end": gpu_snapshot(),
