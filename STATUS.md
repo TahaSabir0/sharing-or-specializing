@@ -1,6 +1,6 @@
 # Status
 
-**Updated 2026-10-26.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-03.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
@@ -20,9 +20,14 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
   Clinical/Derm/Mammo hold one dataset each, so E5 reuses those E4 adapters (PLAN changelog 26 Oct).
   **Training done 31 Oct 00:47:** all 84 runs rc=0 and pass the protocol check (3 epochs, deck hash,
-  P8). No MedGemma smoke (deviation, PLAN changelog). **Holdout evals launched 2 Nov 00:12** (logs
-  `runs/evalchain_e4e5_{q35,mg15}.log`); CRIMSON queued behind them (`runs/crimsonchain_e4e5.log`).
-  Then `e4_e5.sh verify` and `analyze`.
+  P8). No MedGemma smoke (deviation, PLAN changelog). **Holdout evals done 2 Nov 03:31** (84/84 rc=0) and
+  **CRIMSON done 2 Nov 06:17** (6/6 rc=0). Next: `e4_e5.sh verify` and `analyze` (CPU), then LEDGER.
+- **E3/E6/E7/E8 code (Alex) merged 3 Nov** (`de4b21f`). At review E3 inference moved to the usual
+  chain runners with each backbone's baseline evaluator (Qwen `eval_arm.py`, not the harness);
+  job files `code/eval/jobs/e3/`, launcher `launch_e3.sh` (3 seed slots, ~1 day). Asked Alex
+  (3 Nov) to adapt `plan_e3.py collect` to those outputs, grade the output-structure covariate
+  (6 distinct types make "same structure" 0 for every pair) and freeze the E7 probe IDs / list
+  the E6 router packages. Veronika's Hydra: uncommitted in her box clone (`codex/veronika-hydra`).
 - Scorer fix merged (`score_single.py` dropped a score equal to the question count): rescoring all 52
   existing holdout prediction files changed no number in the LEDGER.
 
