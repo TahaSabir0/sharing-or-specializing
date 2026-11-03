@@ -73,26 +73,26 @@ git push origin alex/modality-decks
 
 ## 2. Taha: E3, durably
 
-Use the reviewed/merged checkout and the same prepared paths. Do not update a
-checkout while its queues can start new jobs. One session per scheduled slot:
+**Changed at review (Taha, 3 Nov):** E3 inference runs through the usual chain runners, not
+`phase_b_jobs.py`, and each backbone uses its baselines' evaluator (research rule 3, as E4/E5):
+Qwen `eval_arm.py` (E0/E1 were made with it), MedGemma `eval_harness.py --batch_size 1`.
+Job files: `code/eval/jobs/e3/` (`python code/eval/plan_e3_jobs.py`). Each TaskLoRA is evaluated
+on the **full** holdout into `/data/ugrip2026/journal/runs/e3/<name>/` (Qwen
+`predictions_holdout.json`, MedGemma an eval_harness folder). The on-task slice repeats the
+E1/E2 diagonal: the official diagonal stays E1/E2, the repeat is a reproducibility check.
 
 ```bash
-tmux new -s e3-chain1
-set -o pipefail
-{ bash code/train/phase_b.sh e3-eval 1 &&
-  bash code/train/phase_b.sh e3-crimson 1; } 2>&1 | tee "$PHASE_B_DIR/e3_chain1.log"
+bash code/eval/jobs/e3/launch_e3.sh   # from /data/ugrip2026/journal/repo; Taha only
 ```
 
-Detach with **Ctrl+B**, release, then **D**. SSH disconnects leave tmux running.
-Reconnect with `tmux attach -t e3-chain1`. Repeat with chain/session `2` and `3`
-only when Taha has scheduled those slots. Never run all later experiment queues
-at once; they share the same GPU allocation.
+Three slots, one per seed: Qwen evals, then MedGemma evals, then that seed's CRIMSON
+(`crimsonchain_e3_s<seed>.log`; 5 non-report adapters x 2 backbones). Logs:
+`runs/evalchain_e3_{q35,mg15}_s<seed>.log`.
 
-Every job validates training completion, seed/backbone, train-deck hashes and
-checkpoint identity. Completed inference is skipped only after exact question
-coverage, metadata and checkpoint hashes pass. A partial output is preserved
-and rejected; inspect it before deliberately archiving/recovering it. The
-runner does not delete an interrupted run or silently count it as complete.
+**For Alex:** `plan_e3.py collect` still expects `phase_b_jobs.py` outputs (receipts,
+`run_meta.json`, off-diagonal-only folders). Point it at the folders above: slice each to the
+off-diagonal tasks (the diagonal comes from E1/E2), and read the Qwen legacy layout
+(`group_results.assemble` already does).
 
 Alex, once all three chains and CRIMSON are complete:
 

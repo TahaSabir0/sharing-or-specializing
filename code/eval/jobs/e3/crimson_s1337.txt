@@ -1,0 +1,12 @@
+# E3 CRIMSON s1337: report slice of the non-report adapters (junk by design, flagged)
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_e3_mg15_s1337.log eval chain done
+e3_q35_taskcls_s1337 /data/ugrip2026/journal/runs/e3/e3_q35_taskcls_s1337
+e3_q35_taskml_s1337 /data/ugrip2026/journal/runs/e3/e3_q35_taskml_s1337
+e3_q35_taskdet_s1337 /data/ugrip2026/journal/runs/e3/e3_q35_taskdet_s1337
+e3_q35_taskcount_s1337 /data/ugrip2026/journal/runs/e3/e3_q35_taskcount_s1337
+e3_q35_taskreg_s1337 /data/ugrip2026/journal/runs/e3/e3_q35_taskreg_s1337
+e3_mg15_taskcls_s1337 /data/ugrip2026/journal/runs/e3/e3_mg15_taskcls_s1337
+e3_mg15_taskml_s1337 /data/ugrip2026/journal/runs/e3/e3_mg15_taskml_s1337
+e3_mg15_taskdet_s1337 /data/ugrip2026/journal/runs/e3/e3_mg15_taskdet_s1337
+e3_mg15_taskcount_s1337 /data/ugrip2026/journal/runs/e3/e3_mg15_taskcount_s1337
+e3_mg15_taskreg_s1337 /data/ugrip2026/journal/runs/e3/e3_mg15_taskreg_s1337

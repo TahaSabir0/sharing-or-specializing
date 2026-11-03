@@ -9,6 +9,10 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-03: **E3 launched before Phase A's Hydra arms** (Taha; Hydra-independent: it reuses the
+  E1/E2 TaskLoRA adapters). At review, E3 inference moved to `run_eval_chain.sh` with each
+  backbone's baseline evaluator (Qwen `eval_arm.py`, MedGemma `eval_harness.py --batch_size 1`),
+  full holdout per adapter (diagonal repeat = reproducibility check). Job files `code/eval/jobs/e3/`.
 - 2026-11-01: Alex's E3/E6/E7/E8 implementation choices recorded in
   `code/PHASE_B_RUNBOOK.md`: E3 signed aggregates exclude diagonal primarily and
   include it as sensitivity; 720 joint task-label permutations for pair covariates;
