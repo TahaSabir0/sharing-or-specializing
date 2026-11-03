@@ -9,6 +9,15 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-01: Alex's E3/E6/E7/E8 implementation choices recorded in
+  `code/PHASE_B_RUNBOOK.md`: E3 signed aggregates exclude diagonal primarily and
+  include it as sensitivity; 720 joint task-label permutations for pair covariates;
+  E7 SHA256-selected up-to-30/cell probe IDs (all rows when smaller), decoder-layer
+  lists capped at actual backbone depth, centroid input similarity primary with
+  anchor-profile RSA supplementary; E8 uses PGF benefits for cross-cell tests and
+  one-hot categorical predictors. E6 router recipes are fixed before evaluation
+  and trained on A∪B only, for each seed; no holdout model selection. No changes
+  to VLM adaptation/training/evaluation protocol or GPU launch ownership.
 - 2026-10-16: v2 written from the 14 Oct research update and Taha's decisions of 16 Oct:
   - the five arms of the update's table are the **main experiments**, run first;
   - 3 seeds and both backbones (Qwen3.5-9B, MedGemma) for **every** experiment;

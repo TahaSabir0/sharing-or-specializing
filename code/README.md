@@ -48,6 +48,13 @@ writes the job files for `run_chain.sh` / `run_eval_chain.sh` / `run_crimson_cha
 scripts are CPU-only (prepare, check, status, verify, analyze); real runs launch through the usual
 runners (Taha). Smoke tests: `JOURNAL_DATA=<your group_decks> bash code/train/smoke.sh <you> <e4/e5 config>`.
 
+## E3/E6/E7/E8 (Alex's Phase B)
+
+`code/PHASE_B_RUNBOOK.md`; CPU entry point `bash code/train/phase_b.sh` (collection and analysis).
+E3 inference runs through `run_eval_chain.sh` / `run_crimson_chain.sh` from the job files in
+`code/eval/jobs/e3/` (`plan_e3_jobs.py`): Qwen with `eval_arm.py`, MedGemma with
+`eval_harness.py --batch_size 1`, as their E0/E1/E2 baselines.
+
 ## Carried from the challenge (provenance)
 
 | File | Source (@ `bec2d1f` unless noted) |
