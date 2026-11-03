@@ -134,10 +134,12 @@ The runtime callback records stored/active counts alongside the backbone's P8.
 No MedGemma-specific method hyperparameters or recipe overrides are introduced.
 
 Both modes pass CPU shape/count tests against the full frozen MedGemma spec and
-training/checkpointing/generation tests on tiny real Gemma3 models. **Real NF4
-MedGemma Hydra smoke remains pending**; the original Qwen smoke does not certify
-the subsequently merged backbone integration. See `../HYDRA_RUNBOOK.md` for exact
-commands, source provenance, evidence collection and the remaining GPU gates.
+training/checkpointing/generation tests on tiny real Gemma3 models. **Both real
+NF4 MedGemma Hydra smokes and the integrated Qwen rechecks passed on `87e58a0`.**
+All four runs completed 50 steps plus 60 dev-select predictions with valid routing
+and zero format/truncation/errors. See `../../results/smoke/hydra_integrated_20261103.md`
+for run IDs, counts, losses, runtime and evidence limitations. Raw archive local
+inspection and Taha's full-run review remain pending.
 
 ## E7 head analysis (after training)
 

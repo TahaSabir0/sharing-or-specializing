@@ -12,7 +12,7 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 - Twelve full-run configs are ready: six E1 Qwen and six E2 MedGemma, both modes
   and seeds 1337/2026/42, all using the common recipe without overrides.
   MedGemma Hydra stored budgets are 55,287,808 / 49,020,928 (T/R), active
-  14,901,248. Actual NF4 MedGemma Hydra smoke is still pending.
+  14,901,248. Both real NF4 MedGemma Hydra smokes now passed on `87e58a0`.
 - E7 code now exports exact checkpoint head maps compatible with Alex's
   `representations.py heads`, per target or concatenated per decoder block.
   Interoperability is CPU-tested. Actual E7 findings require full checkpoints.
@@ -30,8 +30,13 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   fixed by changing another owner's production runners.
 - `hydra_smoke_queue.py` runs only the approved smoke wrapper, sequentially,
   and stops on incomplete gates; its positive/negative gate tests pass.
-- Pending: collect raw Qwen artifacts, revalidate the integrated branch on Qwen,
-  pass both MedGemma smokes, and Taha's review/full runs. Full-run E7 analysis,
+- **All four integrated-branch smoke gates passed on `87e58a0`:** Qwen T/R
+  suffixes `11032258` / `11032312`, MedGemma T/R `11032325` / `11032333`.
+  Every run completed 50 steps, train/eval exits 0/0, 60 predictions with zero
+  format/truncation/errors, and valid six-head routing. The queue validated
+  stored/active counts and collected its small evidence archive. Details:
+  `results/smoke/hydra_integrated_20261103.md`.
+- Pending: download/inspect the server evidence archive and Taha's review/full runs. Full-run E7 analysis,
   paper results and ledger additions depend on those completed checkpoints.
 
 ## Hydra smoke follow-up (2026-11-03)
@@ -114,8 +119,8 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 | Shared | done | done | done | done ×3 |
 | TaskLoRA (6 adapters) | done | done | done | done ×3 |
 | Shared r48 | done | done | done | done ×3 |
-| Hydra-T | smoke passed; full run pending | configs ready | configs ready | integration/configs ready; smoke pending |
-| Reversed Hydra | smoke passed; full run pending | configs ready | configs ready | integration/configs ready; smoke pending |
+| Hydra-T | smoke passed; full run pending | configs ready | configs ready | smoke passed; full runs pending |
+| Reversed Hydra | smoke passed; full run pending | configs ready | configs ready | smoke passed; full runs pending |
 
 "done" = trained, holdout-evaluated, CRIMSON-scored. Zero-shot (E0): done on both backbones (bare + prompt,
 incl. CRIMSON).
