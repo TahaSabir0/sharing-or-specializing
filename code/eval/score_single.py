@@ -5,7 +5,7 @@ predictions per task. report_generation is skipped here (scored separately by CR
 
   python score_single.py --pred_file preds.json --out_file metrics.json
 """
-import os, sys, json, argparse, collections
+import os, sys, json, argparse, collections, math
 
 # locate the repo evaluation.py: prefer the one in this checkout (../../evaluation), else ~/ME-VLIP
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -27,8 +27,17 @@ def is_malformed(task, ans):
         return not (a.startswith("{") or a.startswith("["))
     if t in ("counting", "regression"):
         import re
-        return re.search(r"[-+]?[0-9]*\.?[0-9]+", a) is None
+        return re.search(r"[-+]?[0-9]*\.?[0-9]+", a) is None or overflows(a)
     return False
+
+
+def overflows(ans):
+    """A number too large for a float (e.g. '1000...0' run to max_new_tokens) parses to inf and
+    crashes sklearn's MAE. It counts as malformed, like an answer with no number (3 Nov 2026)."""
+    try:
+        return not math.isfinite(float(ans))
+    except (TypeError, ValueError):
+        return False
 
 
 def main():
@@ -49,6 +58,8 @@ def main():
         if t == "report_generation":   # scored separately via CRIMSON
             continue
         pred = s.get("Answer", ""); gt = s.get("gt_answer", "")
+        if t in ("counting", "regression") and overflows(pred):
+            pred = ""   # scored exactly like an answer with no number (evaluation.py: slice MAE inf)
         by_task_pred[t].append(pred); by_task_gt[t].append(gt)
         by_td_pred[(t, s["dataset"])].append(pred); by_td_gt[(t, s["dataset"])].append(gt)
         if is_malformed(t, pred):
