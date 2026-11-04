@@ -15,7 +15,13 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   +0.06 on every seed); Shared r48 again no better. MedGemma trails Qwen on detection (0.47 vs 0.90: ultrasound
   boxes poorly placed along x; coordinate convention verified), counting and multi-label; ties elsewhere.
 - **Hydra-T / Reversed Hydra (Veronika): reviewed and merged 4 Nov.** All four smoke gates passed 3 Nov (Qwen and
-  MedGemma, both modes; `results/smoke/hydra_integrated_20261103.md`, `code/HYDRA_RUNBOOK.md`). Full runs: below.
+  MedGemma, both modes; `results/smoke/hydra_integrated_20261103.md`, `code/HYDRA_RUNBOOK.md`).
+  **12 full runs launched 4 Nov 10:01** (box `d7a16cd`): `chain_hydra{1,2,3}.log` (PIDs 3751748/49/51), chain i =
+  seed i: Qwen T, Qwen R, MedGemma T, MedGemma R (`code/eval/jobs/hydra/`). Estimate ~57 h per Qwen run and
+  ~24 h per MedGemma run at 3 jobs: training done ~11 Nov; holdout evals not queued yet (Qwen Hydra needs
+  `eval_harness.py`: parity check vs `eval_arm.py` running, `runs/parity/`).
+- **E3 CRIMSON paused 4 Nov 10:00** to free GPU 1 for Hydra: queues stopped after their running jobs; the
+  remaining report-scoring jobs run later beside the Hydra evals.
 - **E4/E5 ready to launch (26 Oct):** Alex's `alex/modality-decks` reviewed, reworked and merged
   (`code/E4_E5_RUNBOOK.md`). 51 group decks in `/data/ugrip2026/journal/data_e4e5`; job files in
   `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
