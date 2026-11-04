@@ -15,3 +15,7 @@ Cap threads when you run these on the box (`OMP_NUM_THREADS=4`). Inputs are the 
 | `scaling_model.py` | mixed-effects interaction model, crossover p*, curves | Alberto | E9 | to build (Phase C) |
 
 Full commands and ownership: [Phase B runbook](../PHASE_B_RUNBOOK.md).
+
+Hydra head analysis: [`hydra_heads.py`](hydra_heads.py) computes per-target cosines
+and exports the exact head maps consumed by `representations.py heads`.
+See [`../HYDRA_RUNBOOK.md`](../HYDRA_RUNBOOK.md) for commands and ownership.

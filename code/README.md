@@ -69,3 +69,6 @@ E3 inference runs through `run_eval_chain.sh` / `run_crimson_chain.sh` from the 
 Not carried (fetch when E6 needs them): the GLiClass task router (old repo
 `docker_qwen35/inference.py`, weights on ws `/share/sda/ugrip/models/FLARE-gliclass-small-v1.0`) and
 the ResNet-18 modality classifier (old branch `Taha/modality-adapters`).
+
+Hydra-T/R implementation, validation and server handoff:
+[`methods/HYDRA.md`](methods/HYDRA.md), [`HYDRA_RUNBOOK.md`](HYDRA_RUNBOOK.md).

@@ -1,0 +1,18 @@
+# E2 MedGemma hydraR, seed 2026: jointly trained, oracle task routing (PLAN v2).
+run_id: j26_mg15_hydraR_full_896_s2026
+owner: veronika
+study: E2
+backbone: mg15
+method: hydra
+method_cfg:
+  mode: hydraR
+  r: 8
+  alpha: 16
+  dropout: 0.05
+  n_tasks: 6
+  log_routing: true
+  target_spec: null  # select frozen MedGemma target set from model.config.model_type
+deck: j26_train_mix
+data_tag: full
+seed: 2026
+overrides: {}

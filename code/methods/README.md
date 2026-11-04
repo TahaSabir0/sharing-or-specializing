@@ -8,7 +8,10 @@ the helpers in `base.py`, and the smoke-test workflow are in `code/INTERFACE.md`
 | `base.py` | plumbing: target set, routing ids, aux loss, routing stats, save/load | Taha | INTERFACE.md §2 | done |
 | `backbones.py` | backbone registry (`q35`, `mg15`): per-backbone LF arguments, which frozen target file a loaded model uses, the Gemma3 `token_type_ids` patch; torch-free | Alberto | PLAN.md §1.1–§1.2, W9 | done, MedGemma passes the smoke gate (2026-10-23) |
 | `lora_ref.py` | plain LoRA as a plug-in: **the template to copy** | Taha | INTERFACE.md §1 | done, passes the smoke gate |
-| `hydra.py` | `mode: hydraT` (shared A r8, 6 task heads B_t r8) and `mode: hydraR` (6 task heads A_t r8, shared B r8); the oracle `task_id` picks the head in training and inference | Veronika | PLAN.md §1.3, E1 | to build; must also run on MedGemma (E2) |
+| `hydra.py` | `mode: hydraT` (shared A r8, 6 task heads B_t r8) and `mode: hydraR` (6 task heads A_t r8, shared B r8); the oracle `task_id` picks the head in training and inference | Veronika | PLAN.md §1.3, E1/E2 | all four Qwen/MedGemma smoke gates passed (3 Nov, `87e58a0`); full-run review pending |
 
 Shared LoRA, Shared r48 and TaskLoRA need no plug-in: they are plain LoRA (`method: lora`).
 Method notes from the papers: `references/papers/METHOD_DIGEST.md` (HydraLoRA section).
+
+Hydra configuration, exact counts, validation limits and smoke commands:
+[`HYDRA.md`](HYDRA.md).

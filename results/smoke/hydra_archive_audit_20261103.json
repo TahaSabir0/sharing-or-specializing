@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "archive_sha256": "54af449d9f4ecb490b0e96fe28ebb954d565ce2efbe46dc689947883b4a366b1",
+  "manifest_files_verified": 40,
+  "source_commit": "87e58a07f2f15f44af1f3b500dad162f9147d26c",
+  "train_deck_md5": "945c62ec81fe8835ca1d752a0c5904fd",
+  "same_evaluation_sample_ids_all_four_runs": true,
+  "checks": [
+    {
+      "run_id": "j26_q35_hydraT_full_768_s1337_smoke_veronika_11032258",
+      "backbone": "q35",
+      "mode": "hydraT",
+      "source_commit": "87e58a07f2f15f44af1f3b500dad162f9147d26c",
+      "source_clean": true,
+      "protocol_recipe_fields_checked": 33,
+      "optimizer_steps": 50,
+      "microbatch_examples": 400,
+      "all_six_heads_exposed_in_training": true,
+      "stored_params": 78716928,
+      "active_params_per_example": 21639168,
+      "first_loss": 1.5360407829284668,
+      "last_loss": 0.6457539558410644,
+      "s_per_it": 13.853,
+      "peak_mem_reserved_gb": 17.89,
+      "routing_shape": [
+        60,
+        248,
+        6
+      ],
+      "oracle_one_hot_verified_all_layers": true,
+      "evaluation_rows": 60,
+      "format_truncation_errors": 0
+    },
+    {
+      "run_id": "j26_q35_hydraR_full_768_s1337_smoke_veronika_11032312",
+      "backbone": "q35",
+      "mode": "hydraR",
+      "source_commit": "87e58a07f2f15f44af1f3b500dad162f9147d26c",
+      "source_clean": true,
+      "protocol_recipe_fields_checked": 33,
+      "optimizer_steps": 50,
+      "microbatch_examples": 400,
+      "all_six_heads_exposed_in_training": true,
+      "stored_params": 72757248,
+      "active_params_per_example": 21639168,
+      "first_loss": 1.6129749298095704,
+      "last_loss": 0.630833625793457,
+      "s_per_it": 13.29,
+      "peak_mem_reserved_gb": 17.79,
+      "routing_shape": [
+        60,
+        248,
+        6
+      ],
+      "oracle_one_hot_verified_all_layers": true,
+      "evaluation_rows": 60,
+      "format_truncation_errors": 0
+    },
+    {
+      "run_id": "j26_mg15_hydraT_full_896_s1337_smoke_veronika_11032325",
+      "backbone": "mg15",
+      "mode": "hydraT",
+      "source_commit": "87e58a07f2f15f44af1f3b500dad162f9147d26c",
+      "source_clean": true,
+      "protocol_recipe_fields_checked": 33,
+      "optimizer_steps": 50,
+      "microbatch_examples": 400,
+      "all_six_heads_exposed_in_training": true,
+      "stored_params": 55287808,
+      "active_params_per_example": 14901248,
+      "first_loss": 3.2058406829833985,
+      "last_loss": 0.7216824054718017,
+      "s_per_it": 5.2,
+      "peak_mem_reserved_gb": 8.45,
+      "routing_shape": [
+        60,
+        238,
+        6
+      ],
+      "oracle_one_hot_verified_all_layers": true,
+      "evaluation_rows": 60,
+      "format_truncation_errors": 0
+    },
+    {
+      "run_id": "j26_mg15_hydraR_full_896_s1337_smoke_veronika_11032333",
+      "backbone": "mg15",
+      "mode": "hydraR",
+      "source_commit": "87e58a07f2f15f44af1f3b500dad162f9147d26c",
+      "source_clean": true,
+      "protocol_recipe_fields_checked": 33,
+      "optimizer_steps": 50,
+      "microbatch_examples": 400,
+      "all_six_heads_exposed_in_training": true,
+      "stored_params": 49020928,
+      "active_params_per_example": 14901248,
+      "first_loss": 3.485274887084961,
+      "last_loss": 0.7445277214050293,
+      "s_per_it": 5.393,
+      "peak_mem_reserved_gb": 8.33,
+      "routing_shape": [
+        60,
+        238,
+        6
+      ],
+      "oracle_one_hot_verified_all_layers": true,
+      "evaluation_rows": 60,
+      "format_truncation_errors": 0
+    }
+  ],
+  "status": "PASS",
+  "limitations": "Development smoke on training-seen devselect. No full-run/holdout or method-quality claim. Archive excludes adapter weights, images and raw predictions; route sample IDs are kept locally, not published."
+}

@@ -14,7 +14,8 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   (LEDGER, 2026-10-26 section). Port (W9) merged 23 Oct. TaskLoRA leans ahead of Shared on MedGemma (detection
   +0.06 on every seed); Shared r48 again no better. MedGemma trails Qwen on detection (0.47 vs 0.90: ultrasound
   boxes poorly placed along x; coordinate convention verified), counting and multi-label; ties elsewhere.
-- Hydra-T / Reversed Hydra (Veronika): nothing pushed yet (target was 23 Oct). **GPU 1 idle since 26 Oct 13:54.**
+- **Hydra-T / Reversed Hydra (Veronika): reviewed and merged 4 Nov.** All four smoke gates passed 3 Nov (Qwen and
+  MedGemma, both modes; `results/smoke/hydra_integrated_20261103.md`, `code/HYDRA_RUNBOOK.md`). Full runs: below.
 - **E4/E5 ready to launch (26 Oct):** Alex's `alex/modality-decks` reviewed, reworked and merged
   (`code/E4_E5_RUNBOOK.md`). 51 group decks in `/data/ugrip2026/journal/data_e4e5`; job files in
   `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
@@ -29,7 +30,7 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   `runs/crimsonchain_e3_s<seed>.log`). ETA: Qwen ~3 Nov 20:00, MedGemma ~4 Nov 07:00, CRIMSON ~4 Nov 14:00. Asked Alex
   (3 Nov) to adapt `plan_e3.py collect` to those outputs, grade the output-structure covariate
   (6 distinct types make "same structure" 0 for every pair) and freeze the E7 probe IDs / list
-  the E6 router packages. Veronika's Hydra: uncommitted in her box clone (`codex/veronika-hydra`).
+  the E6 router packages.
 - Scorer fix merged (`score_single.py` dropped a score equal to the question count): rescoring all 52
   existing holdout prediction files changed no number in the LEDGER.
 
@@ -40,8 +41,8 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 | Shared | done | done | done | done ×3 |
 | TaskLoRA (6 adapters) | done | done | done | done ×3 |
 | Shared r48 | done | done | done | done ×3 |
-| Hydra-T | needs plug-in | | | needs plug-in + port |
-| Reversed Hydra | needs plug-in | | | needs plug-in + port |
+| Hydra-T | smoke passed; full run pending | configs ready | configs ready | smoke passed; full runs pending |
+| Reversed Hydra | smoke passed; full run pending | configs ready | configs ready | smoke passed; full runs pending |
 
 "done" = trained, holdout-evaluated, CRIMSON-scored. Zero-shot (E0): done on both backbones (bare + prompt,
 incl. CRIMSON).

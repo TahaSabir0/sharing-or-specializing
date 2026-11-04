@@ -1,0 +1,18 @@
+# E1 hydraT, seed 1337: jointly trained, oracle task routing (PLAN v2).
+run_id: j26_q35_hydraT_full_768_s1337
+owner: veronika
+study: E1
+backbone: q35
+method: hydra
+method_cfg:
+  mode: hydraT
+  r: 8
+  alpha: 16
+  dropout: 0.05
+  n_tasks: 6
+  log_routing: true
+  target_spec: null  # frozen default Qwen target set
+deck: j26_train_mix
+data_tag: full
+seed: 1337
+overrides: {}
