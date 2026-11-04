@@ -9,6 +9,11 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-04: **Scorer fix** (`score_single.py`, `a23fe19`): a counting/regression answer that
+  overflows a float (MedGemma E3 TaskLoRA-reg s2026 answers 5 neurips22cell counts with "1000...0" to
+  512 tokens) counts as malformed and is scored like an answer with no number (challenge rule: that
+  dataset's MAE is inf), instead of crashing. Rescoring all 109 existing holdout metric files changed
+  no number. `e3_mg15_taskreg_s2026` re-scored in place (eval rc=1 in its chain log was this crash).
 - 2026-11-03: **E3 launched before Phase A's Hydra arms** (Taha; Hydra-independent: it reuses the
   E1/E2 TaskLoRA adapters). At review, E3 inference moved to `run_eval_chain.sh` with each
   backbone's baseline evaluator (Qwen `eval_arm.py`, MedGemma `eval_harness.py --batch_size 1`),
