@@ -20,8 +20,11 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   seed i: Qwen T, Qwen R, MedGemma T, MedGemma R (`code/eval/jobs/hydra/`). Estimate ~57 h per Qwen run and
   ~24 h per MedGemma run at 3 jobs: training done ~11 Nov; holdout evals not queued yet (Qwen Hydra needs
   `eval_harness.py`: parity check vs `eval_arm.py` running, `runs/parity/`).
-- **E3 CRIMSON paused 4 Nov 10:00** to free GPU 1 for Hydra: queues stopped after their running jobs; the
-  remaining report-scoring jobs run later beside the Hydra evals.
+- **E3 CRIMSON:** paused 4 Nov 10:00 with 16/30 done (all Qwen + MedGemma cls s42; the 4 in-flight jobs
+  finished, so the logs end on "start"). **Remaining 14 (MedGemma) resumed 5 Nov 11:37 beside Hydra** (box
+  `d7a16cd`; PIDs 3929691/92/93; job files `runs/e3/jobs_resume_20261105/`; logs
+  `runs/crimsonchain_e3resume_s<seed>.log`). ETA ~5 Nov 18:00–19:00. Measured cost: Hydra runs at ~63% speed
+  while 3 CRIMSON jobs share the card (158 vs 250 steps/h), so Hydra slips ~2.5 h (training done ~11 Nov afternoon).
 - **E4/E5 ready to launch (26 Oct):** Alex's `alex/modality-decks` reviewed, reworked and merged
   (`code/E4_E5_RUNBOOK.md`). 51 group decks in `/data/ugrip2026/journal/data_e4e5`; job files in
   `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
