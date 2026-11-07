@@ -1,9 +1,17 @@
 # Status
 
-**Updated 2026-11-03.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-06.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **Alex follow-up (6 Nov):** E3 collection now validates and consumes Taha's chain-runner
+  outputs, including Qwen's legacy file, then combines only the off-diagonal slice with the
+  official E1/E2 diagonal. Output structure is now a graded Jaccard feature similarity.
+  The E6 package delta is `gliclass==0.1.20` in a separate environment; E7 adds no package.
+  E7 probe generation now targets `data/e7_probe_ids.json` and enforces 562 IDs. Alex generated
+  the frozen manifest from the canonical Blackwell holdout and committed it as `aa658d5`:
+  562 unique IDs, seed 20261019, up to 30 per task/dataset cell, holdout MD5
+  `fe43237b3412e3ef0f2f7c778395ba58`.
 - **E0 and the E1 plain-LoRA arms on Qwen are complete:** Shared, TaskLoRA and Shared r48 × 3 seeds,
   all trained, evaluated on the holdout and CRIMSON-scored (LEDGER, 2026-10-23 section).
 - **Result so far (mean over 3 seeds, no CIs yet):** Shared vs TaskLoRA is close to a tie. Shared is

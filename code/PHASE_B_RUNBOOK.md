@@ -89,10 +89,10 @@ Three slots, one per seed: Qwen evals, then MedGemma evals, then that seed's CRI
 (`crimsonchain_e3_s<seed>.log`; 5 non-report adapters x 2 backbones). Logs:
 `runs/evalchain_e3_{q35,mg15}_s<seed>.log`.
 
-**For Alex:** `plan_e3.py collect` still expects `phase_b_jobs.py` outputs (receipts,
-`run_meta.json`, off-diagonal-only folders). Point it at the folders above: slice each to the
-off-diagonal tasks (the diagonal comes from E1/E2), and read the Qwen legacy layout
-(`group_results.assemble` already does).
+**For Alex:** `plan_e3.py collect` accepts these reviewed chain outputs directly. It validates
+full holdout coverage, reads Qwen's legacy `predictions_holdout.json`, validates MedGemma's
+harness metadata, slices out each source task, and joins the off-diagonal predictions to the
+official E1/E2 diagonal. The older receipt-based layout remains accepted for compatibility.
 
 Alex, once all three chains and CRIMSON are complete:
 
@@ -120,6 +120,10 @@ export RESNET_INITIAL=/absolute/path/to/imagenet/resnet18-state-dict.pth
 
 These are deliberately explicit asset paths, not claims that either asset is
 already present on Blackwell. `preflight` checks paths if the variables are set.
+The 6 Nov package audit found only `gliclass==0.1.20` missing for E6; it is pinned in
+`code/env/requirements-router.txt`. Provision it in a separate E6 environment, then apply
+`code/env/requirements.txt` to restore the project pins. E7 needs no additional Python
+package. The two initial checkpoints above are assets, not packages.
 Use a durable session, with a slot scheduled by Taha:
 
 ```bash
@@ -241,8 +245,9 @@ Categorical output structure/modality are one-hot encoded, not arbitrary ranks.
   undefined. Nonfinite numeric metrics are recorded as null with diagnostics,
   never removed to improve an average.
 - E3 covariates use all 720 joint task-label permutations, preserving dependence
-  among the 30 pairs. All six output-structure labels differ, so equality is a
-  constant off-diagonal predictor and is explicitly reported as untestable.
+  among the 30 pairs. Output structure is a graded Jaccard overlap of pre-result
+  answer-format features (categorical/numeric/language, atomic/set/sequence,
+  discrete/continuous/spatial, and short/long), rather than constant label equality.
 - E7 implements unbiased linear CKA following [Kornblith et al.](https://proceedings.mlr.press/v97/kornblith19a.html).
   Negative debiased estimates are retained. The primary input measure is centroid
   cosine; supplementary RSA compares source/cell similarity profiles to fixed

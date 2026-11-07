@@ -14,6 +14,7 @@ RUNS_DIR="${JOURNAL_RUNS:-/data/ugrip2026/journal/runs}"
 PB="${PHASE_B_DIR:-$(dirname "$REPO")/phase_b}"
 GPU_OUT="${PHASE_B_GPU_OUT:-$RUNS_DIR/phase_b}"
 B="${BOOTSTRAPS:-10000}"
+PROBE="${E7_PROBE:-$REPO/data/e7_probe_ids.json}"
 STAGE="${1:?usage: phase_b.sh <stage> [chain|seed]}"
 case "$STAGE" in
   preflight)
@@ -58,16 +59,17 @@ case "$STAGE" in
   e6-analyze)
     python code/analysis/routing_results.py --index "$PB/e6_collected/index.json" --out "$PB/e6_results" --B "$B" ;;
   e7-probe)
-    python code/analysis/representations.py probe --holdout "$DATA/j26_holdout.jsonl" --out "$PB/probe_ids.json" ;;
+    python code/analysis/representations.py probe --holdout "$DATA/j26_holdout.jsonl" \
+      --out "$PROBE" --expected-total 562 ;;
   e7-prepare)
     python code/analysis/plan_e7.py prepare --data "$DATA" --groups "$GROUPS_DIR" --runs "$RUNS_DIR" \
-      --probe "$PB/probe_ids.json" --outputs "$GPU_OUT/e7" --out "$PB/e7_jobs" ;;
+      --probe "$PROBE" --outputs "$GPU_OUT/e7" --out "$PB/e7_jobs" ;;
   e7-check|e7-run)
     export CUDA_VISIBLE_DEVICES=1 GPU=1
     EXTRA=(); if [ -n "${2:-}" ]; then EXTRA=(--chain "$2"); fi
     python code/analysis/plan_e7.py "${STAGE#e7-}" --plan "$PB/e7_jobs/plan.json" "${EXTRA[@]}" ;;
   e7-analyze)
-    python code/analysis/representations.py analyze --index "$PB/e7_jobs/index.json" --probe "$PB/probe_ids.json" \
+    python code/analysis/representations.py analyze --index "$PB/e7_jobs/index.json" --probe "$PROBE" \
       --holdout "$DATA/j26_holdout.jsonl" --transfer "$PB/e3_results/transfer.json" --out "$PB/e7_results" --B "$B" ;;
   e8-prepare)
     python code/analysis/rq4_synthesis.py prepare --runs "$RUNS_DIR" --holdout "$DATA/j26_holdout.jsonl" --out "$PB/e8_collected" ;;

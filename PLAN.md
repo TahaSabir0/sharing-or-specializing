@@ -9,6 +9,11 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-06: E3 collection now consumes the reviewed mixed evaluator outputs directly
+  (Qwen legacy `predictions_holdout.json`; MedGemma harness folder), retaining the original
+  E1/E2 diagonal. Replaced constant exact output-format equality with graded Jaccard overlap
+  on pre-result answer-format features. E7 probe generation writes the commit-ready manifest
+  to `data/e7_probe_ids.json` and rejects a census other than the frozen expected 562 IDs.
 - 2026-11-04: **Scorer fix** (`score_single.py`, `a23fe19`): a counting/regression answer that
   overflows a float (MedGemma E3 TaskLoRA-reg s2026 answers 5 neurips22cell counts with "1000...0" to
   512 tokens) counts as malformed and is scored like an answer with no number (challenge rule: that
