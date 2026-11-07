@@ -25,7 +25,7 @@ sys.path.insert(0, str(CODE / 'data'))
 POOLS = ('image', 'question', 'last')
 
 
-def make_probe(holdout_path, out, n=30, seed=20261019):
+def make_probe(holdout_path, out, n=30, seed=20261019, expected_total=None):
     """Stable to row ordering: select by salted ID hash, up to 30 from every cell."""
     if n <= 0:
         raise ValueError('probe size must be positive')
@@ -43,6 +43,8 @@ def make_probe(holdout_path, out, n=30, seed=20261019):
     manifest = {'surface': 'holdout', 'holdout_md5': digest(holdout_path), 'seed': seed,
                 'per_cell': n, 'ids': ids, 'cells': counts,
                 'selection': 'SHA256(seed:question_id); cells smaller than n use all rows'}
+    if expected_total is not None and len(ids) != expected_total:
+        raise ValueError(f'probe census changed: expected {expected_total} IDs, found {len(ids)}')
     if Path(out).exists():
         raise ValueError(f'{out}: probe IDs are frozen; use a new path for a different probe')
     write_json(out, manifest)
@@ -382,6 +384,7 @@ def main():
     probe = sub.add_parser('probe')
     probe.add_argument('--holdout', required=True)
     probe.add_argument('--out', required=True)
+    probe.add_argument('--expected-total', type=int)
     extract_p = sub.add_parser('extract')
     for name in ('holdout', 'probe', 'spec', 'out'):
         extract_p.add_argument('--' + name, required=True)
@@ -394,7 +397,7 @@ def main():
         head.add_argument('--' + name, required=True)
     a = p.parse_args()
     if a.cmd == 'probe':
-        make_probe(a.holdout, a.out)
+        make_probe(a.holdout, a.out, expected_total=a.expected_total)
     elif a.cmd == 'extract':
         extract(a.holdout, a.probe, a.spec, a.out)
     elif a.cmd == 'analyze':

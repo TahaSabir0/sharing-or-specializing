@@ -67,6 +67,8 @@ def test_probe_selection_is_stable_stratified_and_uses_small_cells(tmp_path):
     a = make_probe(deck, tmp_path / 'a.json')
     assert len(a['ids']) == 52
     assert a['cells']['classification/small']['selected'] == 22
+    with pytest.raises(ValueError, match='expected 53 IDs'):
+        make_probe(deck, tmp_path / 'wrong.json', expected_total=53)
     write_rows(deck, list(reversed(rows)))
     b = make_probe(deck, tmp_path / 'b.json')
     assert a['ids'] == b['ids']

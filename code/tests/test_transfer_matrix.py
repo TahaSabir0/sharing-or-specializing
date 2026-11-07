@@ -129,9 +129,42 @@ def test_collection_to_transfer_and_cell_results(e3):
         assert r['pairs']['cls->reg']['PGF']['mean'] == 1
         assert r['pairs']['cls->reg']['bootstrap']['ci95'] == [2, 2]
         assert len(r['iugc_natural_experiment']) == 6
-        assert r['covariate_tests']['same_output_structure']['rho'] is None
+        assert r['covariate_tests']['output_structure_similarity']['rho'] is not None
         assert (tmp / 'analysis' / f'{backbone}_transfer.pdf').exists()
     assert (tmp / 'analysis/transfer.json').exists()
+
+
+def test_collects_reviewed_chain_outputs_including_legacy_qwen(e3):
+    tmp, _, plan = e3
+    holdout = read_json(Path(plan['holdout'])) if str(plan['holdout']).endswith('.json') else [
+        json.loads(line) for line in Path(plan['holdout']).read_text(encoding='utf-8').splitlines()]
+    root = Path(plan['runs']) / 'e3'
+    for job in plan['jobs']:
+        dest = root / f"e3_{job['backbone']}_task{SHORT[job['source']]}_s{job['seed']}"
+        if job['backbone'] == 'q35':
+            write_json(dest / 'predictions_holdout.json', preds(holdout))
+            reports = [r for r in holdout if r['task'] == 'report_generation']
+            write_rows(dest / 'crimson/crimson_per_sample.jsonl', [
+                {'sample_key': r['id'], 'crimson_score': .7} for r in reports])
+        else:
+            artifact(dest, holdout, 'mg15', job['seed'], mode='adapter',
+                     adapter=job['adapters'][0]['path'])
+    index = collect(plan, tmp / 'chain-collected', score=False)
+    qwen_source = index['backbones']['q35']['evaluation_sources']['cls_s1337']
+    med_source = index['backbones']['mg15']['evaluation_sources']['cls_s1337']
+    assert qwen_source['layout'] == med_source['layout'] == 'chain-full-holdout'
+    assert qwen_source['directory'].endswith('e3_q35_taskcls_s1337')
+    full = read_json(index['backbones']['q35']['rows']['cls']['1337'] + '/all_predictions.json')
+    assert len(full) == len(holdout)
+
+
+def test_output_structure_similarity_is_graded(e3):
+    _, data, _ = e3
+    train = [json.loads(line) for line in (data / 'j26_train_mix.jsonl').read_text().splitlines()]
+    values = pair_covariates(train)
+    sims = {round(v['output_structure_similarity'], 6) for v in values.values()}
+    assert len(sims) >= 3
+    assert values[(0, 1)]['output_structure_similarity'] > values[(0, 5)]['output_structure_similarity']
 
 
 @pytest.mark.parametrize('corruption', ['weights', 'deck', 'partial', 'adapter', 'receipt'])

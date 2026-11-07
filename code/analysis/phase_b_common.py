@@ -17,6 +17,17 @@ TASKS = ('classification', 'multi-label classification', 'detection', 'counting'
          'regression', 'report_generation')
 SHORT = dict(zip(TASKS, ('cls', 'ml', 'det', 'count', 'reg', 'report')))
 STRUCTURE = dict(zip(TASKS, ('label', 'label-set', 'boxes', 'integer', 'scalar', 'free text')))
+# Transparent, pre-result descriptors of the answer representation.  Pairwise output-structure
+# similarity is Jaccard overlap on these sets; this is graded while avoiding an arbitrary ordinal
+# rank over otherwise incomparable formats.
+STRUCTURE_FEATURES = {
+    'classification': ('categorical', 'atomic', 'discrete', 'short'),
+    'multi-label classification': ('categorical', 'set', 'discrete', 'short'),
+    'detection': ('numeric', 'set', 'continuous', 'spatial', 'short'),
+    'counting': ('numeric', 'atomic', 'discrete', 'short'),
+    'regression': ('numeric', 'atomic', 'continuous', 'short'),
+    'report_generation': ('language', 'sequence', 'free-form', 'long'),
+}
 
 
 def write_json(path, value):

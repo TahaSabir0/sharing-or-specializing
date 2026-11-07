@@ -15,7 +15,7 @@ from scipy.stats import rankdata, wilcoxon
 
 import bootstrap as bs
 from compare_groups import subset_cell
-from phase_b_common import (TASKS, SHORT, STRUCTURE, SEEDS, BACKBONES, read_json, read_jsonl,
+from phase_b_common import (TASKS, SHORT, STRUCTURE, STRUCTURE_FEATURES, SEEDS, BACKBONES, read_json, read_jsonl,
                             write_json, fresh_dir, provenance, commit, finite, summary, load_eval, require_input_hash)
 
 
@@ -78,7 +78,8 @@ def pair_covariates(train):
                 continue
             a, b = grouped[ti], grouped[tj]
             result[(i, j)] = dict(source_n=len(a), target_n=len(b),
-                same_output_structure=int(STRUCTURE[ti] == STRUCTURE[tj]),
+                output_structure_similarity=jaccard(set(STRUCTURE_FEATURES[ti]),
+                                                    set(STRUCTURE_FEATURES[tj])),
                 modality_jaccard=jaccard({r['modality'] for r in a}, {r['modality'] for r in b}),
                 dataset_jaccard=jaccard({r['dataset'] for r in a}, {r['dataset'] for r in b}))
     return result
@@ -147,7 +148,8 @@ def analyze(index_path, train_path, holdout_path, out_path, B=10000, random_seed
                   'PGF': 'PLAN 1.8; null if baseline gap is zero or metric nonfinite',
                   'aggregate': 'Sachdeva Eq 1/2; primary excludes diagonal, N=5',
                   'output_structure': STRUCTURE,
-                  'structure_note': 'All six task structures differ, so off-diagonal equality is constant; no test.'}}
+                  'output_structure_features': STRUCTURE_FEATURES,
+                  'structure_note': 'Graded Jaccard overlap of pre-result answer-format features.'}}
     for backbone in BACKBONES:
         spec = index['backbones'][backbone]
         base, _ = load_eval(spec['zsprompt'], holdout, backbone, arm='zsprompt')

@@ -1,0 +1,3 @@
+# E6 task-router addition. Provision this in a separate E6 environment; do not mutate the
+# frozen training environment. Install GLiClass before applying the pins in requirements.txt.
+gliclass==0.1.20
