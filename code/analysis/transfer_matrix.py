@@ -184,6 +184,8 @@ def analyze(index_path, train_path, holdout_path, out_path, B=10000, random_seed
                     'C_bare': summary(cb), 'PGF': summary(mu),
                     'PGF_bare': summary([pgf(v, baseline_bare, target) for v in scores]),
                     'diagnostics': [diagnostics(p, target) for p in raw[source]],
+                    'crimson_unscored': ([int(np.isnan(r[target]['score']).sum()) for r in rows[source]]
+                                         if target == 'report_generation' else None),
                     'stability': seed_stability(c),
                     'bootstrap': transfer_ci([r[target] for r in rows[source]], base[target], target, B, random_seed)}
                 for s, cp, cbp in zip(SEEDS, c, cb):

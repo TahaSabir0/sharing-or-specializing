@@ -104,5 +104,7 @@ def load_eval(path, deck, backbone, seed=None, arm=None):
     reports = [r['id'] for r in deck if r['task'] == 'report_generation']
     if reports:
         crimson_scores([path / 'crimson_per_sample.jsonl'], reports,
-                       allow_unscored=meta.get('arm') in ('zsbare', 'zsprompt'))
+                       allow_unscored=meta.get('arm') in ('zsbare', 'zsprompt') or (
+                           str(meta.get('arm', '')).startswith('transfer_')
+                           and meta.get('arm') != 'transfer_report'))
     return bs.load_run(path), rows

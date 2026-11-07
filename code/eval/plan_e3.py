@@ -98,14 +98,20 @@ def collect(plan, out, score=True, output_root=None):
             assemble([job['adapters'][0]['path']], [r for r in holdout if r['task'] == job['source']],
                      diag, backbone, seed, 'task' + short, subset=True, score=score)
             source, layout = sources[job['key']]
+            # Non-report adapters answering report questions: a report the CRIMSON judge returned no
+            # score for is left out of the mean (same rule as LEDGER/score_crimson.py; Taha 7 Nov),
+            # counted per cell in transfer.json. The report adapter's own cells stay strict.
+            junk = job['source'] != 'report_generation'
             if layout == 'chain-full-holdout':
                 offdiag = out / backbone / f'offdiagonal_{short}_s{seed}'
                 assemble([source], [r for r in holdout if r['task'] != job['source']], offdiag,
-                         backbone, seed, 'offdiagonal_' + short, subset=True, score=score)
+                         backbone, seed, 'offdiagonal_' + short, subset=True, score=score,
+                         allow_unscored=junk)
             else:
                 offdiag = source
             dest = out / backbone / f'transfer_{short}_s{seed}'
-            assemble([diag, offdiag], holdout, dest, backbone, seed, 'transfer_' + short, score=score)
+            assemble([diag, offdiag], holdout, dest, backbone, seed, 'transfer_' + short, score=score,
+                     allow_unscored=junk)
             spec['rows'][short][str(seed)] = str(dest.resolve())
             spec['evaluation_sources'][f'{short}_s{seed}'] = {
                 'directory': str(source.resolve()), 'layout': layout}
