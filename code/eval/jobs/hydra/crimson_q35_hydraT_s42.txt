@@ -1,0 +1,3 @@
+# CRIMSON for the Qwen Hydra-T s42 holdout reports (eval_harness folder; run_crimson_chain.sh takes its reportgen_pairs.jsonl).
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_hydraT_q35_s42.log end eval j26_q35_hydraT_full_768_s42 rc=0
+q35_hydraT_s42 /data/ugrip2026/journal/runs/j26_q35_hydraT_full_768_s42/eval_holdout

@@ -1,0 +1,4 @@
+# Qwen Hydra-T holdout eval (E1), seed 42. Run with EVAL_PY=code/eval/eval_harness.py: eval_arm.py cannot load
+# a plug-in; harness parity with eval_arm.py on Qwen passed 7 Nov (LEDGER "Setup findings"). Oracle task route
+# (plug-in mode routes by each question's task), batch 1, greedy, EOS pinned, 512 tokens, as every Qwen eval.
+j26_q35_hydraT_full_768_s42 --mode plugin --run_dir /data/ugrip2026/journal/runs/j26_q35_hydraT_full_768_s42 --backbone q35 --batch_size 1 --data /data/ugrip2026/journal/data/j26_holdout.jsonl --surface holdout --out_dir /data/ugrip2026/journal/runs/j26_q35_hydraT_full_768_s42/eval_holdout
