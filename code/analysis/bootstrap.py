@@ -27,6 +27,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "eval"))
 import evaluation as E  # noqa: E402
+from score_single import overflows  # noqa: E402  (same overflow rule as the scorer, a23fe19)
 
 REPORT = "report_generation"
 MISSING = object()  # report id absent from crimson_per_sample.jsonl
@@ -49,7 +50,10 @@ def load_run(d):
         t = out[p["TaskType"]]
         t["ids"].append(p["id"])
         t["dataset"].append(p["dataset"])
-        t["pred"].append(p["Answer"])
+        ans = p["Answer"]
+        if p["TaskType"] in ("counting", "regression") and overflows(ans):
+            ans = ""  # as score_single.py: scored like an answer with no number (slice MAE inf)
+        t["pred"].append(ans)
         t["gt"].append(p["gt_answer"])
         # absent id -> MISSING (CRIMSON not run); explicit null -> NaN (judge gave no score; only
         # zero-shot baselines may carry these, enforced by crimson_scores at assembly/load)
