@@ -129,7 +129,9 @@ def test_collection_to_transfer_and_cell_results(e3):
         assert r['pairs']['cls->reg']['PGF']['mean'] == 1
         assert r['pairs']['cls->reg']['bootstrap']['ci95'] == [2, 2]
         assert len(r['iugc_natural_experiment']) == 6
-        assert r['covariate_tests']['output_structure_similarity']['rho'] is not None
+        cov = r['covariate_tests']['output_structure_similarity']
+        assert cov['excluded_targets'] == (['counting'] if backbone == 'mg15' else [])
+        assert cov['n_pairs'] == (25 if backbone == 'mg15' else 30)
         assert (tmp / 'analysis' / f'{backbone}_transfer.pdf').exists()
     assert (tmp / 'analysis/transfer.json').exists()
 
@@ -211,3 +213,16 @@ def test_nonfinite_transfer_is_reported_not_discarded(e3):
     assert pair['C']['values'][0] is None
     assert pair['diagnostics'][0]['malformed_rate'] == 1
     assert pair['bootstrap']['ci95'] is None
+
+
+def test_covariate_test_on_mu_with_excluded_target_keeps_its_label():
+    import numpy as np
+    from transfer_matrix import covariate_tests
+    rng = np.random.default_rng(0)
+    matrix = rng.normal(size=(6, 6))
+    matrix[:, 3] = np.nan                     # counting column undefined/excluded
+    cov = {(i, j): {'x': float(i * 6 + j)} for i in range(6) for j in range(6) if i != j}
+    r = covariate_tests(matrix, cov, ('counting',))['x']
+    assert r['n_pairs'] == 25 and r['permutations'] == 120 and r['rho'] is not None
+    full = covariate_tests(np.where(np.isnan(matrix), 0.0, matrix), cov)['x']
+    assert full['n_pairs'] == 30 and full['permutations'] == 720

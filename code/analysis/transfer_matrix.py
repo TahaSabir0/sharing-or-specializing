@@ -85,15 +85,32 @@ def pair_covariates(train):
     return result
 
 
-def covariate_tests(matrix, covariates):
-    """Exact 6! node-label permutations preserve dependence among the 30 task pairs."""
-    pairs = list(covariates)
+# Target tasks left out of the RQ3 covariate test, per backbone (Taha, 8 Nov 2026): MedGemma's ZS-prompt
+# counting MAE is 75,269 (a few huge answers), so every adapter's PGF on counting is ~1 whatever it learned.
+# The transfer matrix still reports these cells; only the correlation test omits them.
+COVARIATE_EXCLUDED_TARGETS = {'mg15': ('counting',)}
+
+
+def covariate_tests(matrix, covariates, excluded_targets=()):
+    """Spearman of the outcome (PGF/mu, mean over seeds; one scale for every target task) against each
+    pair covariate. Exact node-label permutations preserve dependence among the task pairs; excluded
+    target tasks keep their label (only the other tasks are permuted), so excluded cells never move."""
+    excluded = {TASKS.index(t) for t in excluded_targets}
+    pairs = [p for p in covariates if p[1] not in excluded]
+    free = [k for k in range(6) if k not in excluded]
+    perms = []
+    for order in itertools.permutations(free):
+        perm = list(range(6))
+        for k, v in zip(free, order):
+            perm[k] = v
+        perms.append(perm)
     y = np.array([matrix[i, j] for i, j in pairs])
     result = {}
     for name in next(iter(covariates.values())):
         x = np.array([covariates[p][name] for p in pairs], float)
         if not np.isfinite(y).all() or np.ptp(x) == 0 or np.ptp(y) == 0:
-            result[name] = {'rho': None, 'p_permutation': None,
+            result[name] = {'rho': None, 'p_permutation': None, 'n_pairs': len(pairs),
+                            'excluded_targets': list(excluded_targets),
                             'reason': 'constant covariate/outcome or undefined metric'}
             continue
         xr, yr = rankdata(x), rankdata(y)
@@ -101,11 +118,13 @@ def covariate_tests(matrix, covariates):
         den = np.linalg.norm(xr) * np.linalg.norm(yr)
         rho = float(xr @ yr / den)
         hits = 0
-        for perm in itertools.permutations(range(6)):
+        for perm in perms:
             yp = rankdata([matrix[perm[i], perm[j]] for i, j in pairs])
             hits += abs(xr @ (yp - yp.mean()) / den) >= abs(rho) - 1e-12
-        result[name] = {'rho': rho, 'p_permutation': hits / 720, 'n_pairs': 30,
-                        'permutations': 720, 'unit': 'task labels permuted jointly on both axes'}
+        result[name] = {'rho': rho, 'p_permutation': hits / len(perms), 'n_pairs': len(pairs),
+                        'permutations': len(perms), 'outcome': 'PGF (mu), mean over seeds',
+                        'excluded_targets': list(excluded_targets),
+                        'unit': 'task labels permuted jointly on both axes'}
     adjusted = bs.holm({k: v['p_permutation'] for k, v in result.items() if v['p_permutation'] is not None})
     for key, p in adjusted.items():
         result[key]['p_holm'] = p
@@ -223,7 +242,8 @@ def analyze(index_path, train_path, holdout_path, out_path, B=10000, random_seed
             for key, p in bs.holm(family).items():
                 output['pairs'][key]['bootstrap']['p_holm_targets'] = p
         output['covariates'] = [{'source': TASKS[i], 'target': TASKS[j], **v} for (i, j), v in covariates.items()]
-        output['covariate_tests'] = covariate_tests(matrices.mean(axis=0), covariates)
+        output['covariate_tests'] = covariate_tests(mus.mean(axis=0), covariates,
+                                                    COVARIATE_EXCLUDED_TARGETS.get(backbone, ()))
         output['iugc_natural_experiment'] = {k: v for k, v in output['cells'].items()
             if v['dataset'] == 'iugc' and v['source'] in ('classification', 'detection', 'regression')
             and v['target'] != v['source']}
@@ -252,8 +272,37 @@ def heatmap(matrix, path, backbone):
     plt.close(fig)
 
 
+def recompute_covariates(transfer_path):
+    """Re-run only the RQ3 covariate test on an existing transfer.json (seconds; no bootstrap). The
+    previous covariate_tests block is kept as covariate_tests_superseded."""
+    import json
+    path = Path(transfer_path)
+    result = read_json(path)
+    for backbone, output in result['backbones'].items():
+        mu = np.full((6, 6), np.nan)
+        for pair in output['pairs'].values():
+            m = pair['PGF']['mean']
+            mu[TASKS.index(pair['source']), TASKS.index(pair['target'])] = np.nan if m is None else m
+        covariates = {(TASKS.index(c['source']), TASKS.index(c['target'])):
+                      {k: v for k, v in c.items() if k not in ('source', 'target')}
+                      for c in output['covariates']}
+        output['covariate_tests_superseded'] = output['covariate_tests']
+        output['covariate_tests'] = covariate_tests(mu, covariates,
+                                                    COVARIATE_EXCLUDED_TARGETS.get(backbone, ()))
+    result['covariate_recompute'] = {'code_commit': commit(), 'outcome': 'PGF (mu), mean over seeds',
+                                     'excluded_targets': COVARIATE_EXCLUDED_TARGETS}
+    write_json(path, result)
+    return result
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--recompute-covariates', metavar='TRANSFER_JSON',
+                   help='only re-run the covariate test on an existing transfer.json, in place')
+    a, _ = p.parse_known_args()
+    if a.recompute_covariates:
+        recompute_covariates(a.recompute_covariates)
+        return
     p.add_argument('--index', required=True)
     p.add_argument('--train', required=True)
     p.add_argument('--holdout', required=True)
