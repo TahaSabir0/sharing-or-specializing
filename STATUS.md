@@ -1,6 +1,6 @@
 # Status
 
-**Updated 2026-11-06.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-07.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
@@ -25,21 +25,26 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 - **Hydra-T / Reversed Hydra (Veronika): reviewed and merged 4 Nov.** All four smoke gates passed 3 Nov (Qwen and
   MedGemma, both modes; `results/smoke/hydra_integrated_20261103.md`, `code/HYDRA_RUNBOOK.md`).
   **12 full runs launched 4 Nov 10:01** (box `d7a16cd`): `chain_hydra{1,2,3}.log` (PIDs 3751748/49/51), chain i =
-  seed i: Qwen T, Qwen R, MedGemma T, MedGemma R (`code/eval/jobs/hydra/`). Estimate ~57 h per Qwen run and
-  ~24 h per MedGemma run at 3 jobs: training done ~11 Nov; holdout evals not queued yet (Qwen Hydra needs
-  `eval_harness.py`: parity check vs `eval_arm.py` running, `runs/parity/`).
-- **E3 CRIMSON:** paused 4 Nov 10:00 with 16/30 done (all Qwen + MedGemma cls s42; the 4 in-flight jobs
-  finished, so the logs end on "start"). **Remaining 14 (MedGemma) resumed 5 Nov 11:37 beside Hydra** (box
-  `d7a16cd`; PIDs 3929691/92/93; job files `runs/e3/jobs_resume_20261105/`; logs
-  `runs/crimsonchain_e3resume_s<seed>.log`). ETA ~5 Nov 18:00–19:00. Measured cost: Hydra runs at ~63% speed
-  while 3 CRIMSON jobs share the card (158 vs 250 steps/h), so Hydra slips ~2.5 h (training done ~11 Nov afternoon).
+  seed i: Qwen T, Qwen R, MedGemma T, MedGemma R (`code/eval/jobs/hydra/`). **Qwen Hydra-T done 7 Nov ~03:40**
+  (3/3 rc=0); Qwen Reversed Hydra running, ETA ~9 Nov 14:00–15:00; MedGemma T+R after, training done ~11 Nov
+  afternoon. Holdout evals not queued yet: Qwen Hydra needs `eval_harness.py`, whose parity run (300 predictions,
+  Shared s1337, `runs/parity/`) finished 4 Nov but is not yet compared with `eval_arm.py`.
+- **E3 inference + CRIMSON complete** (30/30 CRIMSON; last 14 MedGemma jobs ran beside Hydra 5 Nov 11:37–22:27,
+  logs `runs/crimsonchain_e3resume_s<seed>.log`; Hydra slipped ~4 h). Alex's collect fix merged 7 Nov
+  (`f32d64d`) plus two fixes at review: `adapter_identity` deck key (`ce56acd`) and unscored CRIMSON reports
+  (`c447ac3`, `d119d5f`: allowed only in zero-shot baselines and non-report adapters' report cells, left out of
+  the mean as in LEDGER, counted per cell). **E3 collect done; analysis running** (box `d119d5f`, PID 4164140,
+  log `runs/e3_collect_analyze_20261107.log`, out `/data/ugrip2026/journal/phase_b/e3_results/`).
 - **E4/E5 ready to launch (26 Oct):** Alex's `alex/modality-decks` reviewed, reworked and merged
   (`code/E4_E5_RUNBOOK.md`). 51 group decks in `/data/ugrip2026/journal/data_e4e5`; job files in
   `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
   Clinical/Derm/Mammo hold one dataset each, so E5 reuses those E4 adapters (PLAN changelog 26 Oct).
   **Training done 31 Oct 00:47:** all 84 runs rc=0 and pass the protocol check (3 epochs, deck hash,
   P8). No MedGemma smoke (deviation, PLAN changelog). **Holdout evals done 2 Nov 03:31** (84/84 rc=0) and
-  **CRIMSON done 2 Nov 06:17** (6/6 rc=0). Next: `e4_e5.sh verify` and `analyze` (CPU), then LEDGER.
+  **CRIMSON done 2 Nov 06:17** (6/6 rc=0). **Verified and analysed 6 Nov** (plain-LoRA reference arms;
+  `/data/ugrip2026/journal/e4e5_results_plain_lora_20261106/`): LEDGER 2026-11-07 section, paper §E4/E5.
+  Modality adapters ≈ Shared ≈ TaskLoRA; dataset adapters lower cls (sig. vs Shared on both backbones). Rerun
+  with the Hydra arms once their evals exist. 84 runs not yet in RUNS.csv.
 - **E3/E6/E7/E8 code (Alex) merged 3 Nov** (`de4b21f`). At review E3 inference moved to the usual
   chain runners with each backbone's baseline evaluator (Qwen `eval_arm.py`, not the harness);
   job files `code/eval/jobs/e3/`. **E3 launched 3 Nov 10:52** (box `fcbe2fa`; eval slot PIDs

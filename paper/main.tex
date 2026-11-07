@@ -412,6 +412,13 @@ higher-is-better metrics and
 $\mu=(\mathrm{MAE}_{\mathrm{base}}-\mathrm{MAE})/\mathrm{MAE}_{\mathrm{base}}$
 for MAE~\cite{sachdeva2026tasktransfer}.
 
+The CRIMSON judge occasionally returns no score for a report. This never
+happened for a fine-tuned arm's own report outputs; it happened for 13 of the
+781 MedGemma ZS-prompt reports, 1 Qwen ZS-bare report, and up to 13 reports
+per run when a non-report adapter answers report questions (E3). Such reports
+are left out of the CRIMSON mean, and we give their count wherever it is
+non-zero.
+
 We report the mean and standard deviation over three seeds. Confidence
 intervals come from a two-level bootstrap (seeds, then holdout questions,
 stratified by dataset, 10{,}000 resamples, with the task macro recomputed
@@ -459,6 +466,9 @@ We also report the normalized transfer $\mu_{i\to j}$, each source task's
 transferability and each target task's malleability~\cite{sachdeva2026tasktransfer},
 and the malformed-output rate per cell, since locking into the source task's
 output format is a likely mechanism of negative transfer.
+The report column scores non-report adapters' answers to report questions,
+which are often not reports at all; we keep and flag these cells but draw no
+conclusion from their CRIMSON values.
 
 We relate $C_{ij}$ over the 30 off-diagonal pairs to output-structure
 similarity, modality overlap, dataset overlap and source and target data
@@ -472,9 +482,12 @@ dataset fixed and varies only the output format.
 
 E4 trains one adapter per imaging modality on all of that modality's
 questions, whatever the task (seven modalities). E5 trains one adapter per
-classification dataset (ten). Each is evaluated on its own slice with the
-oracle route and compared on the same questions with Shared, TaskLoRA and
-the other arms. Three modalities hold a single classification dataset, so
+classification dataset (ten). Both are trained with the recipe of
+Section~\ref{sec:setup} on both backbones with three seeds. Each adapter is
+evaluated on its own slice with the oracle route; joining the slices covers
+the whole holdout (E4) or every classification question (E5), which we
+compare on the same questions with Shared, TaskLoRA and the other arms.
+Three modalities hold a single classification dataset, so
 their E4 and E5 adapters are identical and are trained once. For E5 we
 relate the per-dataset gain over TaskLoRA-cls to dataset size and zero-shot
 difficulty.
@@ -671,7 +684,82 @@ Report (CRIMSON) & $+0.006$ & $+0.007$ \\
 \todo{E3 results.}
 
 \subsection{Modality and Dataset Specialization (E4, E5)}
-\todo{E4/E5 results (training launched 26 Oct).}
+\todo{Add the Hydra-T and Hydra-R comparisons once their holdout evaluations
+exist; the comparisons below are against the three plain-LoRA arms.}
+
+\textbf{By modality (E4).} Seven modality adapters perform about as well as
+Shared and TaskLoRA (Table~\ref{tab:e4}). No task differs from either after
+Holm correction on either backbone. The largest gap is MedGemma multi-label,
+where the modality adapters trail TaskLoRA by 0.025 F1 (95\% CI
+$[-0.044,-0.007]$, Holm $p=0.06$). Specializing by imaging modality is
+therefore neither better nor worse than specializing by task, or not
+specializing at all. Two modality adapters train on more than one task's
+data: microscopy holds counting and bone-marrow classification, and X-ray
+holds report generation together with multi-label, dental classification
+and bone-resorption regression.
+
+\textbf{By dataset (E5).} Splitting classification further, into one adapter
+per dataset, lowers balanced accuracy on both backbones
+(Table~\ref{tab:e5}): by 0.035 against Shared on Qwen ($p=0.010$) and by
+0.059 on MedGemma ($p=0.001$); against TaskLoRA-cls the drop is 0.054 on
+MedGemma ($p=0.002$) and 0.022 on Qwen, where it is not significant
+($p=0.10$). The loss sits in the small datasets: bone marrow ($-0.155$ Qwen,
+$-0.216$ MedGemma against TaskLoRA-cls; 95\% CIs exclude zero, not significant
+after Holm across the ten datasets), BUS-UCLM and retinography. Large
+datasets (CMMD, dental) are unchanged, and IUGC gains slightly. Across the
+ten datasets the gain over TaskLoRA-cls tends to grow with training size on
+MedGemma (Spearman $\rho=0.60$, permutation $p=0.08$; Qwen $\rho=0.16$,
+$p=0.65$) and does not follow zero-shot difficulty ($\rho=0.35$ and $0.02$).
+Classification datasets thus benefit from being trained together, and
+cutting sharing below the task level costs the smaller ones.
+
+\begin{table}[!t]
+\caption{E4 modality adapters on the holdout: task macro (mean $\pm$ SD over
+three seeds) and difference from Shared and TaskLoRA (E4 $-$ reference, mean
+over seeds). For MAE a positive difference means E4 is worse. No difference
+is significant after Holm correction (two-level paired bootstrap).}
+\label{tab:e4}
+\centering
+\setlength{\tabcolsep}{2pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{3}{c}{Qwen3.5-9B} & \multicolumn{3}{c}{MedGemma-1.5-4B} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Task & E4 & $-$Shared & $-$TaskLoRA & E4 & $-$Shared & $-$TaskLoRA \\
+\midrule
+Cls (BA $\uparrow$) & 0.721{\scriptsize$\pm$.010} & $-0.016$ & $-0.004$ & 0.704{\scriptsize$\pm$.024} & $-0.020$ & $-0.016$ \\
+ML (F1 $\uparrow$) & 0.619{\scriptsize$\pm$.008} & $+0.010$ & $+0.005$ & 0.557{\scriptsize$\pm$.005} & $-0.012$ & $-0.025$ \\
+Det (F1 $\uparrow$) & 0.908{\scriptsize$\pm$.011} & $+0.004$ & $+0.016$ & 0.507{\scriptsize$\pm$.028} & $+0.038$ & $-0.022$ \\
+Count (MAE $\downarrow$) & 15.12{\scriptsize$\pm$1.38} & $+2.16$ & $+0.09$ & 27.14{\scriptsize$\pm$3.79} & $+1.85$ & $-2.06$ \\
+Reg (MAE $\downarrow$) & 11.76{\scriptsize$\pm$0.40} & $+0.41$ & $+1.12$ & 11.92{\scriptsize$\pm$0.84} & $-0.24$ & $+0.02$ \\
+Report (CRIMSON $\uparrow$) & 0.821{\scriptsize$\pm$.004} & $-0.001$ & $-0.007$ & 0.828{\scriptsize$\pm$.004} & $+0.003$ & $-0.003$ \\
+\bottomrule
+\end{tabular}}
+\end{table}
+% Source: results/LEDGER.md, "E4 / E5" (2026-11-07); CIs and Holm p there.
+% Shared r48 contrasts are in the LEDGER too (none significant).
+
+\begin{table}[!t]
+\caption{E5 dataset adapters for classification: balanced accuracy (mean
+$\pm$ SD over three seeds) and E5 $-$ reference [95\% CI], with $p$ from the
+two-level paired bootstrap.}
+\label{tab:e5}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccc}
+\toprule
+Backbone & E5 & $-$Shared & $-$TaskLoRA-cls \\
+\midrule
+Qwen & 0.702{\scriptsize$\pm$.010} & $-0.035$, $p=0.010$ & $-0.022$, $p=0.10$ \\
+ & & {\scriptsize[$-0.058,-0.008$]} & {\scriptsize[$-0.048,+0.005$]} \\[2pt]
+MedGemma & 0.666{\scriptsize$\pm$.026} & $-0.059$, $p=0.001$ & $-0.054$, $p=0.002$ \\
+ & & {\scriptsize[$-0.092,-0.026$]} & {\scriptsize[$-0.088,-0.020$]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+% Per-dataset E5 - TaskLoRA-cls: LEDGER "E4 / E5"; goes to the appendix table.
 
 \subsection{Predicted Routing (E6)}
 \todo{E6 results.}
@@ -744,6 +832,15 @@ protocol must remove.
 \todo{Complete hyperparameters and target-module lists; per-dataset results
 for every arm and seed; full transfer matrices; complete E7 analyses;
 complete E9 results; malformed, truncation and report-omission tables.}
+
+\textbf{Scorer corrections.} Two scorer fixes were made during the study.
+First, a score equal to the question count was skipped; rescoring all 52
+holdout prediction files that existed then changed no task macro. Second, a
+counting or regression answer that overflows a floating-point number (one E3
+MedGemma run wrote a 512-token string of digits) now counts as malformed and
+is scored like an answer with no number, as in the challenge rules, instead
+of stopping the evaluation; rescoring all 109 holdout metric files then
+changed no number.
 
 
 % ============================================================
