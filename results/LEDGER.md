@@ -267,3 +267,91 @@ collapse to normal boilerplate more than Qwen's, yet score slightly higher on CR
   predicted-vs-gold x-correlation is 0.22 (BUSI) / 0.14 (BUS-UCLM) against y 0.72 / 0.65 (Qwen x 0.67 / 0.92).
   MedGemma localises poorly along x on these wide images (aspect 1.24–1.41, squashed to 896²). Hypothesis, untested.
 - Zero-shot MedGemma is weaker than zero-shot Qwen on every task except regression (with prompt).
+
+---
+
+## E4 / E5 — modality and classification-dataset adapters, both backbones, 3 seeds, holdout (2026-11-07)
+
+**E4: one r8 adapter per imaging modality (7), trained on all of that modality's questions. E5: one r8 adapter per
+classification dataset (10). Each is evaluated on its own holdout slice (oracle route); the slices are joined so each
+seed covers the whole holdout (E4) or all classification questions (E5). Compared on the same questions with Shared,
+TaskLoRA and Shared r48 (E1/E2 runs above). Hydra comparisons pending (partial analysis, labelled as such).**
+
+- Runs: 84 (`j26_{q35,mg15}_mod<modality>_full_{768,896}_s{1337,2026,42}`, `..._ds<dataset>_...`); 42 per backbone.
+  Clinical, Dermatology and Mammography hold one dataset each (neojaundice, bcn20000, CMMD): E5 reuses those E4
+  adapters (byte-identical decks; PLAN changelog 26 Oct). Not yet in `results/RUNS.csv` (to add).
+- Decks: 51 group decks in `/data/ugrip2026/journal/data_e4e5` cut from the frozen W1 decks (`GROUP_MANIFEST.json`).
+  Job files `code/eval/jobs/e4e5/` (`f1fc40d`). Training launched 26 Oct 22:46 at `f1fc40d`, done 31 Oct 00:47;
+  holdout evals done 2 Nov 03:31 (Qwen `eval_arm.py`, MedGemma `eval_harness.py --batch_size 1`, as E1/E2);
+  CRIMSON on the 6 X-ray modality runs done 2 Nov 06:17. All rc=0.
+- Audit: `e4_e5.sh verify` (box `d7a16cd`, 6 Nov): 102/102 slots complete (protocol config, deck hash, 3 epochs,
+  exact holdout coverage, CRIMSON complete). Malformed / truncated: 0 / 0 on every task, every grouped run.
+- Analysis: `code/analysis/analyze_e4_e5.py --arms shared task shared48` (box `d7a16cd`, finished 6 Nov 17:08) →
+  `/data/ugrip2026/journal/e4e5_results_plain_lora_20261106/` (`E4_vs_<arm>_<bb>/`, `E5_vs_{shared,task}_<bb>/`:
+  `contrasts.json`, `cells.csv`). Two-level bootstrap (seeds, then questions stratified by dataset), B = 10,000;
+  per-task p Holm-adjusted across the 6 tasks of each comparison; per-cell p Holm-adjusted across cells.
+- Deviations from PLAN §1: none in training or evaluation (only the grouping differs, which is the experiment).
+  No MedGemma smoke on the group decks (logged deviation from §3.3, PLAN changelog 26 Oct).
+
+### E4 task macro and contrasts (mean ± SD over 3 seeds; difference = E4 − reference, [95% CI], Holm p)
+
+For MAE a positive difference means E4 is worse.
+
+**Qwen3.5-9B**
+
+| Task | E4 modality | vs Shared | vs TaskLoRA | vs Shared r48 |
+|---|---:|---:|---:|---:|
+| Cls, BA ↑ | 0.721 ± 0.010 | −0.016 [−0.037, +0.005] p=0.80 | −0.004 [−0.025, +0.017] p=1.00 | −0.016 [−0.040, +0.007] p=0.68 |
+| ML, F1 ↑ | 0.619 ± 0.008 | +0.010 [−0.010, +0.028] p=1.00 | +0.005 [−0.013, +0.024] p=1.00 | +0.023 [+0.002, +0.045] p=0.21 |
+| Det, F1 ↑ | 0.908 ± 0.011 | +0.004 [−0.035, +0.045] p=1.00 | +0.016 [−0.017, +0.057] p=1.00 | +0.026 [−0.008, +0.068] p=0.68 |
+| Count, MAE ↓ | 15.12 ± 1.38 | +2.16 [−2.10, +6.44] p=1.00 | +0.09 [−3.22, +3.30] p=1.00 | −4.56 [−10.85, +1.20] p=0.64 |
+| Reg, MAE ↓ | 11.76 ± 0.40 | +0.41 [−0.80, +1.66] p=1.00 | +1.12 [−0.49, +2.58] p=0.93 | −0.56 [−1.96, +0.90] p=0.86 |
+| Report, CRIMSON ↑ | 0.821 ± 0.004 | −0.001 [−0.014, +0.013] p=1.00 | −0.007 [−0.018, +0.004] p=0.95 | +0.004 [−0.011, +0.019] p=0.86 |
+
+**MedGemma-1.5-4B**
+
+| Task | E4 modality | vs Shared | vs TaskLoRA | vs Shared r48 |
+|---|---:|---:|---:|---:|
+| Cls, BA ↑ | 0.704 ± 0.024 | −0.020 [−0.049, +0.010] p=1.00 | −0.016 [−0.046, +0.017] p=1.00 | +0.005 [−0.025, +0.038] p=1.00 |
+| ML, F1 ↑ | 0.557 ± 0.005 | −0.012 [−0.029, +0.006] p=1.00 | −0.025 [−0.044, −0.007] p=0.06 | −0.010 [−0.030, +0.010] p=1.00 |
+| Det, F1 ↑ | 0.507 ± 0.028 | +0.038 [−0.039, +0.116] p=1.00 | −0.022 [−0.088, +0.040] p=1.00 | +0.065 [−0.008, +0.141] p=0.52 |
+| Count, MAE ↓ | 27.14 ± 3.79 | +1.85 [−4.85, +9.53] p=1.00 | −2.06 [−8.35, +4.61] p=1.00 | −1.21 [−8.55, +5.96] p=1.00 |
+| Reg, MAE ↓ | 11.92 ± 0.84 | −0.24 [−1.43, +0.95] p=1.00 | +0.02 [−1.72, +1.78] p=1.00 | −1.38 [−3.06, +0.22] p=0.52 |
+| Report, CRIMSON ↑ | 0.828 ± 0.004 | +0.003 [−0.005, +0.012] p=1.00 | −0.003 [−0.013, +0.005] p=1.00 | +0.006 [−0.005, +0.017] p=1.00 |
+
+Counting is one modality (microscopy, which also holds bone-marrow cls) and report one (X-ray, with ChestDR,
+periapical, dental, bone resorption): those E4 adapters train on more than their task's data.
+
+### E5 classification macro (BA ↑; mean ± SD over 3 seeds; E5 − reference, [95% CI], p)
+
+| Backbone | E5 dataset | vs Shared | vs TaskLoRA-cls |
+|---|---:|---:|---:|
+| Qwen3.5-9B | 0.702 ± 0.010 | −0.035 [−0.058, −0.008] p=0.010 | −0.022 [−0.048, +0.005] p=0.103 |
+| MedGemma-1.5-4B | 0.666 ± 0.026 | −0.059 [−0.092, −0.026] p=0.001 | −0.054 [−0.088, −0.020] p=0.002 |
+
+Per dataset, E5 − TaskLoRA-cls (Qwen / MedGemma; per-cell Holm p in `E5_vs_task_<bb>/contrasts.json`; none < 0.05):
+
+| Dataset | Qwen | MedGemma |
+|---|---:|---:|
+| BUS-UCLM | −0.074 | −0.104 |
+| BUSI | −0.000 | −0.015 |
+| CMMD | −0.008 | −0.001 |
+| bcn20000 | +0.050 | −0.034 |
+| bone_marrow | −0.155 (raw CI excludes 0; Holm p=0.08) | −0.216 (Holm p=0.12) |
+| dental | −0.002 | +0.008 |
+| fundus | +0.007 | +0.008 |
+| iugc | +0.021 | +0.014 |
+| neojaundice | +0.021 | −0.093 |
+| retino | −0.083 | −0.108 |
+
+Exploratory Spearman (10 datasets, permutation p): gain over TaskLoRA-cls vs training size ρ = 0.16 (p=0.65) Qwen,
+0.60 (p=0.08) MedGemma; vs zero-shot difficulty ρ = 0.35 (p=0.33) Qwen, 0.02 (p=0.96) MedGemma.
+
+### Reading
+- **E4 (by modality) ≈ Shared ≈ TaskLoRA:** no task differs after Holm on either backbone. Closest: MedGemma
+  multi-label, E4 below TaskLoRA (−0.025, p=0.06). Cutting by modality is neither better nor worse than by task.
+- **E5 (by dataset) is worse:** below Shared on both backbones, and below TaskLoRA-cls on MedGemma (−0.054, p=0.002;
+  Qwen −0.022, p=0.10). The losses sit in the small datasets (bone_marrow, BUS-UCLM, retino, MedGemma neojaundice);
+  large ones (CMMD, dental) are unchanged and iugc gains slightly. Classification datasets benefit from training
+  together; splitting below the task level costs the small ones.
+- Hydra columns: rerun `analyze_e4_e5.py` with all five arms once Hydra holdout evals exist (fresh `--out`).
