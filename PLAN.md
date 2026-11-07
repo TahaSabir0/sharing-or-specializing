@@ -9,6 +9,15 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-08: **E3 analysis changes** (Taha). (1) The RQ3 covariate test's outcome is PGF/μ (mean over seeds),
+  not raw C_ij: raw C mixes balanced-accuracy/F1 differences (~0.01–0.5) with MAE differences (~100, or ~75,000
+  on MedGemma counting), so its ranking mostly reflected the target task. (2) MedGemma counting is left out as a
+  target of that test: its ZS-prompt MAE is 75,269 (a few huge answers), so every adapter's μ is ~1. Permutations
+  keep counting's label (25 pairs, 120 permutations); the matrix still reports those cells. (3) Unscored CRIMSON
+  reports (judge returned no score) are left out of report means for zero-shot baselines and for non-report
+  adapters' report cells, counted per cell, as in the LEDGER (7 Nov). (4) The bootstrap path applies the scorer's
+  overflow rule (a23fe19): one MedGemma TaskLoRA-reg s2026 counting slice has MAE inf, so reg→count is undefined
+  for that seed.
 - 2026-11-06: E3 collection now consumes the reviewed mixed evaluator outputs directly
   (Qwen legacy `predictions_holdout.json`; MedGemma harness folder), retaining the original
   E1/E2 diagonal. Replaced constant exact output-format equality with graded Jaccard overlap
