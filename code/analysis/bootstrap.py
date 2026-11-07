@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import evaluation as E  # noqa: E402
 
 REPORT = "report_generation"
+MISSING = object()  # report id absent from crimson_per_sample.jsonl
 HIGHER_IS_BETTER = {"classification": True, "multi-label classification": True, "detection": True,
                     "counting": False, "regression": False, REPORT: True}
 
@@ -50,14 +51,16 @@ def load_run(d):
         t["dataset"].append(p["dataset"])
         t["pred"].append(p["Answer"])
         t["gt"].append(p["gt_answer"])
-        t["score"].append(crim.get(p["id"]) if p["TaskType"] == REPORT else None)
+        # absent id -> MISSING (CRIMSON not run); explicit null -> NaN (judge gave no score; only
+        # zero-shot baselines may carry these, enforced by crimson_scores at assembly/load)
+        t["score"].append(crim.get(p["id"], MISSING) if p["TaskType"] == REPORT else None)
     for task, t in out.items():
         t["dataset"] = np.array(t["dataset"])
         if task == REPORT:
-            if any(s is None for s in t["score"]):
+            if any(s is MISSING for s in t["score"]):
                 t["score"] = None  # CRIMSON not run (or incomplete): report excluded
             else:
-                t["score"] = np.array(t["score"], dtype=float)
+                t["score"] = np.array([np.nan if s is None else s for s in t["score"]], dtype=float)
     return dict(out)
 
 
@@ -74,7 +77,7 @@ def macro(t, task, idx_by_ds):
     vals = []
     for ds, idx in idx_by_ds.items():
         if task == REPORT:
-            vals.append(float(t["score"][idx].mean()))
+            vals.append(float(np.nanmean(t["score"][idx])))  # NaN = unscored (zero-shot only)
         else:
             vals.append(headline(E.calculate_task_metrics([t["pred"][i] for i in idx],
                                                           [t["gt"][i] for i in idx], task)))

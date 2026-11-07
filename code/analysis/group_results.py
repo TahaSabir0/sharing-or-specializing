@@ -27,7 +27,7 @@ def prediction_path(source):
     raise FileNotFoundError(f'no saved holdout predictions in {source}')
 
 
-def assemble(sources, deck, out, backbone, seed, arm, subset=False, score=True):
+def assemble(sources, deck, out, backbone, seed, arm, subset=False, score=True, allow_unscored=False):
     """subset=True permits a full baseline to be sliced to E5 classification questions."""
     predictions, score_paths, provenance = [], [], []
     for source in sources:
@@ -59,7 +59,8 @@ def assemble(sources, deck, out, backbone, seed, arm, subset=False, score=True):
                            'training_config': str(cfg_path.resolve()) if cfg_path.exists() else None})
     selected = validate_predictions(predictions, deck, exact=not subset)
     report_ids = [r['id'] for r in deck if r['task'] == REPORT]
-    scores = crimson_scores(score_paths, report_ids) if report_ids else {}
+    scores = crimson_scores(score_paths, report_ids, allow_unscored) if report_ids else {}
+    scored = [s for s in scores.values() if s is not None]
     out = Path(out)
     if out.exists() and any(out.iterdir()):
         raise ValueError(f'{out}: output exists; use a fresh analysis directory')
@@ -69,15 +70,16 @@ def assemble(sources, deck, out, backbone, seed, arm, subset=False, score=True):
             'arm': arm, 'data': 'canonical holdout IDs validated during assembly',
             'sources': provenance, 'code_commit': subprocess.run(
                 ['git', '-C', str(CODE.parent), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip(),
-            'n_predictions': len(selected)}
+            'n_predictions': len(selected), 'crimson_unscored': len(scores) - len(scored)}
     (out / 'run_meta.json').write_text(json.dumps(meta, indent=2) + '\n', encoding='utf-8')
     if report_ids:
         (out / 'crimson_per_sample.jsonl').write_text(''.join(
             json.dumps({'sample_key': k, 'crimson_score': scores[k]}) + '\n'
             for k in sorted(scores)), encoding='utf-8')
         (out / 'crimson_metrics.json').write_text(json.dumps({
-            'crimson_score_mean': sum(scores.values()) / len(scores),
-            'n': len(scores), 'n_scored': len(scores)}), encoding='utf-8')
+            'crimson_score_mean': sum(scored) / len(scored),
+            'n': len(scores), 'n_scored': len(scored), 'n_none': len(scores) - len(scored)}),
+            encoding='utf-8')
     if score:
         subprocess.run([sys.executable, str(CODE / 'eval/score_run.py'), '--out_dir', str(out)], check=True)
     return meta

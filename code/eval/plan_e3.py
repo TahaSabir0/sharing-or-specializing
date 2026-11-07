@@ -88,8 +88,9 @@ def collect(plan, out, score=True, output_root=None):
         spec = {'rows': {s: {} for s in SHORT.values()}, 'evaluation_sources': {}}
         for arm in ('zsprompt', 'zsbare'):
             dest = out / backbone / arm
+            # allow_unscored: Qwen ZS-bare has 1 report CRIMSON returned no score for (LEDGER n=780)
             assemble(baseline_sources(plan['runs'], arm, backbone, None), holdout,
-                     dest, backbone, None, arm, score=score)
+                     dest, backbone, None, arm, score=score, allow_unscored=True)
             spec[arm] = str(dest.resolve())
         for job in [j for j in plan['jobs'] if j['backbone'] == backbone]:
             short, seed = SHORT[job['source']], job['seed']

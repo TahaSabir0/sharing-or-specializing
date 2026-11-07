@@ -103,5 +103,6 @@ def load_eval(path, deck, backbone, seed=None, arm=None):
     rows = validate_predictions(read_json(path / 'all_predictions.json'), deck)
     reports = [r['id'] for r in deck if r['task'] == 'report_generation']
     if reports:
-        crimson_scores([path / 'crimson_per_sample.jsonl'], reports)
+        crimson_scores([path / 'crimson_per_sample.jsonl'], reports,
+                       allow_unscored=meta.get('arm') in ('zsbare', 'zsprompt'))
     return bs.load_run(path), rows

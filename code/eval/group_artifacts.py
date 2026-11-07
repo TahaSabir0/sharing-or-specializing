@@ -52,13 +52,18 @@ def validate_predictions(predictions, deck, exact=True):
     return [dict(predictions[k], modality=r['modality']) for k, r in sorted(reference.items())]
 
 
-def crimson_scores(paths, expected_ids):
+def crimson_scores(paths, expected_ids, allow_unscored=False):
+    """allow_unscored (zero-shot baselines only): a report the CRIMSON judge returned no score for
+    is kept as None and left out of report means, as score_crimson.py and the LEDGER do (n_none)."""
     scores = {}
     for path in paths:
         for r in read_jsonl(path):
             key, score = r['sample_key'], r['crimson_score']
             if key in scores:
                 raise ValueError(f'duplicate CRIMSON id {key}')
+            if allow_unscored and (score is None or score == 'None'):
+                scores[key] = None
+                continue
             if not isinstance(score, (float, int)) or not math.isfinite(score):
                 raise ValueError(f'invalid CRIMSON score for {key}')
             scores[key] = score
