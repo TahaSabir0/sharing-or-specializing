@@ -45,7 +45,8 @@ def adapter_identity(spec):
     lf = cfg['llamafactory_args']
     if lf['num_train_epochs'] != 3.0 or lf.get('max_steps', -1) > 0:
         raise ValueError(f'{run}: wrong training duration')
-    if cfg['deck'] != spec['train_deck']:
+    # Real run configs record the deck as llamafactory_args.dataset; test fixtures use `deck`.
+    if cfg.get('deck', lf.get('dataset')) != spec['train_deck']:
         raise ValueError(f'{run}: wrong training deck')
     deck = read_json(run / 'decks.json')['train']
     if deck['name'] != spec['train_deck'] or deck['md5'] != spec['train_md5']:
