@@ -27,8 +27,8 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   **12 full runs launched 4 Nov 10:01** (box `d7a16cd`): `chain_hydra{1,2,3}.log` (PIDs 3751748/49/51), chain i =
   seed i: Qwen T, Qwen R, MedGemma T, MedGemma R (`code/eval/jobs/hydra/`). **Qwen Hydra-T done 7 Nov ~03:40**
   (3/3 rc=0); Qwen Reversed Hydra running, ETA ~9 Nov 14:00–15:00; MedGemma T+R after, training done ~11 Nov
-  afternoon. Holdout evals not queued yet: Qwen Hydra needs `eval_harness.py`, whose parity run (300 predictions,
-  Shared s1337, `runs/parity/`) finished 4 Nov but is not yet compared with `eval_arm.py`.
+  afternoon. Holdout evals not queued yet: Qwen Hydra needs `eval_harness.py`, which passed parity 7 Nov (300/300 raw
+  outputs identical to `eval_arm.py` on Shared s1337; LEDGER "Setup findings"). Qwen Hydra-T evals can start.
 - **E3 inference + CRIMSON complete** (30/30 CRIMSON; last 14 MedGemma jobs ran beside Hydra 5 Nov 11:37–22:27,
   logs `runs/crimsonchain_e3resume_s<seed>.log`; Hydra slipped ~4 h). Alex's collect fix merged 7 Nov
   (`f32d64d`) plus two fixes at review: `adapter_identity` deck key (`ce56acd`) and unscored CRIMSON reports

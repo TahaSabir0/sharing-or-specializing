@@ -38,6 +38,13 @@ in total = 2.0× one run; ~17 GB reserved each. Same config and seed, final loss
 
 ---
 
+**Evaluator parity, Qwen (2026-11-07).** `eval_harness.py` (needed for Hydra: `--mode plugin`) vs `eval_arm.py`
+(all Qwen E0/E1/E3/E4/E5 numbers) on the same adapter, Shared s1337, 50 holdout questions per task (300), box GPU 1,
+greedy, EOS pinned, thinking off, 512 tokens, 768² cap, batch 1 (`runs/parity/harness_q35_shared_s1337`, commit
+`d7a16cd`, run 4 Nov). Raw outputs identical on 300/300 (same token counts); task macros identical (cls 0.8149,
+ML 0.5000, det 0.8257, count 8.68, reg 3.38). Qwen Hydra holdout evals with the harness are comparable to the
+`eval_arm.py` arms.
+
 ## E0 / E1 — Qwen3.5-9B, seed 1337, holdout (first numbers; 2026-10-17)
 
 **Superseded by the 3-seed section below (2026-10-23); kept as the first record.** Provisional: one seed; report generation not yet scored; no bootstrap CIs.
