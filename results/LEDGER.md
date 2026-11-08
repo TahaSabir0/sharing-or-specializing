@@ -443,3 +443,74 @@ Significant pairs: Qwen 14/30, MedGemma 19/30. Report column = non-report adapte
 - No pair covariate predicts transfer on either backbone after Holm (RQ3: a negative result).
 - The IUGC same-image comparison disagrees between backbones (helps regression on Qwen, hurts it on MedGemma).
 - Many near-zero cells change sign with the zero-shot base; only the large effects are robust.
+
+----
+
+## E1 — Qwen3.5-9B Hydra-T, 3 seeds, holdout (2026-11-08)
+
+**Hydra-T (shared LoRA A, one B per task; Veronika's plug-in) on Qwen, seeds 1337 / 2026 / 42, with CRIMSON.
+Mean ± SD over seeds (sample SD, n = 3). Descriptive: no bootstrap CIs or tests yet (they come with the E1 CI pass).**
+
+- Runs: `j26_q35_hydraT_full_768_s{1337,2026,42}`; trained by `chain_hydra{1,2,3}` from 4 Nov (box `d7a16cd`),
+  done 7 Nov ~03:40, all rc=0.
+- Eval: `code/eval/eval_harness.py --mode plugin` (oracle task route, batch 1, greedy, 512 tokens), box `38d183e`, jobs
+  `code/eval/jobs/hydra/eval_q35_hydraT_s<seed>.txt`. Comparable to the `eval_arm.py` arms: parity check 7 Nov,
+  300/300 identical raw outputs (Setup findings).
+- Outputs: `<run_dir>/eval_holdout/` (`metrics_score_single.json`, `all_predictions.json`, `crimson/`,
+  `omission.json`). Task macro = mean of the per-dataset values in `metrics_score_single.json` (its `by_task` block is
+  pooled over datasets and is not used).
+- CRIMSON unscored: 0/781 in every seed. Truncated / malformed: 0 / 0 on every task, every seed.
+- Deviations from PLAN §1: none.
+
+### Task macro (mean ± SD over 3 seeds; Shared and TaskLoRA from the E0/E1 section above)
+
+| Task | Hydra-T | per seed (s1337 / s2026 / s42) | Shared | TaskLoRA | Hydra-T − Shared | Hydra-T − TaskLoRA |
+|---|---:|---|---:|---:|---:|---:|
+| Classification, BA ↑ | 0.736 ± 0.009 | 0.726 / 0.740 / 0.741 | 0.737 | 0.724 | −0.001 | +0.012 |
+| Multi-label, micro-F1 ↑ | 0.632 ± 0.012 | 0.638 / 0.639 / 0.618 | 0.610 | 0.614 | +0.022 | +0.018 |
+| Detection, F1@0.5 ↑ | 0.923 ± 0.008 | 0.928 / 0.914 / 0.928 | 0.903 | 0.892 | +0.020 | +0.031 |
+| Counting, MAE ↓ | 13.61 ± 2.53 | 13.55 / 11.11 / 16.16 | 12.96 | 15.03 | +0.65 | −1.42 |
+| Regression, MAE ↓ | 10.97 ± 0.32 | 10.87 / 10.72 / 11.33 | 11.35 | 10.63 | −0.38 | +0.34 |
+| Report generation, CRIMSON ↑ | 0.823 ± 0.007 | 0.821 / 0.818 / 0.831 | 0.822 | 0.829 | +0.001 | −0.006 |
+
+### Per dataset (mean ± SD over 3 seeds)
+
+| Task / dataset | n | Hydra-T | Shared | TaskLoRA |
+|---|---:|---:|---:|---:|
+| classification/BUS-UCLM | 52 | 0.889 ± 0.026 | 0.875 | 0.920 |
+| classification/BUSI | 62 | 0.858 ± 0.032 | 0.879 | 0.869 |
+| classification/CMMD | 357 | 0.461 ± 0.011 | 0.478 | 0.485 |
+| classification/bcn20000 | 286 | 0.584 ± 0.049 | 0.552 | 0.561 |
+| classification/bone_marrow | 72 | 0.719 ± 0.053 | 0.728 | 0.688 |
+| classification/dental | 420 | 0.659 ± 0.005 | 0.656 | 0.642 |
+| classification/fundus | 138 | 0.682 ± 0.011 | 0.658 | 0.661 |
+| classification/iugc | 131 | 0.963 ± 0.024 | 0.958 | 0.944 |
+| classification/neojaundice | 60 | 0.809 ± 0.019 | 0.796 | 0.736 |
+| classification/retino | 111 | 0.731 ± 0.009 | 0.786 | 0.737 |
+| counting/neurips22cell (MAE) | 100 | 13.61 ± 2.53 | 12.96 | 15.03 |
+| detection/BUS-UCLM-det | 22 | 0.919 ± 0.026 | 0.859 | 0.844 |
+| detection/BUSI-det | 50 | 0.852 ± 0.000 | 0.851 | 0.832 |
+| detection/iugc | 516 | 0.999 ± 0.001 | 0.999 | 0.999 |
+| multi-label/chestdr | 388 | 0.568 ± 0.006 | 0.556 | 0.560 |
+| multi-label/periapical | 315 | 0.696 ± 0.019 | 0.663 | 0.668 |
+| regression/boneresorption (MAE) | 70 | 19.69 ± 0.67 | 20.43 | 18.83 |
+| regression/iugc (MAE) | 516 | 2.25 ± 0.03 | 2.26 | 2.44 |
+| report_generation/iu_xray (CRIMSON) | 781 | 0.823 ± 0.007 | 0.822 | 0.829 |
+
+### Report omission (normal-on-abnormal; 223 of 781 gold reports abnormal)
+
+| Run | normal-on-abnormal ↓ | abnormal-on-normal | pred normal | unique-pred ratio | modal-pred fraction |
+|---|---:|---:|---:|---:|---:|
+| Hydra-T s1337 / s2026 / s42 | 0.583 / 0.561 / 0.579 | 0.039 / 0.045 / 0.031 | 0.853 / 0.843 / 0.858 | 0.146 / 0.167 / 0.149 | 0.193 / 0.199 / 0.186 |
+
+Mean normal-on-abnormal 0.574 (Shared 0.611, TaskLoRA 0.568, r48 0.727).
+
+### Reading (descriptive; no CIs yet)
+- Hydra-T is level with Shared on classification, counting, regression and reports, and ahead on multi-label
+  (+0.022 F1, both datasets) and detection (+0.020 F1, all from BUS-UCLM-det, n = 22). Both gaps are about 2 seed SDs;
+  whether they hold needs the bootstrap.
+- Against TaskLoRA it is ahead on classification, multi-label, detection and counting, behind on regression
+  (boneresorption) and reports. On Qwen, sharing A and splitting B by task does not cost anything relative to either
+  plain arm.
+- Report omission sits with TaskLoRA (0.574 vs 0.568), below Shared.
+- Counting has the largest seed spread of any arm (SD 2.53; s42 16.16).

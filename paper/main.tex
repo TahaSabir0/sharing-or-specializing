@@ -577,7 +577,7 @@ left after E0--E8.}
 \subsection{Zero-Shot Anchors (E0)}
 
 Both base models are far from usable zero-shot
-(Tables~\ref{tab:qwen}--\ref{tab:medgemma}). Much of the gap is output
+(Table~\ref{tab:qwen}). Much of the gap is output
 format rather than capability: with the bare question, Qwen3.5-9B often
 answers classification and detection questions in a form the scorer cannot
 parse (balanced accuracy 0.004, detection F1 0.000), and a single
@@ -587,7 +587,7 @@ regression with the prompt.
 
 \subsection{Shared Versus Task-Specific Adaptation (E1, E2)}
 
-\todo{Add Hydra-T and Hydra-R columns; add bootstrap CIs and Holm-adjusted
+\todo{Add Hydra-R (Qwen) and both Hydra arms (MedGemma); add bootstrap CIs and Holm-adjusted
 paired tests. The text below is descriptive (mean $\pm$ SD over seeds).}
 
 Fine-tuning lifts every task far above zero-shot on both backbones. Reports
@@ -613,6 +613,15 @@ backbone, and is worse on counting and report omission on both. Where
 TaskLoRA beats Shared, the gain is not explained by its larger parameter
 count.
 
+\textbf{Hydra-T.} On Qwen, Hydra-T (one shared $A$, one $B$ per task) is
+level with Shared on classification, counting, regression and reports, and
+ahead on multi-label ($+0.022$ F1, on both datasets) and detection ($+0.020$
+F1, all from BUS-UCLM, $n=22$); Table~\ref{tab:qwen}. Both gaps are about two
+seed standard deviations. It omits abnormal findings about as often as
+TaskLoRA (0.574 vs 0.568) and less often than Shared (0.611). Sharing the
+input projection while splitting the output projection by task therefore
+costs nothing relative to either plain arm on Qwen.
+
 \textbf{Backbones.} With the same arms, MedGemma is close to Qwen on
 classification, regression and reports, and behind on multi-label, counting
 (about twice the MAE) and detection (0.47 vs 0.90 F1). The detection gap
@@ -626,51 +635,39 @@ $896^2$ input causes this, or report it as a hypothesis.}
 reports collapse toward normal boilerplate. On Qwen, TaskLoRA omits the
 fewest abnormal findings and Shared r48 the most.
 
-\begin{table}[!t]
-\caption{Qwen3.5-9B on the holdout: task macro, mean $\pm$ SD over three
-seeds.}
-\label{tab:qwen}
+\begin{table*}[!t]
+\caption{Holdout results: task macro, mean $\pm$ SD over three seeds (ZS-prompt: one deterministic run).}
+\label{tab:qwen}\label{tab:medgemma}
 \centering
-\setlength{\tabcolsep}{2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{lccccc}
+\setlength{\tabcolsep}{7pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lcccccc}
 \toprule
-Task & ZS-prompt & Shared & TaskLoRA & Shared r48 & Hydra-T/R \\
+Task & ZS-prompt & Shared & TaskLoRA & Shared r48 & Hydra-T & Hydra-R \\
 \midrule
-Cls (BA $\uparrow$) & 0.118 & 0.737{\scriptsize$\pm$.009} & 0.724{\scriptsize$\pm$.010} & 0.737{\scriptsize$\pm$.010} & \textcolor{red}{pend.} \\
-ML (F1 $\uparrow$) & 0.501 & 0.610{\scriptsize$\pm$.008} & 0.614{\scriptsize$\pm$.003} & 0.596{\scriptsize$\pm$.008} & \textcolor{red}{pend.} \\
-Det (F1 $\uparrow$) & 0.000 & 0.903{\scriptsize$\pm$.009} & 0.892{\scriptsize$\pm$.021} & 0.882{\scriptsize$\pm$.015} & \textcolor{red}{pend.} \\
-Count (MAE $\downarrow$) & 103.7 & 12.96{\scriptsize$\pm$1.39} & 15.03{\scriptsize$\pm$1.77} & 19.68{\scriptsize$\pm$1.02} & \textcolor{red}{pend.} \\
-Reg (MAE $\downarrow$) & 59.50 & 11.35{\scriptsize$\pm$0.73} & 10.63{\scriptsize$\pm$0.51} & 12.31{\scriptsize$\pm$0.84} & \textcolor{red}{pend.} \\
-Report (CRIMSON $\uparrow$) & 0.797 & 0.822{\scriptsize$\pm$.008} & 0.829{\scriptsize$\pm$.004} & 0.817{\scriptsize$\pm$.008} & \textcolor{red}{pend.} \\
+\multicolumn{7}{l}{\textit{Qwen3.5-9B}} \\
+Cls (BA $\uparrow$) & 0.118 & 0.737{\scriptsize$\pm$.009} & 0.724{\scriptsize$\pm$.010} & 0.737{\scriptsize$\pm$.010} & 0.736{\scriptsize$\pm$.009} & \textcolor{red}{pend.} \\
+ML (F1 $\uparrow$) & 0.501 & 0.610{\scriptsize$\pm$.008} & 0.614{\scriptsize$\pm$.003} & 0.596{\scriptsize$\pm$.008} & 0.632{\scriptsize$\pm$.012} & \textcolor{red}{pend.} \\
+Det (F1 $\uparrow$) & 0.000 & 0.903{\scriptsize$\pm$.009} & 0.892{\scriptsize$\pm$.021} & 0.882{\scriptsize$\pm$.015} & 0.923{\scriptsize$\pm$.008} & \textcolor{red}{pend.} \\
+Count (MAE $\downarrow$) & 103.7 & 12.96{\scriptsize$\pm$1.39} & 15.03{\scriptsize$\pm$1.77} & 19.68{\scriptsize$\pm$1.02} & 13.61{\scriptsize$\pm$2.53} & \textcolor{red}{pend.} \\
+Reg (MAE $\downarrow$) & 59.50 & 11.35{\scriptsize$\pm$0.73} & 10.63{\scriptsize$\pm$0.51} & 12.31{\scriptsize$\pm$0.84} & 10.97{\scriptsize$\pm$0.32} & \textcolor{red}{pend.} \\
+Report (CRIMSON $\uparrow$) & 0.797 & 0.822{\scriptsize$\pm$.008} & 0.829{\scriptsize$\pm$.004} & 0.817{\scriptsize$\pm$.008} & 0.823{\scriptsize$\pm$.007} & \textcolor{red}{pend.} \\
+\midrule
+\multicolumn{7}{l}{\textit{MedGemma-1.5-4B}} \\
+Cls (BA $\uparrow$) & 0.024 & 0.725{\scriptsize$\pm$.009} & 0.720{\scriptsize$\pm$.013} & 0.699{\scriptsize$\pm$.012} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
+ML (F1 $\uparrow$) & 0.219 & 0.569{\scriptsize$\pm$.007} & 0.583{\scriptsize$\pm$.007} & 0.568{\scriptsize$\pm$.009} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
+Det (F1 $\uparrow$) & 0.000 & 0.468{\scriptsize$\pm$.034} & 0.528{\scriptsize$\pm$.028} & 0.442{\scriptsize$\pm$.034} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
+Count (MAE $\downarrow$) & 75{,}269$^\dagger$ & 25.28{\scriptsize$\pm$2.54} & 29.20{\scriptsize$\pm$0.80} & 28.35{\scriptsize$\pm$2.57} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
+Reg (MAE $\downarrow$) & 51.77 & 12.16{\scriptsize$\pm$0.39} & 11.91{\scriptsize$\pm$0.79} & 13.30{\scriptsize$\pm$0.46} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
+Report (CRIMSON $\uparrow$) & 0.676 & 0.825{\scriptsize$\pm$.003} & 0.832{\scriptsize$\pm$.002} & 0.822{\scriptsize$\pm$.000} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
 \bottomrule
-\end{tabular}}
-\end{table}
-% Source: results/LEDGER.md, "E0 / E1 -- Qwen3.5-9B, 3 seeds" (2026-10-23).
+\end{tabular}
 
-\begin{table}[!t]
-\caption{MedGemma-1.5-4B on the holdout: task macro, mean $\pm$ SD over
-three seeds.}
-\label{tab:medgemma}
-\centering
-\setlength{\tabcolsep}{2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{lccccc}
-\toprule
-Task & ZS-prompt & Shared & TaskLoRA & Shared r48 & Hydra-T/R \\
-\midrule
-Cls (BA $\uparrow$) & 0.024 & 0.725{\scriptsize$\pm$.009} & 0.720{\scriptsize$\pm$.013} & 0.699{\scriptsize$\pm$.012} & \textcolor{red}{pend.} \\
-ML (F1 $\uparrow$) & 0.219 & 0.569{\scriptsize$\pm$.007} & 0.583{\scriptsize$\pm$.007} & 0.568{\scriptsize$\pm$.009} & \textcolor{red}{pend.} \\
-Det (F1 $\uparrow$) & 0.000 & 0.468{\scriptsize$\pm$.034} & 0.528{\scriptsize$\pm$.028} & 0.442{\scriptsize$\pm$.034} & \textcolor{red}{pend.} \\
-Count (MAE $\downarrow$) & 75{,}269 & 25.28{\scriptsize$\pm$2.54} & 29.20{\scriptsize$\pm$0.80} & 28.35{\scriptsize$\pm$2.57} & \textcolor{red}{pend.} \\
-Reg (MAE $\downarrow$) & 51.77 & 12.16{\scriptsize$\pm$0.39} & 11.91{\scriptsize$\pm$0.79} & 13.30{\scriptsize$\pm$0.46} & \textcolor{red}{pend.} \\
-Report (CRIMSON $\uparrow$) & 0.676 & 0.825{\scriptsize$\pm$.003} & 0.832{\scriptsize$\pm$.002} & 0.822{\scriptsize$\pm$.000} & \textcolor{red}{pend.} \\
-\bottomrule
-\end{tabular}}
-\end{table}
-% Source: results/LEDGER.md, "E0 / E2 -- MedGemma-1.5-4B, 3 seeds"
-% (2026-10-26). ZS-prompt counting MAE 75,269 comes from a few huge numeric
-% answers (ZS-bare: 117.69); add a footnote.
+\vspace{2pt}
+\parbox{\textwidth}{\footnotesize $^\dagger$A few huge numeric answers; ZS-bare counting MAE is 117.69.}
+\end{table*}
+% Source: results/LEDGER.md, "E0 / E1 -- Qwen3.5-9B, 3 seeds" (2026-10-23), "E0 / E2 -- MedGemma-1.5-4B, 3 seeds"
+% (2026-10-26) and "E1 -- Qwen3.5-9B Hydra-T" (2026-11-08).
 
 \begin{table}[!t]
 \caption{Specialization effect $\Delta_{\mathrm{spec}}$ = TaskLoRA $-$
