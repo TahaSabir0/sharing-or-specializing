@@ -362,3 +362,84 @@ Exploratory Spearman (10 datasets, permutation p): gain over TaskLoRA-cls vs tra
   large ones (CMMD, dental) are unchanged and iugc gains slightly. Classification datasets benefit from training
   together; splitting below the task level costs the small ones.
 - Hydra columns: rerun `analyze_e4_e5.py` with all five arms once Hydra holdout evals exist (fresh `--out`).
+
+---
+
+## E3 — transfer matrix, both backbones, 3 seeds, holdout (2026-11-08)
+
+**Each TaskLoRA_i (E1/E2 adapters) evaluated on every other task j's holdout slice; diagonal = the E1/E2 numbers.
+Outcome per pair: PGF/μ = (M − M_base)/(best − M_base) with M_base = ZS-prompt (MAE: (MAE_base − MAE)/MAE_base):
+the fraction of the zero-shot gap the off-task adapter closes; 0 = no help, < 0 = worse than zero-shot.**
+
+- Inference: 36 full-holdout evals (6 TaskLoRAs × 3 seeds × 2 backbones), job files `code/eval/jobs/e3/`, launched
+  3 Nov at `fcbe2fa` (Qwen `eval_arm.py`, MedGemma `eval_harness.py --batch_size 1`, as E1/E2); outputs
+  `/data/ugrip2026/journal/runs/e3/e3_<bb>_task<src>_s<seed>/`. CRIMSON on the report slice of the 30 non-report
+  runs, done 5 Nov 22:27 (14 MedGemma jobs resumed beside Hydra; STATUS).
+- Collection: `plan_e3.py collect` at `d119d5f` (7 Nov) → `/data/ugrip2026/journal/phase_b/e3_collected/`.
+  Analysis: `transfer_matrix.py` at `cc8f561`, B = 10,000 (two-level: seeds, then questions stratified by
+  dataset), finished 8 Nov 12:22 → `/data/ugrip2026/journal/phase_b/e3_results/transfer.json` + heatmaps.
+  Covariate test recomputed at `08b5905` (`--recompute-covariates`; previous block kept as
+  `covariate_tests_superseded`).
+- Rules (PLAN changelog 7–8 Nov): unscored CRIMSON reports (judge gave no score) left out of report means for
+  zero-shot baselines and non-report adapters' report cells — Qwen det→report 1/0/2, count→report 1/0/0;
+  MedGemma cls→report 1/13/0, ml→report 0/1/2, det→report 7/2/0, count→report 3/3/0, reg→report 1/0/0 (per seed,
+  of 781). Overflowing numbers scored like no number: MedGemma reg→count s2026 is undefined (MAE inf).
+- Pair significance: paired bootstrap of C_ij vs ZS-prompt, Holm across the 5 targets of each source (★ = p < .05).
+- Deviations from PLAN §1: none.
+
+### μ matrix (mean over 3 seeds; row = adapter, column = target task)
+
+**Qwen3.5-9B**
+
+| src \ tgt | cls | ml | det | count | reg | report |
+|---|---:|---:|---:|---:|---:|---:|
+| cls | — | −0.397★ | 0.000 | +0.036 | +0.108★ | −0.100 |
+| ml | −0.033★ | — | 0.000 | −0.006 | +0.018 | −0.203★ |
+| det | −0.123★ | −0.401★ | — | −1.194★ | −1.279★ | −0.248★ |
+| count | −0.012 | −0.001 | 0.000 | — | +0.156★ | +0.007 |
+| reg | +0.074★ | −0.076★ | 0.000 | +0.123 | — | −0.127 |
+| report | −0.021 | −0.128★ | 0.000 | +0.030 | +0.089★ | — |
+
+**MedGemma-1.5-4B** (counting column: ZS-prompt MAE 75,269, so μ ≈ 1 for any sane output; not interpretable)
+
+| src \ tgt | cls | ml | det | count | reg | report |
+|---|---:|---:|---:|---:|---:|---:|
+| cls | — | +0.035 | 0.000 | (0.948★) | −0.440 | −0.406★ |
+| ml | +0.011★ | — | 0.000 | (0.854★) | +0.012 | −0.241★ |
+| det | −0.017★ | −0.247★ | — | (0.998★) | −1.419★ | +0.372★ |
+| count | +0.177★ | −0.081 | 0.000 | — | +0.200★ | +0.166 |
+| reg | −0.022★ | −0.260★ | 0.000 | undefined (s2026) | — | +0.423★ |
+| report | −0.024★ | −0.275★ | 0.000 | (0.998★) | −0.056★ | — |
+
+Significant pairs: Qwen 14/30, MedGemma 19/30. Report column = non-report adapters answering report questions
+(often not reports): kept and flagged, not interpreted.
+
+### Diagnostics
+- **Detection column = 0 everywhere:** ZS-prompt detection F1 is 0 and no non-detection adapter produces valid boxes
+  (malformed: Qwen reg→det 83%, report→det 28%, count→det 26%; MedGemma 64–100% for every source).
+- **Sign flips vs ZS-bare base** (any seed): Qwen 17 pairs (cls→count/ml/report, count→cls/ml/report, det→cls/ml/report,
+  ml→cls/count/reg/report, reg→ml/report, report→cls/ml); MedGemma 13 (cls→count/reg/report, count→ml,
+  det→cls/count/ml, ml→count/reg/report, reg→cls, report→count/reg). Not flipped: det→count, det→reg (both
+  backbones), and the positive transfers into regression on Qwen (cls, count, report → reg) and reg→cls.
+- **IUGC natural experiment** (same ultrasound images, three output formats; μ on the iugc cell): Qwen cls→reg +0.222,
+  det→reg +0.231, reg→cls +0.038; MedGemma cls→reg −0.433, det→reg −0.223, reg→cls 0.000; every →det 0.000.
+- Transferability / malleability (Sachdeva Eq 1/2, off-diagonal, μ): in `transfer.json` `aggregates`. MedGemma's
+  include the counting column, so they are inflated; use with care.
+
+### RQ3 covariate test (Spearman of μ vs pair covariate; exact label permutations; Holm across the 5 covariates)
+
+| Covariate | Qwen ρ (p, Holm p), 30 pairs | MedGemma ρ (p, Holm p), 25 pairs, counting target excluded |
+|---|---|---|
+| Source training size | −0.03 (0.92, 1.00) | −0.35 (0.14, 0.47) |
+| Target training size | −0.38 (0.17, 0.83) | +0.17 (0.43, 0.87) |
+| Output-structure similarity | +0.19 (0.60, 1.00) | +0.12 (0.51, 0.87) |
+| Modality overlap | −0.15 (0.57, 1.00) | −0.36 (0.12, 0.47) |
+| Dataset overlap | +0.08 (0.77, 1.00) | −0.31 (0.03, 0.17) |
+
+### Reading
+- Off-task transfer is mostly absent or negative; the detection adapter hurts every other task on both backbones
+  (worse than zero-shot on counting and regression, μ ≈ −1.2 to −1.4).
+- Regression is the target others help (Qwen: cls, count, report → reg, +0.09 to +0.16).
+- No pair covariate predicts transfer on either backbone after Holm (RQ3: a negative result).
+- The IUGC same-image comparison disagrees between backbones (helps regression on Qwen, hurts it on MedGemma).
+- Many near-zero cells change sign with the zero-shot base; only the large effects are robust.
