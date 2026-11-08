@@ -10,6 +10,7 @@
 \hypersetup{hidelinks}
 \usepackage{textcomp}
 \usepackage{booktabs}
+\usepackage{colortbl} % E3 heatmap; used with [rgb]/[gray] only (no xcolor, see below)
 \usepackage{multirow}
 \usepackage{array}
 \let\labelindent\relax % ieeecolor already defines \labelindent; enumitem redefines it
@@ -720,42 +721,38 @@ in at least one seed when the base is ZS-bare instead of ZS-prompt. The large
 effects (the detection adapter on counting and regression, and the gains on
 Qwen regression) keep their sign under both bases.
 
-\begin{table}[!t]
-\caption{Cross-task transfer: normalized transfer $\mu_{i\to j}$ (fraction of
-the zero-shot gap closed; negative = worse than zero-shot), mean over three
-seeds. Rows: adapter's training task; columns: evaluated task.
-$^\ast$: differs from ZS-prompt (paired bootstrap, Holm across targets).
-Report column: non-report adapters answering report questions, flagged and
-not interpreted. MedGemma counting column omitted: its zero-shot MAE makes
-$\mu\approx1$ for any plausible count.}
+\begin{table*}[!t]
+\caption{Cross-task transfer $\mu_{i\to j}$: the fraction of the zero-shot gap on
+task $j$ closed by the adapter trained on task $i$ (mean over three seeds).
+Blue: better than zero-shot; red: worse ($-1$ = twice as far from perfect as
+zero-shot). \textbf{Bold}: differs from zero-shot after Holm correction.}
 \label{tab:e3}
 \centering
-\footnotesize
-\setlength{\tabcolsep}{2.5pt}
-\begin{tabular}{lrrrrrr}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{l*{6}{c}c l*{6}{c}}
 \toprule
-\multicolumn{7}{l}{\textit{Qwen3.5-9B}} \\
-Src\,$\backslash$\,tgt & Cls & ML & Det & Count & Reg & Report \\
+\multicolumn{7}{c}{Qwen3.5-9B} & & \multicolumn{7}{c}{MedGemma-1.5-4B} \\
+\cmidrule(lr){1-7}\cmidrule(lr){9-15}
+Adapter & Cls & ML & Det & Count & Reg & Report & & Adapter & Cls & ML & Det & Count & Reg & Report \\
 \midrule
-Cls & -- & $-0.40^\ast$ & 0.00 & $+0.04$ & $+0.11^\ast$ & $-0.10$ \\
-ML & $-0.03^\ast$ & -- & 0.00 & $-0.01$ & $+0.02$ & $-0.20^\ast$ \\
-Det & $-0.12^\ast$ & $-0.40^\ast$ & -- & $-1.19^\ast$ & $-1.28^\ast$ & $-0.25^\ast$ \\
-Count & $-0.01$ & $0.00$ & 0.00 & -- & $+0.16^\ast$ & $+0.01$ \\
-Reg & $+0.07^\ast$ & $-0.08^\ast$ & 0.00 & $+0.12$ & -- & $-0.13$ \\
-Report & $-0.02$ & $-0.13^\ast$ & 0.00 & $+0.03$ & $+0.09^\ast$ & -- \\
-\midrule
-\multicolumn{7}{l}{\textit{MedGemma-1.5-4B}} \\
-Src\,$\backslash$\,tgt & Cls & ML & Det & & Reg & Report \\
-\midrule
-Cls & -- & $+0.04$ & 0.00 & & $-0.44$ & $-0.41^\ast$ \\
-ML & $+0.01^\ast$ & -- & 0.00 & & $+0.01$ & $-0.24^\ast$ \\
-Det & $-0.02^\ast$ & $-0.25^\ast$ & -- & & $-1.42^\ast$ & $+0.37^\ast$ \\
-Count & $+0.18^\ast$ & $-0.08$ & 0.00 & & $+0.20^\ast$ & $+0.17$ \\
-Reg & $-0.02^\ast$ & $-0.26^\ast$ & 0.00 & & -- & $+0.42^\ast$ \\
-Report & $-0.02^\ast$ & $-0.28^\ast$ & 0.00 & & $-0.06^\ast$ & -- \\
+Cls & \cellcolor[gray]{0.85} & \cellcolor[rgb]{0.952,0.757,0.745}\textbf{$-$0.40} & 0 & \cellcolor[rgb]{0.974,0.982,0.993}$+$0.04 & \cellcolor[rgb]{0.928,0.951,0.979}\textbf{$+$0.11} & \cellcolor[rgb]{0.988,0.939,0.936}$-$0.10 & & Cls & \cellcolor[gray]{0.85} & \cellcolor[rgb]{0.974,0.982,0.993}$+$0.04 & 0 & {\color[gray]{0.5}n/a} & \cellcolor[rgb]{0.947,0.733,0.720}$-$0.44 & \cellcolor[rgb]{0.951,0.751,0.739}\textbf{$-$0.41} \\
+ML & \cellcolor[rgb]{0.996,0.982,0.981}\textbf{$-$0.03} & \cellcolor[gray]{0.85} & 0 & \cellcolor[rgb]{0.999,0.994,0.994}$-$0.01 & \cellcolor[rgb]{0.987,0.991,0.996}$+$0.02 & \cellcolor[rgb]{0.976,0.878,0.873}\textbf{$-$0.20} & & ML & \cellcolor[rgb]{0.993,0.996,0.998}\textbf{$+$0.01} & \cellcolor[gray]{0.85} & 0 & {\color[gray]{0.5}n/a} & \cellcolor[rgb]{0.993,0.996,0.998}$+$0.01 & \cellcolor[rgb]{0.971,0.854,0.847}\textbf{$-$0.24} \\
+Det & \cellcolor[rgb]{0.986,0.927,0.923}\textbf{$-$0.12} & \cellcolor[rgb]{0.952,0.757,0.745}\textbf{$-$0.40} & \cellcolor[gray]{0.85} & \cellcolor[rgb]{0.880,0.392,0.363}{\color{white}\textbf{$-$1.19}} & \cellcolor[rgb]{0.880,0.392,0.363}{\color{white}\textbf{$-$1.28}} & \cellcolor[rgb]{0.970,0.848,0.841}\textbf{$-$0.25} & & Det & \cellcolor[rgb]{0.998,0.988,0.987}\textbf{$-$0.02} & \cellcolor[rgb]{0.970,0.848,0.841}\textbf{$-$0.25} & \cellcolor[gray]{0.85} & {\color[gray]{0.5}n/a} & \cellcolor[rgb]{0.880,0.392,0.363}{\color{white}\textbf{$-$1.42}} & \cellcolor[rgb]{0.759,0.834,0.931}\textbf{$+$0.37} \\
+Count & \cellcolor[rgb]{0.999,0.994,0.994}$-$0.01 & 0 & 0 & \cellcolor[gray]{0.85} & \cellcolor[rgb]{0.896,0.928,0.970}\textbf{$+$0.16} & \cellcolor[rgb]{0.993,0.996,0.998}$+$0.01 & & Count & \cellcolor[rgb]{0.883,0.919,0.966}\textbf{$+$0.18} & \cellcolor[rgb]{0.990,0.951,0.949}$-$0.08 & 0 & \cellcolor[gray]{0.85} & \cellcolor[rgb]{0.869,0.910,0.963}\textbf{$+$0.20} & \cellcolor[rgb]{0.889,0.923,0.968}$+$0.17 \\
+Reg & \cellcolor[rgb]{0.954,0.969,0.987}\textbf{$+$0.07} & \cellcolor[rgb]{0.990,0.951,0.949}\textbf{$-$0.08} & 0 & \cellcolor[rgb]{0.922,0.946,0.978}$+$0.12 & \cellcolor[gray]{0.85} & \cellcolor[rgb]{0.984,0.921,0.917}$-$0.13 & & Reg & \cellcolor[rgb]{0.998,0.988,0.987}\textbf{$-$0.02} & \cellcolor[rgb]{0.969,0.842,0.834}\textbf{$-$0.26} & 0 & {\color[gray]{0.5}n/a} & \cellcolor[gray]{0.85} & \cellcolor[rgb]{0.726,0.811,0.921}\textbf{$+$0.42} \\
+Report & \cellcolor[rgb]{0.998,0.988,0.987}$-$0.02 & \cellcolor[rgb]{0.984,0.921,0.917}\textbf{$-$0.13} & 0 & \cellcolor[rgb]{0.980,0.987,0.994}$+$0.03 & \cellcolor[rgb]{0.941,0.960,0.983}\textbf{$+$0.09} & \cellcolor[gray]{0.85} & & Report & \cellcolor[rgb]{0.998,0.988,0.987}\textbf{$-$0.02} & \cellcolor[rgb]{0.966,0.830,0.822}\textbf{$-$0.28} & 0 & {\color[gray]{0.5}n/a} & \cellcolor[rgb]{0.993,0.964,0.962}\textbf{$-$0.06} & \cellcolor[gray]{0.85} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\vspace{2pt}
+
+\parbox{\textwidth}{\footnotesize Rows: training task of the adapter; columns:
+evaluated task. Detection: no off-task adapter produces valid boxes (F1 = 0).
+Report column: non-report adapters answering report questions; shown, not
+interpreted. MedGemma counting (n/a): its zero-shot MAE of 75{,}269 makes
+$\mu\approx1$ for any plausible count.}
+\end{table*}
 % Source: results/LEDGER.md, "E3" (2026-11-08); CIs, raw C, sign flips, IUGC cells,
 % covariate table and unscored-report counts there. Full matrices with CIs: appendix.
 
@@ -789,20 +786,20 @@ $p=0.65$) and does not follow zero-shot difficulty ($\rho=0.35$ and $0.02$).
 Classification datasets thus benefit from being trained together, and
 cutting sharing below the task level costs the smaller ones.
 
-\begin{table}[!t]
+\begin{table*}[!t]
 \caption{E4 modality adapters on the holdout: task macro (mean $\pm$ SD over
 three seeds) and difference from Shared and TaskLoRA (E4 $-$ reference, mean
 over seeds). For MAE a positive difference means E4 is worse. No difference
 is significant after Holm correction (two-level paired bootstrap).}
 \label{tab:e4}
 \centering
-\setlength{\tabcolsep}{2pt}
-\resizebox{\columnwidth}{!}{%
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
 \begin{tabular}{lcccccc}
 \toprule
 & \multicolumn{3}{c}{Qwen3.5-9B} & \multicolumn{3}{c}{MedGemma-1.5-4B} \\
 \cmidrule(lr){2-4}\cmidrule(lr){5-7}
-Task & E4 & $-$Shared & $-$TaskLoRA & E4 & $-$Shared & $-$TaskLoRA \\
+Task & E4 (mean $\pm$ SD) & $-$Shared & $-$TaskLoRA & E4 (mean $\pm$ SD) & $-$Shared & $-$TaskLoRA \\
 \midrule
 Cls (BA $\uparrow$) & 0.721{\scriptsize$\pm$.010} & $-0.016$ & $-0.004$ & 0.704{\scriptsize$\pm$.024} & $-0.020$ & $-0.016$ \\
 ML (F1 $\uparrow$) & 0.619{\scriptsize$\pm$.008} & $+0.010$ & $+0.005$ & 0.557{\scriptsize$\pm$.005} & $-0.012$ & $-0.025$ \\
@@ -811,8 +808,8 @@ Count (MAE $\downarrow$) & 15.12{\scriptsize$\pm$1.38} & $+2.16$ & $+0.09$ & 27.
 Reg (MAE $\downarrow$) & 11.76{\scriptsize$\pm$0.40} & $+0.41$ & $+1.12$ & 11.92{\scriptsize$\pm$0.84} & $-0.24$ & $+0.02$ \\
 Report (CRIMSON $\uparrow$) & 0.821{\scriptsize$\pm$.004} & $-0.001$ & $-0.007$ & 0.828{\scriptsize$\pm$.004} & $+0.003$ & $-0.003$ \\
 \bottomrule
-\end{tabular}}
-\end{table}
+\end{tabular}
+\end{table*}
 % Source: results/LEDGER.md, "E4 / E5" (2026-11-07); CIs and Holm p there.
 % Shared r48 contrasts are in the LEDGER too (none significant).
 
