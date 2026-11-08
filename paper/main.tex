@@ -470,9 +470,20 @@ The report column scores non-report adapters' answers to report questions,
 which are often not reports at all; we keep and flag these cells but draw no
 conclusion from their CRIMSON values.
 
-We relate $C_{ij}$ over the 30 off-diagonal pairs to output-structure
+We relate transfer over the 30 off-diagonal pairs to output-structure
 similarity, modality overlap, dataset overlap and source and target data
-size, using Spearman correlations with permutation tests. One dataset (IUGC)
+size, using Spearman correlations with exact permutation tests (task labels
+permuted jointly on both axes) and Holm correction across the five
+covariates. The outcome is the normalized transfer $\mu_{i\to j}$, not
+$C_{ij}$: $C_{ij}$ is in each target's own units (balanced-accuracy
+differences of a few hundredths next to MAE differences in the hundreds), so
+its ranking mostly reflects the target task. On MedGemma, counting is left
+out as a target of this test, because its zero-shot MAE (75{,}269, from a few
+very large answers) makes $\mu\approx1$ for any adapter that outputs a
+plausible count. Output-structure similarity is the Jaccard overlap of
+hand-coded answer-format features (categorical, numeric or language; atomic,
+set or sequence; discrete, continuous or spatial; short or long), fixed
+before the analysis was run. One dataset (IUGC)
 carries classification, detection and regression questions on the same
 ultrasound images; transfer among those three tasks holds modality and
 dataset fixed and varies only the output format.
@@ -681,7 +692,72 @@ Report (CRIMSON) & $+0.006$ & $+0.007$ \\
 % \todo: add bootstrap CIs per cell once bootstrap.py runs.
 
 \subsection{Cross-Task Transfer (E3)}
-\todo{E3 results.}
+Table~\ref{tab:e3} gives the normalized transfer $\mu_{i\to j}$ of each task
+adapter on every other task. Off-task transfer is mostly absent or negative.
+Of the 30 off-diagonal pairs, 14 differ from zero-shot on Qwen and 19 on
+MedGemma (paired bootstrap, Holm across the five targets of each source),
+and most of these are losses. The detection adapter is the clearest case: it
+hurts every other task on both backbones and does worse than the untrained
+model on counting and regression ($\mu$ between $-1.2$ and $-1.4$).
+Regression is the one target that other adapters help: on Qwen the
+classification, counting and report adapters close 9--16\% of its zero-shot
+gap. No adapter except the detection adapter produces valid boxes, so the
+detection column is zero throughout (up to 100\% malformed outputs).
+
+The same-image comparison on IUGC, where classification, detection and
+regression share the ultrasound images, does not give one answer: on Qwen
+the classification and detection adapters help IUGC regression ($\mu=0.22$
+and $0.23$), on MedGemma they hurt it ($-0.43$ and $-0.22$).
+
+None of the pair covariates (output-structure similarity, modality overlap,
+dataset overlap, source or target training size) predicts transfer on either
+backbone after Holm correction (smallest adjusted $p=0.17$; uncorrected, only
+dataset overlap on MedGemma reaches $p=0.03$, $\rho=-0.31$). In our data,
+how similar two tasks look does not tell whether one helps the other.
+
+Many cells are close to zero, and 17 Qwen and 13 MedGemma pairs change sign
+in at least one seed when the base is ZS-bare instead of ZS-prompt. The large
+effects (the detection adapter on counting and regression, and the gains on
+Qwen regression) keep their sign under both bases.
+
+\begin{table}[!t]
+\caption{Cross-task transfer: normalized transfer $\mu_{i\to j}$ (fraction of
+the zero-shot gap closed; negative = worse than zero-shot), mean over three
+seeds. Rows: adapter's training task; columns: evaluated task.
+$^\ast$: differs from ZS-prompt (paired bootstrap, Holm across targets).
+Report column: non-report adapters answering report questions, flagged and
+not interpreted. MedGemma counting column omitted: its zero-shot MAE makes
+$\mu\approx1$ for any plausible count.}
+\label{tab:e3}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lrrrrrr}
+\toprule
+\multicolumn{7}{l}{\textit{Qwen3.5-9B}} \\
+Src\,$\backslash$\,tgt & Cls & ML & Det & Count & Reg & Report \\
+\midrule
+Cls & -- & $-0.40^\ast$ & 0.00 & $+0.04$ & $+0.11^\ast$ & $-0.10$ \\
+ML & $-0.03^\ast$ & -- & 0.00 & $-0.01$ & $+0.02$ & $-0.20^\ast$ \\
+Det & $-0.12^\ast$ & $-0.40^\ast$ & -- & $-1.19^\ast$ & $-1.28^\ast$ & $-0.25^\ast$ \\
+Count & $-0.01$ & $0.00$ & 0.00 & -- & $+0.16^\ast$ & $+0.01$ \\
+Reg & $+0.07^\ast$ & $-0.08^\ast$ & 0.00 & $+0.12$ & -- & $-0.13$ \\
+Report & $-0.02$ & $-0.13^\ast$ & 0.00 & $+0.03$ & $+0.09^\ast$ & -- \\
+\midrule
+\multicolumn{7}{l}{\textit{MedGemma-1.5-4B}} \\
+Src\,$\backslash$\,tgt & Cls & ML & Det & & Reg & Report \\
+\midrule
+Cls & -- & $+0.04$ & 0.00 & & $-0.44$ & $-0.41^\ast$ \\
+ML & $+0.01^\ast$ & -- & 0.00 & & $+0.01$ & $-0.24^\ast$ \\
+Det & $-0.02^\ast$ & $-0.25^\ast$ & -- & & $-1.42^\ast$ & $+0.37^\ast$ \\
+Count & $+0.18^\ast$ & $-0.08$ & 0.00 & & $+0.20^\ast$ & $+0.17$ \\
+Reg & $-0.02^\ast$ & $-0.26^\ast$ & 0.00 & & -- & $+0.42^\ast$ \\
+Report & $-0.02^\ast$ & $-0.28^\ast$ & 0.00 & & $-0.06^\ast$ & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+% Source: results/LEDGER.md, "E3" (2026-11-08); CIs, raw C, sign flips, IUGC cells,
+% covariate table and unscored-report counts there. Full matrices with CIs: appendix.
 
 \subsection{Modality and Dataset Specialization (E4, E5)}
 \todo{Add the Hydra-T and Hydra-R comparisons once their holdout evaluations

@@ -1,6 +1,6 @@
 # Status
 
-**Updated 2026-11-07.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-08.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
@@ -37,8 +37,10 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   logs `runs/crimsonchain_e3resume_s<seed>.log`; Hydra slipped ~4 h). Alex's collect fix merged 7 Nov
   (`f32d64d`) plus two fixes at review: `adapter_identity` deck key (`ce56acd`) and unscored CRIMSON reports
   (`c447ac3`, `d119d5f`: allowed only in zero-shot baselines and non-report adapters' report cells, left out of
-  the mean as in LEDGER, counted per cell). **E3 collect done; analysis running** (box `d119d5f`, PID 4164140,
-  log `runs/e3_collect_analyze_20261107.log`, out `/data/ugrip2026/journal/phase_b/e3_results/`).
+  the mean as in LEDGER, counted per cell). **E3 analysis done 8 Nov 12:22** (first run crashed 7 Nov on an overflowed
+  count, fixed `cc8f561`; covariate test on μ with MedGemma counting excluded, `08b5905`): LEDGER 2026-11-08 E3
+  section, paper Table VII. Off-task transfer mostly absent or negative; detection adapter hurts everything; no
+  covariate predicts transfer (RQ3 negative).
 - **E4/E5 ready to launch (26 Oct):** Alex's `alex/modality-decks` reviewed, reworked and merged
   (`code/E4_E5_RUNBOOK.md`). 51 group decks in `/data/ugrip2026/journal/data_e4e5`; job files in
   `code/eval/jobs/e4e5/` (3 training chains × 28 runs; 42 evals per backbone; 6 CRIMSON). 84 runs, not 102:
