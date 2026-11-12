@@ -1,9 +1,17 @@
 # Status
 
-**Updated 2026-11-08.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-12.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **All 12 Hydra training runs done (rc=0):** Qwen Reversed Hydra 9 Nov ~18:10, MedGemma Hydra-T 10 Nov ~16:10,
+  MedGemma Reversed Hydra 11 Nov 14:10. GPU idle 11 Nov 14:10 → 12 Nov 14:03.
+  **Remaining 9 Hydra holdout evals + CRIMSON launched 12 Nov 14:03** (box `997e0f5`; harness plug-in mode, oracle
+  task route, batch 1). One chain per seed, each Qwen hydraR → MedGemma hydraT → MedGemma hydraR:
+  job files `code/eval/jobs/hydra/{eval,crimson}_hydra_rest_s<seed>.txt`; eval PIDs 2435276/78/80, CRIMSON PIDs
+  2435277/79/81 (each CRIMSON job waits for its eval's rc=0); logs `runs/evalchain_hydra_rest_s<seed>.log`,
+  `runs/crimsonchain_hydra_rest_s<seed>.log`. Rough ETA: all done ~13 Nov early morning (box time).
+  GPU access ends 13 Nov: E4/E5 Hydra rerun, E6, E7, E9 have no GPU time scheduled.
 - **Alex follow-up (6 Nov):** E3 collection now validates and consumes Taha's chain-runner
   outputs, including Qwen's legacy file, then combines only the off-diagonal slice with the
   official E1/E2 diagonal. Output structure is now a graded Jaccard feature similarity.
