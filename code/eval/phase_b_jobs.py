@@ -40,8 +40,9 @@ def adapter_identity(spec):
         record = next(csv.DictReader(f))
     if (cfg['run_id'] != run.name or cfg['seed'] != spec['seed'] or cfg['backbone'] != spec['backbone']
             or cfg.get('smoke') or record['status'] != 'done'
-            # the only allowed deviation is the r48 arm's declared rank (the arm's definition)
-            or (cfg.get('deviations') and not ('_shared48_' in run.name and set(cfg['deviations']) == {'lora_rank'}))
+            # the only allowed deviation is the r48 arm's declared rank/alpha (the arm's definition: r48, alpha 96)
+            or (cfg.get('deviations') and not ('_shared48_' in run.name
+                                               and set(cfg['deviations']) <= {'lora_rank', 'lora_alpha'}))
             or rt['optimizer_steps'] <= 0):
         raise ValueError(f'{run}: expected a completed protocol adapter')
     lf = cfg['llamafactory_args']
