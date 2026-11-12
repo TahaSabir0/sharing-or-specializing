@@ -1,9 +1,18 @@
 # Status
 
-**Updated 2026-11-12.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-13.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **All Hydra holdout evals + CRIMSON done 12 Nov 18:48** (9/9 eval rc=0, 9/9 CRIMSON rc=0; metrics and
+  crimson_metrics.json present for every run). Phase A complete on both backbones. Not yet in LEDGER / Table IV.
+- **E7 forward passes launched 13 Nov 00:01** (box `0cc6217`): `phase_b.sh e7-run {1,2,3}`, PIDs 1088706/07/08,
+  logs `runs/e7_chain{1,2,3}.log`, features `runs/phase_b/e7/`, plan `/data/ugrip2026/journal/phase_b/e7_jobs`
+  (env: JOURNAL_DATA=`data_e4e5`, PHASE_B_DIR=`journal/phase_b`). 164 configurations (base + 81 adapters per
+  backbone), ~5 min each at 3 parallel → ETA ~13 Nov 05:00. Two fixes before launch: `plan_e7.py` points the E5
+  datasets that reuse E4 adapters (cmmd, bcn20000, neojaundice) at the modality adapter (`46ef9c2`);
+  `phase_b_jobs.adapter_identity` accepts the r48 arm's declared rank/alpha deviation (`60808b6`, `0cc6217`).
+  Next (CPU): `phase_b.sh e7-analyze` (needs `e3_results/transfer.json`), then E8. E6 and E9: no GPU time left.
 - **All 12 Hydra training runs done (rc=0):** Qwen Reversed Hydra 9 Nov ~18:10, MedGemma Hydra-T 10 Nov ~16:10,
   MedGemma Reversed Hydra 11 Nov 14:10. GPU idle 11 Nov 14:10 → 12 Nov 14:03.
   **Remaining 9 Hydra holdout evals + CRIMSON launched 12 Nov 14:03** (box `997e0f5`; harness plug-in mode, oracle
