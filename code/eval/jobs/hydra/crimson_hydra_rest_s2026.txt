@@ -1,0 +1,7 @@
+# CRIMSON for the remaining Hydra holdout reports, seed 2026; each job waits for its eval in evalchain_hydra_rest_s2026.log.
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_hydra_rest_s2026.log end eval j26_q35_hydraR_full_768_s2026 rc=0
+q35_hydraR_s2026 /data/ugrip2026/journal/runs/j26_q35_hydraR_full_768_s2026/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_hydra_rest_s2026.log end eval j26_mg15_hydraT_full_896_s2026 rc=0
+mg15_hydraT_s2026 /data/ugrip2026/journal/runs/j26_mg15_hydraT_full_896_s2026/eval_holdout
+WAIT_FOR /data/ugrip2026/journal/runs/evalchain_hydra_rest_s2026.log end eval j26_mg15_hydraR_full_896_s2026 rc=0
+mg15_hydraR_s2026 /data/ugrip2026/journal/runs/j26_mg15_hydraR_full_896_s2026/eval_holdout

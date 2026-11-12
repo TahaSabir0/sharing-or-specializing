@@ -1,0 +1,6 @@
+# Remaining Hydra holdout evals (E1 Qwen Reversed Hydra; E2 MedGemma Hydra-T, Reversed Hydra), seed 2026, one chain per seed.
+# Run with EVAL_PY=code/eval/eval_harness.py (plug-in mode, as eval_q35_hydraT_s*.txt): oracle task route, batch 1,
+# greedy, EOS pinned, 512 tokens; each backbone's own image rule (Qwen 768² cap, MedGemma native 896²).
+j26_q35_hydraR_full_768_s2026 --mode plugin --run_dir /data/ugrip2026/journal/runs/j26_q35_hydraR_full_768_s2026 --backbone q35 --batch_size 1 --data /data/ugrip2026/journal/data/j26_holdout.jsonl --surface holdout --out_dir /data/ugrip2026/journal/runs/j26_q35_hydraR_full_768_s2026/eval_holdout
+j26_mg15_hydraT_full_896_s2026 --mode plugin --run_dir /data/ugrip2026/journal/runs/j26_mg15_hydraT_full_896_s2026 --backbone mg15 --batch_size 1 --data /data/ugrip2026/journal/data/j26_holdout.jsonl --surface holdout --out_dir /data/ugrip2026/journal/runs/j26_mg15_hydraT_full_896_s2026/eval_holdout
+j26_mg15_hydraR_full_896_s2026 --mode plugin --run_dir /data/ugrip2026/journal/runs/j26_mg15_hydraR_full_896_s2026 --backbone mg15 --batch_size 1 --data /data/ugrip2026/journal/data/j26_holdout.jsonl --surface holdout --out_dir /data/ugrip2026/journal/runs/j26_mg15_hydraR_full_896_s2026/eval_holdout
