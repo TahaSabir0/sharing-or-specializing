@@ -8,7 +8,7 @@ from pathlib import Path
 from phase_b_common import (CODE, TASKS, SHORT, SEEDS, BACKBONES, read_json, read_jsonl, write_json,
                             digest, provenance, fresh_dir, commit)
 sys.path.insert(0, str(CODE / 'data'))
-from grouping import MODALITY_SLUGS, CLASSIFICATION_DATASET_SLUGS
+from grouping import MODALITY_SLUGS, CLASSIFICATION_DATASET_SLUGS, E5_REUSES_E4
 from representations import probe_rows, load_features, extract
 
 
@@ -38,7 +38,13 @@ def prepare(data, groups, runs, probe, outputs, out):
                 spec['mode'] = 'zs'
                 index['backbones'][backbone]['base'] = str(dest)
             else:
-                adapter = runs / f'j26_{backbone}_{name}_full_{res}_s{seed}'
+                run_name = name
+                if name.startswith('ds'):  # E5 reuses the E4 adapter where the dataset is its modality's only data
+                    reused = {CLASSIFICATION_DATASET_SLUGS[d]: MODALITY_SLUGS[m] for d, m in E5_REUSES_E4.items()}
+                    if name[2:] in reused:  # byte-identical decks (build_group_decks.py asserts it)
+                        run_name = 'mod' + reused[name[2:]]
+                        deck = groups / f'j26_train_{run_name}.jsonl'
+                adapter = runs / f'j26_{backbone}_{run_name}_full_{res}_s{seed}'
                 plugin = name in ('hydraT', 'hydraR')
                 spec.update(mode='plugin' if plugin else 'adapter')
                 spec['run_dir' if plugin else 'adapter'] = str(adapter)
