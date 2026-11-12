@@ -56,3 +56,15 @@ j26_mg15_shared48_full_896_s2026,taha,E2,mg15,lora,full,2026,fd0a803,mbz-yaqub,1
 j26_mg15_shared48_full_896_s42,taha,E2,mg15,lora,full,42,fd0a803,mbz-yaqub,1,done,2026-10-23T12:47:35,2026-10-24T13:05:28,/data/ugrip2026/journal/runs/j26_mg15_shared48_full_896_s42,holdout eval: eval_harness.py batch 1 at 52368b1
 j26_mg15_zsprompt_holdout_896,taha,E0,mg15,zs-prompt,holdout (eval only),,c0123ce,mbz-yaqub,1,done,2026-10-23T12:45,2026-10-23T17:29,/data/ugrip2026/journal/runs/j26_mg15_zsprompt_holdout_896,eval_harness.py batch 1; no training; CRIMSON 13/781 unscored by the judge
 j26_mg15_zsbare_holdout_896,taha,E0,mg15,zs-bare,holdout (eval only),,c0123ce,mbz-yaqub,1,done,2026-10-23T17:29,2026-10-24T04:54,/data/ugrip2026/journal/runs/j26_mg15_zsbare_holdout_896,eval_harness.py batch 1; no training
+j26_q35_hydraT_full_768_s1337,veronika,E1,q35,hydra,full,1337,d7a16cd,mbz-yaqub,1,done,2026-11-04T10:01:20,2026-11-07T03:39:33,/data/ugrip2026/journal/runs/j26_q35_hydraT_full_768_s1337,
+j26_q35_hydraT_full_768_s2026,veronika,E1,q35,hydra,full,2026,d7a16cd,mbz-yaqub,1,done,2026-11-04T10:01:20,2026-11-07T03:42:58,/data/ugrip2026/journal/runs/j26_q35_hydraT_full_768_s2026,
+j26_q35_hydraT_full_768_s42,veronika,E1,q35,hydra,full,42,d7a16cd,mbz-yaqub,1,done,2026-11-04T10:01:20,2026-11-07T03:40:04,/data/ugrip2026/journal/runs/j26_q35_hydraT_full_768_s42,
+j26_q35_hydraR_full_768_s1337,veronika,E1,q35,hydra,full,1337,d7a16cd,mbz-yaqub,1,done,2026-11-07T03:39:38,2026-11-09T18:06:40,/data/ugrip2026/journal/runs/j26_q35_hydraR_full_768_s1337,
+j26_q35_hydraR_full_768_s2026,veronika,E1,q35,hydra,full,2026,d7a16cd,mbz-yaqub,1,done,2026-11-07T03:43:04,2026-11-09T18:13:04,/data/ugrip2026/journal/runs/j26_q35_hydraR_full_768_s2026,
+j26_q35_hydraR_full_768_s42,veronika,E1,q35,hydra,full,42,d7a16cd,mbz-yaqub,1,done,2026-11-07T03:40:10,2026-11-09T18:06:40,/data/ugrip2026/journal/runs/j26_q35_hydraR_full_768_s42,
+j26_mg15_hydraT_full_896_s1337,veronika,E2,mg15,hydra,full,1337,08b5905,mbz-yaqub,1,done,2026-11-09T18:06:47,2026-11-10T16:04:23,/data/ugrip2026/journal/runs/j26_mg15_hydraT_full_896_s1337,
+j26_mg15_hydraT_full_896_s2026,veronika,E2,mg15,hydra,full,2026,08b5905,mbz-yaqub,1,done,2026-11-09T18:13:11,2026-11-10T16:16:11,/data/ugrip2026/journal/runs/j26_mg15_hydraT_full_896_s2026,
+j26_mg15_hydraT_full_896_s42,veronika,E2,mg15,hydra,full,42,08b5905,mbz-yaqub,1,done,2026-11-09T18:06:47,2026-11-10T16:07:28,/data/ugrip2026/journal/runs/j26_mg15_hydraT_full_896_s42,
+j26_mg15_hydraR_full_896_s1337,veronika,E2,mg15,hydra,full,1337,08b5905,mbz-yaqub,1,done,2026-11-10T16:04:30,2026-11-11T14:06:10,/data/ugrip2026/journal/runs/j26_mg15_hydraR_full_896_s1337,
+j26_mg15_hydraR_full_896_s2026,veronika,E2,mg15,hydra,full,2026,08b5905,mbz-yaqub,1,done,2026-11-10T16:16:18,2026-11-11T14:10:13,/data/ugrip2026/journal/runs/j26_mg15_hydraR_full_896_s2026,
+j26_mg15_hydraR_full_896_s42,veronika,E2,mg15,hydra,full,42,08b5905,mbz-yaqub,1,done,2026-11-10T16:07:35,2026-11-11T13:59:35,/data/ugrip2026/journal/runs/j26_mg15_hydraR_full_896_s42,

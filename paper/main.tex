@@ -259,7 +259,8 @@ Section~\ref{sec:e6} replaces it with a predicted route.
 \begin{table}[!t]
 \caption{The sharing arms. $P_8$ is the size of one rank-8 adapter on the
 backbone's language-model linears (Qwen3.5-9B: 21{,}639{,}168;
-MedGemma-1.5-4B: 14{,}901{,}248).}
+MedGemma-1.5-4B: 14{,}901{,}248). Stored, Hydra-T is about $3.7P_8$ and
+Hydra-R about $3.3P_8$ on both backbones.}
 \label{tab:arms}
 \centering
 \setlength{\tabcolsep}{3pt}
@@ -278,8 +279,8 @@ Dataset, cls (E5) & \multicolumn{2}{c}{per dataset} & $P_8$ & $10P_8$ \\
 \bottomrule
 \end{tabular}
 \end{table}
-% Hydra-T / Hydra-R exact counts: printed at load, recorded in runtime.json
-% (about 3.5 P8 each on Qwen). Fill in once the Hydra runs exist.
+% Hydra stored counts (runtime.json): Qwen Hydra-T 78,716,928 (3.64 P8), Hydra-R 72,757,248 (3.36 P8);
+% MedGemma Hydra-T 55,287,808 (3.71 P8), Hydra-R 49,020,928 (3.29 P8). LEDGER 2026-11-13.
 
 
 % ============================================================
@@ -587,8 +588,8 @@ regression with the prompt.
 
 \subsection{Shared Versus Task-Specific Adaptation (E1, E2)}
 
-\todo{Add Hydra-R (Qwen) and both Hydra arms (MedGemma); add bootstrap CIs and Holm-adjusted
-paired tests. The text below is descriptive (mean $\pm$ SD over seeds).}
+\todo{Add bootstrap CIs and Holm-adjusted paired tests. The text below is
+descriptive (mean $\pm$ SD over seeds).}
 
 Fine-tuning lifts every task far above zero-shot on both backbones. Reports
 gain the least (CRIMSON 0.797 zero-shot to about 0.82--0.83 on Qwen).
@@ -617,10 +618,28 @@ count.
 level with Shared on classification, counting, regression and reports, and
 ahead on multi-label ($+0.022$ F1, on both datasets) and detection ($+0.020$
 F1, all from BUS-UCLM, $n=22$); Table~\ref{tab:qwen}. Both gaps are about two
-seed standard deviations. It omits abnormal findings about as often as
-TaskLoRA (0.574 vs 0.568) and less often than Shared (0.611). Sharing the
-input projection while splitting the output projection by task therefore
-costs nothing relative to either plain arm on Qwen.
+seed standard deviations. On MedGemma, Hydra-T is level with or ahead of
+Shared on every task except reports ($-0.002$ CRIMSON): it has the lowest
+counting error of any MedGemma arm (21.26 MAE, Shared 25.28, TaskLoRA 29.20)
+and recovers most of TaskLoRA's detection gain ($+0.052$ F1 over Shared,
+TaskLoRA $+0.060$, again from the two breast-ultrasound datasets). Reports
+stay below TaskLoRA ($-0.009$ CRIMSON). On both backbones, then, Hydra-T is
+never behind Shared by more than seed noise and keeps the gain of whichever
+plain arm leads a task.
+
+\textbf{Hydra-R.} Reversing the split (one $A$ per task, one shared $B$)
+does no better. On Qwen, Hydra-R is level with Shared on classification,
+detection and regression, slightly ahead on multi-label ($+0.009$) and
+reports ($+0.008$ CRIMSON, level with TaskLoRA), and behind on counting
+($+1.57$ MAE). On MedGemma it keeps most of Hydra-T's detection gain
+($+0.047$ over Shared) and part of its counting gain ($-1.99$ MAE), but has
+the lowest classification score (0.713), entirely from the dental dataset
+(0.503 $\pm$ 0.079, one seed at 0.418; Shared r48 shows the same drop).
+Hydra-T is at least level with Hydra-R on every task on both backbones except
+Qwen reports, so sharing the input projection and splitting the output
+projection by task looks the better of the two partial splits.
+\todo{Confirm the Hydra-T versus Hydra-R and Hydra versus plain-arm gaps with
+the paired bootstrap; most are one to two seed SDs.}
 
 \textbf{Backbones.} With the same arms, MedGemma is close to Qwen on
 classification, regression and reports, and behind on multi-label, counting
@@ -633,7 +652,10 @@ $896^2$ input causes this, or report it as a hypothesis.}
 
 \textbf{Report omission.} All fine-tuned arms miss most abnormal findings:
 reports collapse toward normal boilerplate. On Qwen, TaskLoRA omits the
-fewest abnormal findings and Shared r48 the most.
+fewest abnormal findings (normal-on-abnormal 0.568), followed by Hydra-T
+(0.574) and Hydra-R (0.589), and Shared r48 the most (0.727). On MedGemma,
+both Hydra arms omit fewer than any plain arm (Hydra-T 0.665, Hydra-R 0.689;
+Shared 0.703, TaskLoRA 0.715, Shared r48 0.734).
 
 \begin{table*}[!t]
 \caption{Holdout results: task macro, mean $\pm$ SD over three seeds (ZS-prompt: one deterministic run).}
@@ -646,20 +668,20 @@ fewest abnormal findings and Shared r48 the most.
 Task & ZS-prompt & Shared & TaskLoRA & Shared r48 & Hydra-T & Hydra-R \\
 \midrule
 \multicolumn{7}{l}{\textit{Qwen3.5-9B}} \\
-Cls (BA $\uparrow$) & 0.118 & 0.737{\scriptsize$\pm$.009} & 0.724{\scriptsize$\pm$.010} & 0.737{\scriptsize$\pm$.010} & 0.736{\scriptsize$\pm$.009} & \textcolor{red}{pend.} \\
-ML (F1 $\uparrow$) & 0.501 & 0.610{\scriptsize$\pm$.008} & 0.614{\scriptsize$\pm$.003} & 0.596{\scriptsize$\pm$.008} & 0.632{\scriptsize$\pm$.012} & \textcolor{red}{pend.} \\
-Det (F1 $\uparrow$) & 0.000 & 0.903{\scriptsize$\pm$.009} & 0.892{\scriptsize$\pm$.021} & 0.882{\scriptsize$\pm$.015} & 0.923{\scriptsize$\pm$.008} & \textcolor{red}{pend.} \\
-Count (MAE $\downarrow$) & 103.7 & 12.96{\scriptsize$\pm$1.39} & 15.03{\scriptsize$\pm$1.77} & 19.68{\scriptsize$\pm$1.02} & 13.61{\scriptsize$\pm$2.53} & \textcolor{red}{pend.} \\
-Reg (MAE $\downarrow$) & 59.50 & 11.35{\scriptsize$\pm$0.73} & 10.63{\scriptsize$\pm$0.51} & 12.31{\scriptsize$\pm$0.84} & 10.97{\scriptsize$\pm$0.32} & \textcolor{red}{pend.} \\
-Report (CRIMSON $\uparrow$) & 0.797 & 0.822{\scriptsize$\pm$.008} & 0.829{\scriptsize$\pm$.004} & 0.817{\scriptsize$\pm$.008} & 0.823{\scriptsize$\pm$.007} & \textcolor{red}{pend.} \\
+Cls (BA $\uparrow$) & 0.118 & 0.737{\scriptsize$\pm$.009} & 0.724{\scriptsize$\pm$.010} & 0.737{\scriptsize$\pm$.010} & 0.736{\scriptsize$\pm$.009} & 0.734{\scriptsize$\pm$.007} \\
+ML (F1 $\uparrow$) & 0.501 & 0.610{\scriptsize$\pm$.008} & 0.614{\scriptsize$\pm$.003} & 0.596{\scriptsize$\pm$.008} & 0.632{\scriptsize$\pm$.012} & 0.619{\scriptsize$\pm$.009} \\
+Det (F1 $\uparrow$) & 0.000 & 0.903{\scriptsize$\pm$.009} & 0.892{\scriptsize$\pm$.021} & 0.882{\scriptsize$\pm$.015} & 0.923{\scriptsize$\pm$.008} & 0.901{\scriptsize$\pm$.030} \\
+Count (MAE $\downarrow$) & 103.7 & 12.96{\scriptsize$\pm$1.39} & 15.03{\scriptsize$\pm$1.77} & 19.68{\scriptsize$\pm$1.02} & 13.61{\scriptsize$\pm$2.53} & 14.53{\scriptsize$\pm$0.80} \\
+Reg (MAE $\downarrow$) & 59.50 & 11.35{\scriptsize$\pm$0.73} & 10.63{\scriptsize$\pm$0.51} & 12.31{\scriptsize$\pm$0.84} & 10.97{\scriptsize$\pm$0.32} & 11.11{\scriptsize$\pm$1.08} \\
+Report (CRIMSON $\uparrow$) & 0.797 & 0.822{\scriptsize$\pm$.008} & 0.829{\scriptsize$\pm$.004} & 0.817{\scriptsize$\pm$.008} & 0.823{\scriptsize$\pm$.007} & 0.830{\scriptsize$\pm$.006} \\
 \midrule
 \multicolumn{7}{l}{\textit{MedGemma-1.5-4B}} \\
-Cls (BA $\uparrow$) & 0.024 & 0.725{\scriptsize$\pm$.009} & 0.720{\scriptsize$\pm$.013} & 0.699{\scriptsize$\pm$.012} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
-ML (F1 $\uparrow$) & 0.219 & 0.569{\scriptsize$\pm$.007} & 0.583{\scriptsize$\pm$.007} & 0.568{\scriptsize$\pm$.009} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
-Det (F1 $\uparrow$) & 0.000 & 0.468{\scriptsize$\pm$.034} & 0.528{\scriptsize$\pm$.028} & 0.442{\scriptsize$\pm$.034} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
-Count (MAE $\downarrow$) & 75{,}269$^\dagger$ & 25.28{\scriptsize$\pm$2.54} & 29.20{\scriptsize$\pm$0.80} & 28.35{\scriptsize$\pm$2.57} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
-Reg (MAE $\downarrow$) & 51.77 & 12.16{\scriptsize$\pm$0.39} & 11.91{\scriptsize$\pm$0.79} & 13.30{\scriptsize$\pm$0.46} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
-Report (CRIMSON $\uparrow$) & 0.676 & 0.825{\scriptsize$\pm$.003} & 0.832{\scriptsize$\pm$.002} & 0.822{\scriptsize$\pm$.000} & \textcolor{red}{pend.} & \textcolor{red}{pend.} \\
+Cls (BA $\uparrow$) & 0.024 & 0.725{\scriptsize$\pm$.009} & 0.720{\scriptsize$\pm$.013} & 0.699{\scriptsize$\pm$.012} & 0.731{\scriptsize$\pm$.022} & 0.713{\scriptsize$\pm$.012} \\
+ML (F1 $\uparrow$) & 0.219 & 0.569{\scriptsize$\pm$.007} & 0.583{\scriptsize$\pm$.007} & 0.568{\scriptsize$\pm$.009} & 0.575{\scriptsize$\pm$.012} & 0.568{\scriptsize$\pm$.012} \\
+Det (F1 $\uparrow$) & 0.000 & 0.468{\scriptsize$\pm$.034} & 0.528{\scriptsize$\pm$.028} & 0.442{\scriptsize$\pm$.034} & 0.520{\scriptsize$\pm$.017} & 0.515{\scriptsize$\pm$.023} \\
+Count (MAE $\downarrow$) & 75{,}269$^\dagger$ & 25.28{\scriptsize$\pm$2.54} & 29.20{\scriptsize$\pm$0.80} & 28.35{\scriptsize$\pm$2.57} & 21.26{\scriptsize$\pm$1.68} & 23.29{\scriptsize$\pm$1.92} \\
+Reg (MAE $\downarrow$) & 51.77 & 12.16{\scriptsize$\pm$0.39} & 11.91{\scriptsize$\pm$0.79} & 13.30{\scriptsize$\pm$0.46} & 11.60{\scriptsize$\pm$0.75} & 12.13{\scriptsize$\pm$1.14} \\
+Report (CRIMSON $\uparrow$) & 0.676 & 0.825{\scriptsize$\pm$.003} & 0.832{\scriptsize$\pm$.002} & 0.822{\scriptsize$\pm$.000} & 0.823{\scriptsize$\pm$.005} & 0.823{\scriptsize$\pm$.004} \\
 \bottomrule
 \end{tabular}
 
@@ -667,7 +689,8 @@ Report (CRIMSON $\uparrow$) & 0.676 & 0.825{\scriptsize$\pm$.003} & 0.832{\scrip
 \parbox{\textwidth}{\footnotesize $^\dagger$A few huge numeric answers; ZS-bare counting MAE is 117.69.}
 \end{table*}
 % Source: results/LEDGER.md, "E0 / E1 -- Qwen3.5-9B, 3 seeds" (2026-10-23), "E0 / E2 -- MedGemma-1.5-4B, 3 seeds"
-% (2026-10-26) and "E1 -- Qwen3.5-9B Hydra-T" (2026-11-08).
+% (2026-10-26), "E1 -- Qwen3.5-9B Hydra-T" (2026-11-08) and "E1 / E2 -- Hydra-R (Qwen) and Hydra-T, Hydra-R
+% (MedGemma)" (2026-11-13).
 
 \begin{table}[!t]
 \caption{Specialization effect $\Delta_{\mathrm{spec}}$ = TaskLoRA $-$
@@ -754,8 +777,9 @@ $\mu\approx1$ for any plausible count.}
 % covariate table and unscored-report counts there. Full matrices with CIs: appendix.
 
 \subsection{Modality and Dataset Specialization (E4, E5)}
-\todo{Add the Hydra-T and Hydra-R comparisons once their holdout evaluations
-exist; the comparisons below are against the three plain-LoRA arms.}
+\todo{Add the Hydra-T and Hydra-R comparisons (their holdout evaluations now
+exist; the E4/E5 analysis has not been rerun with them). The comparisons below
+are against the three plain-LoRA arms.}
 
 \textbf{By modality (E4).} Seven modality adapters perform about as well as
 Shared and TaskLoRA (Table~\ref{tab:e4}). No task differs from either after

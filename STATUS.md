@@ -5,7 +5,10 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
 - **All Hydra holdout evals + CRIMSON done 12 Nov 18:48** (9/9 eval rc=0, 9/9 CRIMSON rc=0; metrics and
-  crimson_metrics.json present for every run). Phase A complete on both backbones. Not yet in LEDGER / Table IV.
+  crimson_metrics.json present for every run). Phase A complete on both backbones. **In LEDGER (2026-11-13 Hydra
+  section), paper Table IV and §E1/E2 text (13 Nov); 12 Hydra rows added to RUNS.csv.** Descriptive: Hydra-T is never
+  behind Shared beyond seed noise on either backbone and is at least level with Hydra-R everywhere except Qwen reports;
+  on MedGemma it has the best counting (21.3 MAE) and most of TaskLoRA's detection gain. Bootstrap CIs still pending.
 - **E7 forward passes launched 13 Nov 00:01** (box `0cc6217`): `phase_b.sh e7-run {1,2,3}`, PIDs 1088706/07/08,
   logs `runs/e7_chain{1,2,3}.log`, features `runs/phase_b/e7/`, plan `/data/ugrip2026/journal/phase_b/e7_jobs`
   (env: JOURNAL_DATA=`data_e4e5`, PHASE_B_DIR=`journal/phase_b`). 164 configurations (base + 81 adapters per
@@ -86,8 +89,8 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 | Shared | done | done | done | done ×3 |
 | TaskLoRA (6 adapters) | done | done | done | done ×3 |
 | Shared r48 | done | done | done | done ×3 |
-| Hydra-T | smoke passed; full run pending | configs ready | configs ready | smoke passed; full runs pending |
-| Reversed Hydra | smoke passed; full run pending | configs ready | configs ready | smoke passed; full runs pending |
+| Hydra-T | done | done | done | done ×3 |
+| Reversed Hydra | done | done | done | done ×3 |
 
 "done" = trained, holdout-evaluated, CRIMSON-scored. Zero-shot (E0): done on both backbones (bare + prompt,
 incl. CRIMSON).
