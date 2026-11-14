@@ -102,14 +102,14 @@ incl. CRIMSON).
    (~3× the planned 8 slot-h).
 3. Stats (`bootstrap.py`: CIs and paired contrasts for E1): deferred for now.
 4. E1 extras (PLAN E1 "also report"): per-dataset deltas by modality, output-format error table, μ.
-5. **`paper/main.tex` restructured to v2 (28 Oct, branch `taha/paper-v2`).** Tausifa answered
-   (28 Oct): rewrite the body to v2 and keep the dropped studies (Soft-LoRA, latent experts/router,
-   location, practical factors) in a supplementary "if time permits" section. Done: RQ1–RQ4 with the
-   three wording clarifications, the five arms, setup, E0–E9 methods, E0/E1/E2 results drafted (3-seed
-   tables, Δ_spec, descriptive text; Hydra columns and CIs marked `\todo`). Compiles (checked with the
-   stock IEEEtran class; `ieeecolor.cls`/`generic.sty` are not in the repo). Next: copy it to Overleaf
-   and check it against Tausifa's Overleaf version (her RQ wording may differ); owners draft their
-   sections (target 7 Nov).
+5. **Manuscript moved to its own repo (12 Nov): `TahaSabir0/sharing-or-specializing-paper`** (private;
+   local clone `C:/Users/tahas/research/IEEE-paper`). It holds `main.tex` from `b2fbac7` (Hydra Table IV
+   filled) plus the `ieeecolor.cls`/`generic.sty`/`logo.eps` template files from Tausifa's Overleaf. Her
+   Overleaf copy matched `e33717f` exactly, so no Overleaf edits were lost. `paper/` here is frozen; edit the
+   paper repo. Next: Overleaf → Import from GitHub needs a premium account. Asked Tausifa (13 Nov) whether she
+   has one or MBZUAI has an institutional licence; if so she imports it and adds us as editors. Also add
+   Veronika, Alberto and Alex as GitHub collaborators on the paper repo. Earlier: body rewritten to v2 on 28 Oct
+   (RQ1–RQ4, five arms, E0–E9 methods; dropped v1 studies in a supplementary section).
 
 ## Last runs (MedGemma E0/E2, 23–26 Oct, box time +04, repo `fd0a803`; logs in `/data/ugrip2026/journal/runs/`)
 

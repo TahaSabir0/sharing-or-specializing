@@ -9,6 +9,8 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-13: **Manuscript moved** (Taha) to its own repo, `TahaSabir0/sharing-or-specializing-paper`, for
+  Overleaf GitHub sync (pending a premium account). `paper/` in this repo is frozen at `b2fbac7`.
 - 2026-11-08: **E3 analysis changes** (Taha). (1) The RQ3 covariate test's outcome is PGF/μ (mean over seeds),
   not raw C_ij: raw C mixes balanced-accuracy/F1 differences (~0.01–0.5) with MAE differences (~100, or ~75,000
   on MedGemma counting), so its ranking mostly reflected the target task. (2) MedGemma counting is left out as a
@@ -680,7 +682,8 @@ runs, (4) Phase B (only after all Phase A training).
 ### 7.5 Paper
 
 `paper/main.tex` was restructured to v2 on 28 Oct (Taha); the dropped v1 studies sit in its
-supplementary section. Each owner now drafts the methods and results of their part. Target: section drafts by
+supplementary section. Since 12 Nov the manuscript lives in `TahaSabir0/sharing-or-specializing-paper`
+(to be linked to Overleaf); `paper/` is frozen. Each owner now drafts the methods and results of their part. Target: section drafts by
 7 Nov; full draft by 11 Nov; submission ~15 Nov.
 
 ---

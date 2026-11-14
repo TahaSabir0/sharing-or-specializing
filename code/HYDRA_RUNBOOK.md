@@ -110,6 +110,7 @@ remains under his ownership.
 ## Manuscript and review
 
 `paper/hydra_sections_draft.md` supplies methods, head-analysis definitions and
-explicit full-result placeholders for Taha's v2 rewrite. After the full runs,
+explicit full-result placeholders for Taha's v2 rewrite. It stays here as notes; the
+manuscript itself now lives in `TahaSabir0/sharing-or-specializing-paper` (`paper/` is frozen). After the full runs,
 add reproducible E7 findings to the ledger through a PR and replace result
 placeholders. No main manuscript rewrite, merge or full training is done here.
