@@ -4,6 +4,10 @@
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **E7 analysis done 14 Nov 10:52** (box `e89ac0b`): main test negative on both backbones (input similarity does
+  not predict off-task transfer; LEDGER 2026-11-14 E7). First run was flawed (raw C incl. own-task cells; MedGemma
+  undefined) and fixed (PLAN changelog 14 Nov). Next (CPU): E8 (`phase_b.sh e8-prepare`, `e8-analyze`); Hydra head
+  similarity needs Veronika's parameter map.
 - **E9-lite launched 14 Nov 09:10** (box `158c806`; PLAN changelog 14 Nov): Qwen, cls target, Shared and
   TaskLoRA-cls at 1/5/10/25/50% (subset seed 20261009), training seed 1337; 100% = E1 s1337. Smoke passed both arm
   types (14 Nov, `runs/smoke/j26_q35_{shared,taskcls}_cls1_*`). Decks `/data/ugrip2026/journal/data_e9`

@@ -642,3 +642,40 @@ Means: normal-on-abnormal Hydra-T 0.665, Hydra-R 0.689 (Shared 0.703, TaskLoRA 0
   Qwen reports, so sharing A and splitting B looks the better split.
 - **Report omission:** on MedGemma both Hydra arms omit fewer abnormal findings than any plain arm (0.665 / 0.689 vs
   0.703–0.734); on Qwen both sit between TaskLoRA and Shared.
+
+----
+
+## E7 — representations, main test (input similarity vs transfer), both backbones (2026-11-14)
+
+**Does an adapter help a target dataset more when the base model sees the two tasks' inputs as similar? No, on either
+backbone.** Descriptive measures (shift from base, adapter-pair CKA, seed ceilings) are in the output file and not yet
+interpreted.
+
+- Features: 164 forward-only configurations (base + every adapter, 3 seeds, both backbones) on the 562 frozen probe IDs
+  (`data/e7_probe_ids.json`), `phase_b.sh e7-run`, box `0cc6217`, 13 Nov 00:01–03:33; `runs/phase_b/e7/`.
+- Analysis: `phase_b.sh e7-analyze`, box `e89ac0b`, 14 Nov 10:37–10:52, B = 10,000 →
+  `/data/ugrip2026/journal/phase_b/e7_results/representations.json`. Transfer from `phase_b/e3_results/transfer.json`.
+- Test (PLAN changelog 2026-11-14): Spearman ρ of base-model centroid cosine similarity (source task's probe inputs vs
+  target cell's) against μ (PGF, mean over seeds), off-task pairs only (95 Qwen; 90 MedGemma, counting excluded as in
+  E3); target cells permuted within target task; Holm across layers per pooling. Supplementary: RSA profile.
+- First run (raw C, all 114 pairs incl. own-task cells) gave ρ +0.25 to +0.51 on Qwen, all significant, by construction;
+  MedGemma undefined. Kept as `phase_b/e7_results_rawC_alltasks_20261114`; not a result.
+
+| Backbone | Pooling | ρ range over layers (centroid) | smallest Holm p | RSA ρ range |
+|---|---|---|---|---|
+| Qwen3.5-9B (L1, 8, 16, 24, 32) | image tokens | −0.07 to +0.03 | 1.0 | −0.07 to +0.04 |
+| | question tokens | −0.12 to +0.08 | 1.0 | 0.00 to +0.13 |
+| | last prompt token | 0.00 to +0.27 | 1.0 | +0.01 to +0.27 |
+| MedGemma-1.5-4B (L1, 4, …, 32, 34) | image tokens | −0.31 to −0.01 | 0.54 | −0.15 to −0.01 |
+| | question tokens | −0.33 to −0.02 | 0.48 | −0.15 to +0.15 |
+| | last prompt token | −0.23 to +0.17 | 0.83 | −0.11 to +0.20 |
+
+### Reading
+- No layer or pooling reaches significance on either backbone (smallest uncorrected p 0.048, MedGemma question L12).
+  RQ4's representation test is negative, consistent with E3's negative covariate test (RQ3): neither task metadata
+  nor base-model input similarity predicts which off-task transfer helps.
+- Qwen's last-token ρ is weakly positive in middle layers (+0.21 to +0.27), MedGemma's image-token ρ weakly negative
+  (−0.25 to −0.31 at L12–L20); neither survives correction and they disagree in sign.
+- Not done: Hydra head similarity (`representations.py heads`) needs a parameter map of the Hydra checkpoints
+  (Veronika). Shift-from-base and adapter CKA are descriptive; MedGemma's middle layers show near-zero CKA to base
+  and low seed ceilings (e.g. Shared L8 ceiling 0.46), to check before interpreting.
