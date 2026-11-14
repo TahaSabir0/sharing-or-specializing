@@ -9,6 +9,13 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-14: **E9 scoped to "E9-lite"** (Taha), on extra GPU time beyond 13 Nov: Qwen only, cls as the only
+  target, subset seed 20261009 at 1/5/10/25/50%, arms Shared (mixture with cls shrunk, other tasks 100%) and
+  TaskLoRA-cls, **one training seed (1337)**; the 100% points are the E1 s1337 runs (3-seed E1 for context).
+  Dropped from the v1 design: regression target, Hydra-T arm, MedGemma, seeds 2026/42, sensitivity draws.
+  Shared runs are evaluated on the cls holdout slice only. Run 4 jobs at once on GPU 1 (Taha's call; §2 measured
+  a 4th job adds little throughput). Decks in `/data/ugrip2026/journal/data_e9` (`build_e9_decks.sh`, rows
+  verified byte-identical to the W1 mixture). Reported as a pilot; the mixed model of §E9 is not fit on one seed.
 - 2026-11-13: **Manuscript moved** (Taha) to its own repo, `TahaSabir0/sharing-or-specializing-paper`, for
   Overleaf GitHub sync (pending a premium account). `paper/` in this repo is frozen at `b2fbac7`.
 - 2026-11-08: **E3 analysis changes** (Taha). (1) The RQ3 covariate test's outcome is PGF/μ (mean over seeds),
