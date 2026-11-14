@@ -676,6 +676,30 @@ interpreted.
   nor base-model input similarity predicts which off-task transfer helps.
 - Qwen's last-token ρ is weakly positive in middle layers (+0.21 to +0.27), MedGemma's image-token ρ weakly negative
   (−0.25 to −0.31 at L12–L20); neither survives correction and they disagree in sign.
-- Not done: Hydra head similarity (`representations.py heads`) needs a parameter map of the Hydra checkpoints
-  (Veronika). Shift-from-base and adapter CKA are descriptive; MedGemma's middle layers show near-zero CKA to base
-  and low seed ceilings (e.g. Shared L8 ceiling 0.46), to check before interpreting.
+
+### Check: features standardized per dimension (2026-11-15)
+- In MedGemma's middle layers 5 of 2,560 dimensions carry 70–82% of the probe variance (Qwen: ≤ 21%, mostly ≤ 10%), so
+  raw cosine/CKA there mostly measures those dimensions (raw Shared-vs-base CKA 0.04–0.17 at L8–L16, seed ceiling 0.46).
+- Rerun with every dimension z-scored by the base model's probe statistics (`--standardize`, box `e56042a4`, 15 Nov
+  03:12–03:28 → `phase_b/e7_results_std/representations.json`). Main test still negative on both backbones: centroid ρ
+  Qwen +0.01 to +0.16, MedGemma −0.01 to +0.17, smallest Holm p 0.69. MedGemma's weak negative raw ρ (image L12–L20)
+  was an outlier-dimension artifact.
+- Standardized shift from base is sensible: last-token CKA(Shared, base) Qwen 0.95 → 0.58–0.76, MedGemma 0.98 → 0.71–0.82
+  over depth, seed ceilings 0.88–0.98. **Use the standardized view for MedGemma's descriptive measures.**
+
+### Hydra heads (2026-11-15)
+- `code/analysis/hydra_heads.py` (Veronika's; reads the saved factors, CPU) on all 12 Hydra runs →
+  `/data/ugrip2026/journal/phase_b/e7_heads/` (per-target 6×6 cosine; `--head_map_out` maps also written). Cosine of the
+  task heads (B_t for Hydra-T, A_t for Hydra-R), mean over the 238 targets (MedGemma) or all targets (Qwen) and 3 seeds:
+
+| Arm | mean off-diagonal cosine (per seed) | most similar pair | least similar | smallest head norm |
+|---|---|---|---|---|
+| Qwen Hydra-T (B) | 0.025 (0.026 / 0.026 / 0.023) | cls–ml 0.063 | count–report 0.013 | counting (0.71 vs 1.7–2.1) |
+| Qwen Hydra-R (A) | 0.009 (0.009 / 0.009 / 0.010) | cls–ml 0.020 | count–report 0.004 | counting |
+| MedGemma Hydra-T (B) | 0.032 (0.033 / 0.032 / 0.032) | cls–ml 0.057 | det–report 0.013 | counting (0.66 vs 1.5–1.9) |
+| MedGemma Hydra-R (A) | 0.011 (0.011 / 0.011 / 0.011) | det–reg 0.020 | count–report 0.005 | counting |
+
+- Task heads end up nearly orthogonal in every arm, seed and backbone; cls–ml (the two label-picking tasks) is the most
+  aligned pair in 3 of 4 arms; the counting head (smallest task, 100 holdout / fewest training rows) moves least.
+- Hydra-T's B heads start at zero, so their low cosine is learned; Hydra-R's A heads start random and near-orthogonal,
+  so their low cosine is partly the initialization. Raw-factor cosine is basis-dependent: descriptive only.
