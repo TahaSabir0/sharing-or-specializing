@@ -293,13 +293,14 @@ def load_features(path, probe_path):
     return meta, features
 
 
-def analyze(index_path, probe_path, holdout, transfer_path, out, B=10000, seed=20261013):
+def analyze(index_path, probe_path, holdout, transfer_path, out, B=10000, seed=20261013, standardize=False):
     index, transfer = read_json(index_path), read_json(transfer_path)
     require_input_hash(transfer, holdout)
     rows = probe_rows(holdout, read_json(probe_path))
     cells = sorted({(r['task'], r['dataset']) for r in rows})
     out = fresh_dir(out)
     result = {'study': 'E7', 'inputs': provenance([index_path, probe_path, holdout, transfer_path]),
+              'standardized_per_dimension': bool(standardize),
               'backbones': {}, 'primary': ('centroid input similarity vs mu (PGF, mean over seeds) on off-task pairs (target task != '
                           'source task); MedGemma counting excluded; target cells permuted within target task'),
               'design_change': ('2026-11-14 (PLAN changelog): raw C mixed units (BA, MAE) and the own-task cells made '
@@ -321,6 +322,14 @@ def analyze(index_path, probe_path, holdout, transfer_path, out, B=10000, seed=2
                         or meta['spec']['name'] != name or set(f) != set(base)):
                     raise ValueError('feature arm, seed, backbone or layer/pool mismatch')
                 loaded[name].append(f)
+        if standardize:
+            # Supplementary view: z-score every dimension with the base model's probe statistics, so a few
+            # very large activation dimensions (MedGemma middle layers: 5 of 2,560 carry 70-82% of the
+            # variance) do not dominate cosine/CKA. Same transform for base and every adapter.
+            stats = {k: (v.mean(0), v.std(0) + 1e-6) for k, v in base.items()}
+            base = {k: (v - stats[k][0]) / stats[k][1] for k, v in base.items()}
+            loaded = {n: [{k: (v - stats[k][0]) / stats[k][1] for k, v in f.items()} for f in fs]
+                      for n, fs in loaded.items()}
         required = {'shared', 'shared48', 'hydraT', 'hydraR'} | {'task' + s for s in SHORT.values()}
         from grouping import MODALITY_SLUGS, CLASSIFICATION_DATASET_SLUGS
         required |= {'mod' + s for s in MODALITY_SLUGS.values()} | {'ds' + s for s in CLASSIFICATION_DATASET_SLUGS.values()}
@@ -424,6 +433,8 @@ def main():
     for name in ('index', 'probe', 'holdout', 'transfer', 'out'):
         analysis.add_argument('--' + name, required=True)
     analysis.add_argument('--B', type=int, default=10000)
+    analysis.add_argument('--standardize', action='store_true',
+                          help='z-score features per dimension with base statistics (supplementary view)')
     head = sub.add_parser('heads')
     for name in ('state', 'mapping', 'out'):
         head.add_argument('--' + name, required=True)
@@ -433,7 +444,7 @@ def main():
     elif a.cmd == 'extract':
         extract(a.holdout, a.probe, a.spec, a.out)
     elif a.cmd == 'analyze':
-        analyze(a.index, a.probe, a.holdout, a.transfer, a.out, a.B)
+        analyze(a.index, a.probe, a.holdout, a.transfer, a.out, a.B, standardize=a.standardize)
     else:
         head_similarity(a.state, a.mapping, a.out)
 
