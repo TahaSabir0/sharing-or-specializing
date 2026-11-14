@@ -1,0 +1,12 @@
+# E9-lite Shared LoRA, cls shrunk to 10% (subset seed 20261009; other tasks 100%), seed 1337. Protocol as E1.
+# Deck in /data/ugrip2026/journal/data_e9 (run_chain.sh with JOURNAL_DATA=/data/ugrip2026/journal/data_e9).
+run_id: j26_q35_shared_cls10_768_s1337
+owner: taha
+study: E9
+backbone: q35
+method: lora
+method_cfg: {}
+deck: j26_train_mix_cls10_s20261009
+data_tag: cls10
+seed: 1337
+overrides: {}

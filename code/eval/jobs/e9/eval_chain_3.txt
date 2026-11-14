@@ -1,0 +1,10 @@
+# E9-lite eval chain 3: cls holdout slice of each run in train_chain_3.txt as it ends (eval_arm.py, as E1).
+# Shared runs are evaluated on classification only (the shrunk task; RQ2 outcome).
+WAIT_FOR /data/ugrip2026/journal/runs/chain_e9_3.log end j26_q35_shared_cls10_768_s1337 rc=0
+j26_q35_shared_cls10_768_s1337 --adapter_path /data/ugrip2026/journal/runs/j26_q35_shared_cls10_768_s1337 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'classification' --output_file /data/ugrip2026/journal/runs/j26_q35_shared_cls10_768_s1337/predictions_holdout.json
+WAIT_FOR /data/ugrip2026/journal/runs/chain_e9_3.log end j26_q35_taskcls_cls1_768_s1337 rc=0
+j26_q35_taskcls_cls1_768_s1337 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskcls_cls1_768_s1337 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'classification' --output_file /data/ugrip2026/journal/runs/j26_q35_taskcls_cls1_768_s1337/predictions_holdout.json
+WAIT_FOR /data/ugrip2026/journal/runs/chain_e9_3.log end j26_q35_taskcls_cls5_768_s1337 rc=0
+j26_q35_taskcls_cls5_768_s1337 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskcls_cls5_768_s1337 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'classification' --output_file /data/ugrip2026/journal/runs/j26_q35_taskcls_cls5_768_s1337/predictions_holdout.json
+WAIT_FOR /data/ugrip2026/journal/runs/chain_e9_3.log end j26_q35_taskcls_cls10_768_s1337 rc=0
+j26_q35_taskcls_cls10_768_s1337 --adapter_path /data/ugrip2026/journal/runs/j26_q35_taskcls_cls10_768_s1337 --data_path /data/ugrip2026/journal/data/j26_holdout.jsonl --only_task 'classification' --output_file /data/ugrip2026/journal/runs/j26_q35_taskcls_cls10_768_s1337/predictions_holdout.json
