@@ -1,9 +1,18 @@
 # Status
 
-**Updated 2026-11-13.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-14.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **E9-lite launched 14 Nov 09:10** (box `158c806`; PLAN changelog 14 Nov): Qwen, cls target, Shared and
+  TaskLoRA-cls at 1/5/10/25/50% (subset seed 20261009), training seed 1337; 100% = E1 s1337. Smoke passed both arm
+  types (14 Nov, `runs/smoke/j26_q35_{shared,taskcls}_cls1_*`). Decks `/data/ugrip2026/journal/data_e9`
+  (`code/data/build_e9_decks.sh`, rows verified against the W1 mixture). **4 training chains at once**
+  (`code/eval/jobs/e9/train_chain_{1..4}.txt`, PIDs 1265529/30/32/34, logs `runs/chain_e9_{1..4}.log`, launched with
+  JOURNAL_DATA=data_e9) and 4 eval chains (cls holdout slice, `eval_arm.py --only_task classification`; PIDs
+  1265535/37/38/41, logs `runs/evalchain_e9_{1..4}.log`). ETA (estimate ±15%): Shared 1% Sun 15 ~23:45, Shared 50%
+  Mon 16 ~15:00, last run (Shared 5%) **Tue 17 ~06:00** box time. Scoring (score_single) after the evals, on CPU.
+- **E7 forward passes done 13 Nov 03:33** (164/164 features). Next (CPU): `phase_b.sh e7-analyze`, then E8.
 - **All Hydra holdout evals + CRIMSON done 12 Nov 18:48** (9/9 eval rc=0, 9/9 CRIMSON rc=0; metrics and
   crimson_metrics.json present for every run). Phase A complete on both backbones. **In LEDGER (2026-11-13 Hydra
   section), paper Table IV and §E1/E2 text (13 Nov); 12 Hydra rows added to RUNS.csv.** Descriptive: Hydra-T is never
