@@ -18,6 +18,7 @@ import numpy as np
 from scipy.stats import rankdata
 
 import bootstrap as bs
+from transfer_matrix import COVARIATE_EXCLUDED_TARGETS  # same exclusion as the E3 covariate test
 from phase_b_common import (CODE, TASKS, SHORT, SEEDS, BACKBONES, read_json, read_jsonl, write_json,
                             digest, provenance, fresh_dir, commit, summary, finite, require_input_hash)
 sys.path.insert(0, str(CODE / 'data'))
@@ -112,23 +113,46 @@ def spearman(x, y):
     return cosine(x - x.mean(), y - y.mean())
 
 
-def cell_permutation(similarities, transfer, B=10000, seed=20261013):
-    """Matrices [source task, target cell]. All sources share one permuted cell order."""
+def cell_permutation(similarities, transfer, B=10000, seed=20261013, mask=None, strata=None):
+    """Matrices [source task, target cell]. All sources share one permuted cell order.
+
+    mask: [source, cell] booleans, the pairs that enter the test (default: all). strata: one label
+    per cell; cells are permuted only within their stratum, so a mask that depends only on the
+    stratum (e.g. "target task differs from source task") is left intact by every permutation.
+    """
     x, y = np.asarray(similarities, float), np.asarray(transfer, float)
     if x.shape != y.shape or x.ndim != 2 or B < 1:
         raise ValueError('expected equal source-by-cell matrices and positive B')
-    if not np.isfinite(x).all() or not np.isfinite(y).all():
+    mask = np.ones(x.shape, bool) if mask is None else np.asarray(mask, bool)
+    strata = [0] * x.shape[1] if strata is None else list(strata)
+    if mask.shape != x.shape or len(strata) != x.shape[1]:
+        raise ValueError('mask/strata do not match the matrices')
+    for s in set(strata):  # the mask must be constant within a stratum for every source
+        cols = [j for j, t in enumerate(strata) if t == s]
+        if (mask[:, cols] != mask[:, cols[:1]]).any():
+            raise ValueError('mask varies within a permutation stratum')
+    if not np.isfinite(x[mask]).all() or not np.isfinite(y[mask]).all():
         return {'rho': None, 'p_permutation': None, 'reason': 'undefined input/transfer; no pairs dropped'}
-    xr, yr = rankdata(x.ravel()), rankdata(y.ravel()).reshape(y.shape)
-    xr, yr = xr - xr.mean(), yr - yr.mean()
+    xr = rankdata(x[mask]); xr = xr - xr.mean()
+    def centred_ranks(yy):
+        r = rankdata(yy[mask])
+        return r - r.mean()
+    yr = centred_ranks(y)
     den = np.linalg.norm(xr) * np.linalg.norm(yr)
     if den <= 1e-20:
         return {'rho': None, 'p_permutation': None, 'reason': 'constant variable'}
-    rho = float(xr @ yr.ravel() / den)
+    rho = float(xr @ yr / den)
     rng = np.random.default_rng(seed)
-    hits = sum(abs(xr @ yr[:, rng.permutation(y.shape[1])].ravel() / den) >= abs(rho) - 1e-12 for _ in range(B))
+    groups = [np.array([j for j, t in enumerate(strata) if t == s]) for s in sorted(set(strata), key=str)]
+    hits = 0
+    for _ in range(B):
+        order = np.arange(x.shape[1])
+        for g in groups:
+            order[g] = g[rng.permutation(len(g))]
+        hits += abs(xr @ centred_ranks(y[:, order]) / den) >= abs(rho) - 1e-12
     return {'rho': rho, 'p_permutation': (hits + 1) / (B + 1), 'B': B,
-            'n_cells': x.shape[1], 'n_pairs': x.size, 'unit': 'target cells, jointly across source tasks'}
+            'n_cells': x.shape[1], 'n_pairs': int(mask.sum()),
+            'unit': 'target cells, jointly across source tasks' + (', within strata' if len(groups) > 1 else '')}
 
 
 def question_mask(offsets, rendered, question):
@@ -276,7 +300,10 @@ def analyze(index_path, probe_path, holdout, transfer_path, out, B=10000, seed=2
     cells = sorted({(r['task'], r['dataset']) for r in rows})
     out = fresh_dir(out)
     result = {'study': 'E7', 'inputs': provenance([index_path, probe_path, holdout, transfer_path]),
-              'backbones': {}, 'primary': 'centroid input similarity vs raw C, target-cell permutations',
+              'backbones': {}, 'primary': ('centroid input similarity vs mu (PGF, mean over seeds) on off-task pairs (target task != '
+                          'source task); MedGemma counting excluded; target cells permuted within target task'),
+              'design_change': ('2026-11-14 (PLAN changelog): raw C mixed units (BA, MAE) and the own-task cells made '
+                                'rho positive by construction; aligned with the E3 covariate test'),
               'rsa_definition': 'Spearman of source/target centroid similarity profiles to fixed cell anchors; supplementary'}
     for backbone in BACKBONES:
         spec = index['backbones'][backbone]
@@ -301,8 +328,13 @@ def analyze(index_path, probe_path, holdout, transfer_path, out, B=10000, seed=2
             raise ValueError(f'E7 model coverage differs: missing={required - set(loaded)}, extra={set(loaded) - required}')
         output = {'input_similarity': {}, 'shift_from_base': {}, 'seed_noise_ceiling': {},
                   'adapter_pairs': {}, 'cell_predictors': {f'{t}/{d}': {} for t, d in cells}}
-        c = np.array([[transfer['backbones'][backbone]['cells'][f'{SHORT[t]}->{ct}/{ds}']['C']['mean']
-                       for ct, ds in cells] for t in TASKS], dtype=float)
+        def mu(t, ct, ds):
+            v = transfer['backbones'][backbone]['cells'][f'{SHORT[t]}->{ct}/{ds}']['PGF']['mean']
+            return np.nan if v is None else v
+        c = np.array([[mu(t, ct, ds) for ct, ds in cells] for t in TASKS], dtype=float)
+        excluded = COVARIATE_EXCLUDED_TARGETS.get(backbone, ())
+        test_mask = np.array([[ct != t and ct not in excluded for ct, _ in cells] for t in TASKS])
+        strata = [ct for ct, _ in cells]
         for key, features in base.items():
             anchors = np.stack([features[[i for i, r in enumerate(rows) if (r['task'], r['dataset']) == cell]].mean(0)
                                 for cell in cells])
@@ -310,8 +342,8 @@ def analyze(index_path, probe_path, holdout, transfer_path, out, B=10000, seed=2
             sim = np.array([[cosine(x, y) for y in anchors] for x in sources], float)
             anchor_sim = np.array([[cosine(x, y) for y in anchors] for x in anchors], float)
             rsa_sim = np.array([[spearman(x, y) for y in anchor_sim] for x in sim], float)
-            output['input_similarity'][key] = {'centroid': cell_permutation(sim, c, B, seed),
-                'rsa_profile': cell_permutation(rsa_sim, c, B, seed),
+            output['input_similarity'][key] = {'centroid': cell_permutation(sim, c, B, seed, test_mask, strata),
+                'rsa_profile': cell_permutation(rsa_sim, c, B, seed, test_mask, strata),
                 'sources': list(TASKS), 'cells': [f'{t}/{d}' for t, d in cells],
                 'centroid_values': [[finite(v) for v in row] for row in sim],
                 'rsa_values': [[finite(v) for v in row] for row in rsa_sim]}

@@ -9,6 +9,12 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-14: **E7 main test aligned with E3** (Taha). Input similarity is now tested against μ (PGF, mean over
+  seeds) on off-task pairs only (target task ≠ source task: 95 pairs Qwen, 90 MedGemma with counting excluded as in
+  E3), with target cells permuted within their target task. The first run (14 Nov 08:52, kept as
+  `e7_results_rawC_alltasks_20261114`) used raw C over all 114 pairs: raw C mixes BA and MAE units, the own-task cells
+  are both the most similar and the most improved, so ρ came out positive by construction; MedGemma returned no result
+  (one undefined C, reg→counting). Recomputed from that run's saved similarities, the off-task ρ is −0.33 to +0.27.
 - 2026-11-14: **E9 scoped to "E9-lite"** (Taha), on extra GPU time beyond 13 Nov: Qwen only, cls as the only
   target, subset seed 20261009 at 1/5/10/25/50%, arms Shared (mixture with cls shrunk, other tasks 100%) and
   TaskLoRA-cls, **one training seed (1337)**; the 100% points are the E1 s1337 runs (3-seed E1 for context).

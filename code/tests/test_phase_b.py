@@ -321,3 +321,16 @@ def test_extraction_pools_real_hook_tensors_without_answer_tokens(tmp_path, monk
     np.testing.assert_allclose(features['last_L2'], [[10, 10]])
     assert meta['token_counts'] == [dict(image=2, question=2, last=1)]
     assert all(not layer._forward_hooks for layer in model.model.layers)
+
+
+def test_cell_permutation_mask_and_strata():
+    # off-task mask: diagonal cells (own task) are excluded and never permuted into the test
+    rng = np.random.default_rng(0)
+    strata = ['a'] * 4 + ['b'] * 3 + ['c'] * 2
+    x = rng.normal(size=(3, 9))
+    mask = np.array([[t != src for t in strata] for src in 'abc'])
+    y = x.copy(); y[~mask] = np.nan          # undefined own-task values must not matter
+    res = cell_permutation(x, y, B=199, seed=1, mask=mask, strata=strata)
+    assert res['rho'] == pytest.approx(1) and res['n_pairs'] == int(mask.sum())
+    with pytest.raises(ValueError):
+        cell_permutation(x, x, B=9, mask=mask, strata=['a'] * 9)

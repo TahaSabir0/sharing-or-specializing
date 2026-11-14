@@ -42,7 +42,7 @@ def surface(tmp_path):
                 kind: {sign: {'mean': (i+1)*.01*(1 if sign == 'positive' else -1)} for sign in ('positive', 'negative')}
                 for kind in ('transferability', 'malleability')}
             for j, (target, ds) in enumerate(cells):
-                t['cells'][f'{SHORT[task]}->{target}/{ds}'] = {'C': {'mean': (j-i)*.01}}
+                t['cells'][f'{SHORT[task]}->{target}/{ds}'] = {'C': {'mean': (j-i)*.01}, 'PGF': {'mean': (j-i)*.01}}
             for j, target in enumerate(TASKS):
                 t['pairs'][f'{SHORT[task]}->{SHORT[target]}'] = {'C': {'mean': (j-i)*.01}}
         t['aggregates_bare'] = t['aggregates']
@@ -84,7 +84,8 @@ def test_all_representation_arms_feed_19_cell_synthesis(surface):
         assert len(result['shift_from_base']) == 27
         assert len(result['adapter_pairs']) == 15
         assert len(result['cell_predictors']) == 19
-        assert result['input_similarity']['image_L1']['centroid']['n_pairs'] == 114
+        # 114 pairs minus the 19 own-task cells; MedGemma also drops its 5 counting pairs (E3 rule)
+        assert result['input_similarity']['image_L1']['centroid']['n_pairs'] == (90 if b == 'mg15' else 95)
         assert 'p_holm_layers' in result['input_similarity']['image_L1']['centroid']
     index = {'holdout': str(w['holdout']), 'backbones': {}}
     for b in BACKBONES:
