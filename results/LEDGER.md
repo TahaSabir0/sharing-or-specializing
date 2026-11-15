@@ -732,3 +732,9 @@ on the one unscored CRIMSON report in Qwen ZS-bare; fixed as in E3 (`930bbb5`; f
   (ρ ≈ +0.5 in all six outcomes), which is the detection cells above. Qwen X-ray (ρ 0.48) appears in 3 of 6 outcomes.
 - Caveat: the E7 similarity predictors come from raw features. For MedGemma, the standardized E7 run is the better
   measure (LEDGER E7 check); not rerun with it here.
+
+### Check: E8 with standardized E7 features (2026-11-15)
+- `rq4_synthesis.py analyze --representations phase_b/e7_results_std/representations.json` → `phase_b/e8_results_std/`.
+  Same conclusion: no predictor survives Holm (smallest 0.18, MedGemma TaskLoRA/ZS-prompt; every Qwen outcome 1.00).
+  On MedGemma the 4 E3 predictors (transferability/malleability ±) are undefined because counting is excluded as an E3
+  target. Paper uses both runs ("raw or standardized: same result").
