@@ -31,7 +31,9 @@ def prepare(runs, holdout, out, score=True):
         for arm in ('shared', *ARMS, 'zsprompt', 'zsbare'):
             if arm.startswith('zs'):
                 dest = out / f'{backbone}_{arm}'
-                assemble(baseline_sources(runs, arm, backbone, None), deck, dest, backbone, None, arm, score=score)
+                # Qwen ZS-bare has 1 report CRIMSON returned no score for (LEDGER n=780), as in plan_e3.py
+                assemble(baseline_sources(runs, arm, backbone, None), deck, dest, backbone, None, arm, score=score,
+                         allow_unscored=True)
                 spec[arm] = str(dest.resolve())
             else:
                 spec[arm] = {}
