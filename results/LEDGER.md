@@ -703,3 +703,32 @@ interpreted.
   aligned pair in 3 of 4 arms; the counting head (smallest task, 100 holdout / fewest training rows) moves least.
 - Hydra-T's B heads start at zero, so their low cosine is learned; Hydra-R's A heads start random and near-orthogonal,
   so their low cosine is partly the initialization. Raw-factor cosine is basis-dependent: descriptive only.
+
+## E8 — RQ4 synthesis: what predicts where specializing beats Shared, both backbones (2026-11-15)
+
+Box `930bbb5`; `phase_b/e8_results/{synthesis.json,cells.csv}` (collected runs `phase_b/e8_collected/`, log `phase_b/e8.log`).
+Outcome per cell (19 task/dataset cells): mean over 3 seeds of PGF(specialized) − PGF(Shared), ZS-prompt anchor
+(ZS-bare as sensitivity). Specialized arms: TaskLoRA, Hydra-T, Hydra-R. Predictors: training counts, output type and
+modality (one-hot), E3 transferability/malleability, E7 input/adapter similarity per layer (E7 main run, raw features),
+ZS difficulty. Spearman ρ, cell permutation, B=10,000, Holm across predictors within each outcome. First attempt failed
+on the one unscored CRIMSON report in Qwen ZS-bare; fixed as in E3 (`930bbb5`; failed attempt kept as
+`e8_collected_failed_zsbare_20261115`).
+
+| Backbone | Arm | Mean PGF benefit (ZS-prompt) | Cells > 0 | Tests (undefined) | Min Holm p (prompt / bare) |
+|---|---|---|---|---|---|
+| Qwen | TaskLoRA | −0.005 | 9/19 | 51 (0) | 1.00 / 1.00 |
+| Qwen | Hydra-T | +0.010 | 13/19 | 51 (0) | 1.00 / 1.00 |
+| Qwen | Hydra-R | +0.003 | 9/19 | 51 (0) | 1.00 / 1.00 |
+| MedGemma | TaskLoRA | +0.011 | 11/19 | 77 (4) | 0.18 / 1.00 |
+| MedGemma | Hydra-T | +0.014 | 13/19 | 77 (4) | 0.43 / 0.34 |
+| MedGemma | Hydra-R | +0.000 | 11/19 | 77 (4) | 1.00 / 1.00 |
+
+### Reading
+- **Negative:** no predictor survives Holm correction for any arm, backbone or anchor. Nothing measured predicts
+  which cells gain from specializing.
+- Benefits are small (mean |PGF benefit| ≤ 0.015). The largest single cells are MedGemma detection on BUS-UCLM/BUSI
+  (+0.06 to +0.10 for all three arms) and Qwen Hydra-T periapical multi-label (+0.09).
+- Uncorrected p < 0.05 hits are scattered and don't repeat across backbones, except "box output" on MedGemma
+  (ρ ≈ +0.5 in all six outcomes), which is the detection cells above. Qwen X-ray (ρ 0.48) appears in 3 of 6 outcomes.
+- Caveat: the E7 similarity predictors come from raw features. For MedGemma, the standardized E7 run is the better
+  measure (LEDGER E7 check); not rerun with it here.

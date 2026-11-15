@@ -8,7 +8,9 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   not predict off-task transfer; LEDGER 2026-11-14 E7). First run was flawed (raw C incl. own-task cells; MedGemma
   undefined) and fixed (PLAN changelog 14 Nov). 15 Nov: standardized-feature check (same negative result; MedGemma
   middle-layer outlier dimensions explained) and Hydra head similarity on all 12 runs (heads nearly orthogonal), both in
-  LEDGER E7. Left: E7 into the paper repo; E8 (`phase_b.sh e8-prepare`, `e8-analyze`).
+  LEDGER E7.
+- **E8 done 15 Nov 04:57** (box `930bbb5`): negative; no predictor of where specializing beats Shared survives
+  Holm on either backbone (LEDGER E8). Left: E7 and E8 into the paper repo.
 - **E9-lite launched 14 Nov 09:10** (box `158c806`; PLAN changelog 14 Nov): Qwen, cls target, Shared and
   TaskLoRA-cls at 1/5/10/25/50% (subset seed 20261009), training seed 1337; 100% = E1 s1337. Smoke passed both arm
   types (14 Nov, `runs/smoke/j26_q35_{shared,taskcls}_cls1_*`). Decks `/data/ugrip2026/journal/data_e9`
