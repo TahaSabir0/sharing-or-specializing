@@ -1,6 +1,6 @@
 # Experiment plan v2: "Sharing or Specializing?"
 
-The working plan for the IEEE TMI paper (submission ~15 Nov 2026; GPU access until 13 Nov).
+The working plan for the IEEE TMI paper (submission ~15 Nov 2026; GPU access extended past 13 Nov, end date open).
 It says what we run, in what order, with which settings, and what each run is for. It follows
 the research update of 14 Oct 2026 (`references/plan_updates/research_update_2026-10-14.pdf`).
 
@@ -9,6 +9,10 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-17: **E9-lite gets seeds 2026 and 42; GPU end date open** (Taha). GPU 1 access is extended with no
+  fixed end. Same configs, decks and subset draw (20261009) as seed 1337, so E9-lite becomes 3 seeds × 5 fractions ×
+  2 arms (the 3-seed E1 runs give 100%). 20 runs, 4 chains at once (`code/eval/jobs/e9/train_chain_{5..8}.txt`),
+  low fractions first. Seed-1337 results: LEDGER 2026-11-17 E9-lite.
 - 2026-11-14: **E7 main test aligned with E3** (Taha). Input similarity is now tested against μ (PGF, mean over
   seeds) on off-task pairs only (target task ≠ source task: 95 pairs Qwen, 90 MedGemma with counting excluded as in
   E3), with target cells permuted within their target task. The first run (14 Nov 08:52, kept as

@@ -1,6 +1,6 @@
 # Status
 
-**Updated 2026-11-14.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-18.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
@@ -11,14 +11,14 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   LEDGER E7.
 - **E8 done 15 Nov 04:57** (box `930bbb5`): negative; no predictor of where specializing beats Shared survives
   Holm on either backbone (LEDGER E8). Left: E7 and E8 into the paper repo.
-- **E9-lite launched 14 Nov 09:10** (box `158c806`; PLAN changelog 14 Nov): Qwen, cls target, Shared and
-  TaskLoRA-cls at 1/5/10/25/50% (subset seed 20261009), training seed 1337; 100% = E1 s1337. Smoke passed both arm
-  types (14 Nov, `runs/smoke/j26_q35_{shared,taskcls}_cls1_*`). Decks `/data/ugrip2026/journal/data_e9`
-  (`code/data/build_e9_decks.sh`, rows verified against the W1 mixture). **4 training chains at once**
-  (`code/eval/jobs/e9/train_chain_{1..4}.txt`, PIDs 1265529/30/32/34, logs `runs/chain_e9_{1..4}.log`, launched with
-  JOURNAL_DATA=data_e9) and 4 eval chains (cls holdout slice, `eval_arm.py --only_task classification`; PIDs
-  1265535/37/38/41, logs `runs/evalchain_e9_{1..4}.log`). ETA (estimate ±15%): Shared 1% Sun 15 ~23:45, Shared 50%
-  Mon 16 ~15:00, last run (Shared 5%) **Tue 17 ~06:00** box time. Scoring (score_single) after the evals, on CPU.
+- **E9-lite seed 1337 done 17 Nov 12:09** (10 runs + 10 cls evals rc=0; scored; LEDGER 2026-11-17 E9-lite; RUNS.csv).
+  Qwen cls, Shared vs TaskLoRA-cls at 1/5/10/25/50%: TaskLoRA − Shared = −0.038 / −0.023 / −0.005 / −0.015 / +0.014
+  (+0.005 at 100%). Shared leads at low data, crossover between 25% and 50% (one seed; descriptive).
+- **E9-lite seeds 2026 and 42 launched 18 Nov 08:49** (box `aa02845`; GPU end date now open, PLAN changelog 17 Nov):
+  20 runs, 4 training chains (`code/eval/jobs/e9/train_chain_{5..8}.txt`, PIDs 3865484/85/86/88, logs
+  `runs/chain_e9_{5..8}.log`, JOURNAL_DATA=data_e9) + 4 eval chains (cls slice; PIDs 3865490/91/94/95, logs
+  `runs/evalchain_e9_{5..8}.log`). Low fractions first. ETA (±15%): TaskLoRA 1/5% within hours; Shared 1% and 5%
+  ~20 Nov 04:00–06:00; all done **~24 Nov** box time. Then score (score_single), LEDGER 3-seed table, bootstrap.
 - **E7 forward passes done 13 Nov 03:33** (164/164 features). Next (CPU): `phase_b.sh e7-analyze`, then E8.
 - **All Hydra holdout evals + CRIMSON done 12 Nov 18:48** (9/9 eval rc=0, 9/9 CRIMSON rc=0; metrics and
   crimson_metrics.json present for every run). Phase A complete on both backbones. **In LEDGER (2026-11-13 Hydra

@@ -3,7 +3,7 @@
 Journal study for **IEEE Transactions on Medical Imaging**: "Sharing or Specializing? A
 Systematic Study of Parameter-Efficient VLM Adaptation for Heterogeneous Medical Image
 Analysis". Mentor: Dr. Tausifa Jan Saleem (PI: Prof. Mohammad Yaqub, MBZUAI). GPU access
-(Blackwell GPU 1) runs until 13 Nov 2026; submission target ~15 Nov 2026.
+(Blackwell GPU 1) was extended past 13 Nov 2026 with no fixed end date; submission target ~15 Nov 2026.
 
 Read **STATUS.md** first, then the parts of **PLAN.md** your task touches. PLAN.md §1 is
 the fixed protocol every experiment follows; PLAN.md §7 is who does what and how the team

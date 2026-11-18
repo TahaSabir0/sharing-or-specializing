@@ -756,3 +756,62 @@ on the one unscored CRIMSON report in Qwen ZS-bare; fixed as in E3 (`930bbb5`; f
   Same conclusion: no predictor survives Holm (smallest 0.18, MedGemma TaskLoRA/ZS-prompt; every Qwen outcome 1.00).
   On MedGemma the 4 E3 predictors (transferability/malleability ±) are undefined because counting is excluded as an E3
   target. Paper uses both runs ("raw or standardized: same result").
+
+----
+
+## E9-lite — supervision scaling, Qwen3.5-9B, cls target, seed 1337, holdout (2026-11-17)
+
+**RQ2 pilot (PLAN changelog 14 Nov): Shared (mixture with cls shrunk to p%, other tasks 100%) vs TaskLoRA-cls
+(cls p% only), p ∈ {1, 5, 10, 25, 50}%, subset draw 20261009 (nested, stratified by dataset and label), training
+seed 1337. 100% = the E1 s1337 runs. One seed: descriptive only. Seeds 2026 and 42 launched 18 Nov.**
+
+- Runs: `j26_q35_{shared,taskcls}_cls{1,5,10,25,50}_768_s1337`; configs `code/configs/e9/`; decks
+  `/data/ugrip2026/journal/data_e9` (`code/data/build_e9_decks.sh`: every row byte-identical to a W1
+  `j26_train_mix` row; md5s in its `MANIFEST.json`). Training 14 Nov 09:10 → 17 Nov 11:55, 4 jobs at once on GPU 1,
+  all rc=0, 3 epochs. Commits: Shared 1/10/25/50% `158c806`; Shared 5% and all TaskLoRA `930bbb5` (the box repo moved
+  mid-chain; no change under `code/train`, `code/methods`, `code/configs`, `code/data` or the eval/scorer files).
+- Smoke (14 Nov): both arm types passed (`runs/smoke/j26_q35_{shared,taskcls}_cls1_768_s1337_smoke_taha_*`).
+- Eval: `eval_arm.py --only_task classification` on the holdout cls slice (1,689 questions; greedy, EOS pinned,
+  512 tokens, as E1), jobs `code/eval/jobs/e9/eval_chain_{1..4}.txt`; Shared runs evaluated on cls only.
+  Scorer `score_single.py` → `<run_dir>/metrics_holdout_noreport.json`. Malformed 0/1689 in every run.
+- Deviations from PLAN §1: none (only the deck changes). Scope cut from PLAN §E9: see changelog 14 Nov.
+
+### Classification task macro (BA ↑; mean of 10 per-dataset BAs)
+
+| cls data | cls train questions | Shared | TaskLoRA | TaskLoRA − Shared |
+|---|---:|---:|---:|---:|
+| 1% | 184 | 0.514 | 0.477 | −0.038 |
+| 5% | 769 | 0.563 | 0.540 | −0.023 |
+| 10% | 1,532 | 0.583 | 0.578 | −0.005 |
+| 25% | 3,814 | 0.652 | 0.637 | −0.015 |
+| 50% | 7,600 | 0.688 | 0.702 | +0.014 |
+| 100% (E1) | 15,218 | 0.729 | 0.733 | +0.005 |
+
+### Per dataset (BA, Shared / TaskLoRA)
+
+| Dataset | n | 1% | 5% | 10% | 25% | 50% | 100% (E1) |
+|---|---:|---|---|---|---|---|---|
+| BUS-UCLM | 52 | 0.768 / 0.727 | 0.824 / 0.757 | 0.797 / 0.805 | 0.849 / 0.827 | 0.849 / 0.875 | 0.897 / 0.897 |
+| BUSI | 62 | 0.797 / 0.702 | 0.759 / 0.790 | 0.829 / 0.714 | 0.878 / 0.845 | 0.894 / 0.848 | 0.838 / 0.876 |
+| CMMD | 357 | 0.370 / 0.356 | 0.402 / 0.422 | 0.470 / 0.424 | 0.479 / 0.435 | 0.456 / 0.456 | 0.473 / 0.497 |
+| bcn20000 | 286 | 0.346 / 0.393 | 0.395 / 0.387 | 0.407 / 0.452 | 0.375 / 0.419 | 0.543 / 0.515 | 0.529 / 0.594 |
+| bone_marrow | 72 | 0.224 / 0.190 | 0.248 / 0.210 | 0.381 / 0.335 | 0.506 / 0.534 | 0.581 / 0.615 | 0.720 / 0.761 |
+| dental | 420 | 0.352 / 0.325 | 0.499 / 0.450 | 0.494 / 0.507 | 0.574 / 0.564 | 0.625 / 0.616 | 0.667 / 0.648 |
+| fundus | 138 | 0.471 / 0.421 | 0.512 / 0.452 | 0.510 / 0.489 | 0.614 / 0.623 | 0.694 / 0.655 | 0.670 / 0.666 |
+| iugc | 131 | 0.845 / 0.660 | 0.798 / 0.833 | 0.786 / 0.827 | 0.896 / 0.850 | 0.890 / 0.879 | 0.948 / 0.942 |
+| neojaundice | 60 | 0.493 / 0.493 | 0.630 / 0.478 | 0.598 / 0.641 | 0.774 / 0.709 | 0.756 / 0.749 | 0.810 / 0.719 |
+| retino | 111 | 0.476 / 0.501 | 0.560 / 0.621 | 0.561 / 0.591 | 0.576 / 0.566 | 0.596 / 0.815 | 0.736 / 0.736 |
+
+Datasets where Shared > TaskLoRA: 1% 7/10, 5% 6/10, 10% 4/10, 25% 7/10, 50% 7/10, 100% (E1) 5/10.
+
+### Reading (one seed; no CIs)
+- The ordering flips with data size: Shared is ahead at 1% (+0.038 BA) and 5% (+0.023), the arms are level at
+  10% (+0.005) and close at 25% (+0.015), and TaskLoRA is ahead at 50% (+0.014) and 100% (+0.005, s1337). This is the
+  direction RQ2 predicts (sharing helps most when the target task has little data); the crossover lies between 25%
+  and 50% on this seed.
+- The 1% and 5% gaps are 2–4× the E1 seed SD at 100% (~0.01); the 10–50% gaps are within it. Seed SD at low data is
+  unknown until seeds 2026/42 finish.
+- At 50% TaskLoRA's macro lead comes from one dataset: retino 0.818 vs 0.604 (n = 111); Shared is ahead on 7 of the
+  10 datasets there. The 50% point is not a clean TaskLoRA win.
+- Both arms gain steadily with data; neither saturates by 50% (Shared 0.688, TaskLoRA 0.702 vs 0.729 / 0.733 at 100%).
+- No malformed answers at any fraction, so low-data scores reflect wrong labels, not format failures.
