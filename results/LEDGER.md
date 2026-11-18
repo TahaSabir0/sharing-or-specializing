@@ -663,6 +663,54 @@ Means: normal-on-abnormal Hydra-T 0.665, Hydra-R 0.689 (Shared 0.703, TaskLoRA 0
 
 ----
 
+## E1 / E2 — paired bootstrap between arms, both backbones (2026-11-18)
+
+**No difference between any two arms survives Holm correction, on any task, on either backbone** (smallest adjusted
+p = 0.076, Qwen Shared r48 − Shared counting). No per-dataset cell survives Holm either. The "Reading" paragraphs in
+the E1/E2 sections above are descriptive; this section is the test.
+
+- `code/analysis/e1_e2_bootstrap.sh` (box `5de7899`, 18 Nov 08:48–09:57, CPU) → `/data/ugrip2026/journal/e1e2_bootstrap_20261118/`
+  (`<b>_minus_<a>_<bb>/contrasts.json`, `cells.csv`). Same method as E4/E5 (`compare_groups.py`): two-level paired bootstrap
+  (seeds, then questions stratified by dataset), B = 10,000, seed 20261013; Holm across the 6 tasks of each comparison;
+  per-cell p Holm-adjusted across cells. Inputs: the full-holdout runs assembled by `analyze_e4_e5.py`
+  (`e4e5_results_hydra_20261116/`, Shared r48 from `e4e5_results_plain_lora_20261106/`); means match the E1/E2 tables.
+- Values: difference b − a (mean over seeds) [95% CI] Holm p.
+
+**Qwen3.5-9B** (b − a; MAE: negative = b better)
+
+| b − a | Cls | ML | Det | Count | Reg | Report |
+|---|---:|---:|---:|---:|---:|---:|
+| TaskLoRA − Shared | -0.012 [-0.034, +0.008] p=1.00 | +0.004 [-0.015, +0.023] p=1.00 | -0.011 [-0.057, +0.034] p=1.00 | +2.07 [-2.08, +6.49] p=1.00 | -0.72 [-2.19, +0.84] p=1.00 | +0.006 [-0.007, +0.020] p=1.00 |
+| TaskLoRA − Shared r48 | -0.012 [-0.036, +0.010] p=0.56 | +0.018 [-0.002, +0.039] p=0.44 | +0.010 [-0.027, +0.052] p=0.60 | -4.65 [-11.04, +1.31] p=0.54 | -1.68 [-3.39, +0.11] p=0.35 | +0.011 [-0.004, +0.026] p=0.54 |
+| Shared r48 − Shared | +0.000 [-0.023, +0.022] p=1.00 | -0.014 [-0.036, +0.007] p=0.97 | -0.021 [-0.065, +0.012] p=0.97 | +6.72 [+1.89, +12.08] p=0.08 | +0.96 [-0.60, +2.57] p=0.97 | -0.005 [-0.020, +0.011] p=1.00 |
+| Hydra-T − Hydra-R | +0.001 [-0.020, +0.020] p=1.00 | +0.013 [-0.008, +0.032] p=1.00 | +0.022 [-0.022, +0.075] p=1.00 | -0.93 [-4.94, +3.19] p=1.00 | -0.13 [-1.63, +1.32] p=1.00 | -0.007 [-0.020, +0.007] p=1.00 |
+| Hydra-T − Shared | -0.001 [-0.021, +0.017] p=1.00 | +0.022 [+0.001, +0.042] p=0.21 | +0.020 [-0.008, +0.056] p=1.00 | +0.64 [-3.26, +4.92] p=1.00 | -0.38 [-1.69, +0.96] p=1.00 | +0.001 [-0.013, +0.016] p=1.00 |
+| Hydra-T − TaskLoRA | +0.011 [-0.010, +0.031] p=1.00 | +0.018 [-0.002, +0.037] p=0.44 | +0.031 [-0.016, +0.086] p=1.00 | -1.43 [-5.38, +2.41] p=1.00 | +0.34 [-0.86, +1.53] p=1.00 | -0.005 [-0.018, +0.008] p=1.00 |
+| Hydra-R − Shared | -0.002 [-0.021, +0.018] p=1.00 | +0.010 [-0.010, +0.029] p=1.00 | -0.002 [-0.048, +0.043] p=1.00 | +1.57 [-1.32, +5.26] p=1.00 | -0.24 [-1.88, +1.41] p=1.00 | +0.008 [-0.006, +0.022] p=1.00 |
+| Hydra-R − TaskLoRA | +0.010 [-0.012, +0.035] p=1.00 | +0.005 [-0.013, +0.023] p=1.00 | +0.009 [-0.035, +0.056] p=1.00 | -0.50 [-4.61, +3.54] p=1.00 | +0.47 [-1.11, +1.99] p=1.00 | +0.001 [-0.011, +0.013] p=1.00 |
+
+**MedGemma-1.5-4B** (b − a; MAE: negative = b better)
+
+| b − a | Cls | ML | Det | Count | Reg | Report |
+|---|---:|---:|---:|---:|---:|---:|
+| TaskLoRA − Shared | -0.005 [-0.029, +0.018] p=1.00 | +0.013 [-0.006, +0.033] p=0.83 | +0.060 [-0.013, +0.134] p=0.66 | +3.92 [-2.50, +10.70] p=0.83 | -0.25 [-1.79, +1.34] p=1.00 | +0.006 [-0.003, +0.016] p=0.83 |
+| TaskLoRA − Shared r48 | +0.021 [-0.002, +0.047] p=0.45 | +0.015 [-0.006, +0.035] p=0.45 | +0.087 [+0.018, +0.161] p=0.11 | +0.85 [-5.75, +6.83] p=0.78 | -1.39 [-3.02, +0.18] p=0.45 | +0.009 [-0.002, +0.021] p=0.45 |
+| Shared r48 − Shared | -0.025 [-0.049, -0.002] p=0.23 | -0.001 [-0.022, +0.019] p=1.00 | -0.027 [-0.098, +0.040] p=1.00 | +3.06 [-2.86, +8.68] p=1.00 | +1.14 [-0.30, +2.56] p=0.58 | -0.003 [-0.015, +0.009] p=1.00 |
+| Hydra-T − Hydra-R | +0.019 [-0.009, +0.047] p=1.00 | +0.007 [-0.015, +0.028] p=1.00 | +0.005 [-0.059, +0.061] p=1.00 | -2.03 [-7.75, +3.33] p=1.00 | -0.53 [-2.27, +1.24] p=1.00 | -0.000 [-0.010, +0.010] p=1.00 |
+| Hydra-T − Shared | +0.007 [-0.020, +0.033] p=1.00 | +0.006 [-0.016, +0.027] p=1.00 | +0.052 [-0.015, +0.120] p=0.66 | -4.03 [-9.37, +0.74] p=0.66 | -0.56 [-2.03, +0.89] p=1.00 | -0.002 [-0.013, +0.008] p=1.00 |
+| Hydra-T − TaskLoRA | +0.011 [-0.017, +0.040] p=1.00 | -0.008 [-0.030, +0.014] p=1.00 | -0.008 [-0.073, +0.055] p=1.00 | -7.94 [-14.41, -2.10] p=0.09 | -0.30 [-1.75, +1.21] p=1.00 | -0.009 [-0.019, +0.001] p=0.38 |
+| Hydra-R − Shared | -0.012 [-0.035, +0.011] p=1.00 | -0.001 [-0.023, +0.020] p=1.00 | +0.047 [-0.024, +0.116] p=1.00 | -2.00 [-7.67, +3.62] p=1.00 | -0.03 [-1.72, +1.64] p=1.00 | -0.002 [-0.012, +0.008] p=1.00 |
+| Hydra-R − TaskLoRA | -0.007 [-0.032, +0.020] p=1.00 | -0.015 [-0.038, +0.007] p=0.75 | -0.013 [-0.079, +0.050] p=1.00 | -5.91 [-13.06, +0.24] p=0.40 | +0.22 [-1.52, +1.95] p=1.00 | -0.009 [-0.018, +0.001] p=0.40 |
+
+
+- Closest calls (CI excludes 0, Holm p > 0.05): Qwen Shared r48 − Shared counting +6.72 MAE (p=0.08); MedGemma
+  Hydra-T − TaskLoRA counting −7.94 MAE (p=0.10); MedGemma TaskLoRA − Shared r48 detection +0.087 (p=0.11); Qwen
+  Hydra-T − Shared multi-label +0.022 (p=0.21); MedGemma Shared r48 − Shared classification −0.025 (p=0.23).
+- MedGemma TaskLoRA − Shared detection (+0.060, every seed, from the breast-ultrasound datasets) is not significant
+  (CI [−0.013, +0.134], p=0.66): BUS-UCLM-det has n=22 and BUSI-det n=50.
+
+---
+
 ## E7 — representations, main test (input similarity vs transfer), both backbones (2026-11-14)
 
 **Does an adapter help a target dataset more when the base model sees the two tasks' inputs as similar? No, on either

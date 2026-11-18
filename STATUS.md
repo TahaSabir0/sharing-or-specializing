@@ -4,6 +4,11 @@
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **E1/E2 paired bootstrap done 18 Nov 09:57** (box `5de7899`, `code/analysis/e1_e2_bootstrap.sh`): no arm differs
+  from another on any task on either backbone after Holm (smallest 0.076); LEDGER 2026-11-18. **E4 vs Hydra** done
+  16 Nov: no task differs (LEDGER E4/E5). Paper repo (`9e2fda6`): E1/E2 text now descriptive with CIs, contrast table
+  in the appendix, per-dataset appendix table, E4 Hydra columns, E7/E8 sections, abstract/discussion/conclusion
+  drafted. Left for the paper: E9 (E9-lite seed 1337 done 17 Nov; seeds 42/2026 launched 18 Nov), E6 (not run).
 - **E7 analysis done 14 Nov 10:52** (box `e89ac0b`): main test negative on both backbones (input similarity does
   not predict off-task transfer; LEDGER 2026-11-14 E7). First run was flawed (raw C incl. own-task cells; MedGemma
   undefined) and fixed (PLAN changelog 14 Nov). 15 Nov: standardized-feature check (same negative result; MedGemma
