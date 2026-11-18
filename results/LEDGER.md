@@ -363,8 +363,6 @@ Exploratory Spearman (10 datasets, permutation p): gain over TaskLoRA-cls vs tra
   together; splitting below the task level costs the small ones.
 - ~~Hydra columns: rerun `analyze_e4_e5.py` with all five arms once Hydra holdout evals exist (fresh `--out`).~~ Done 16 Nov: see "E4 vs Hydra" below.
 
----
-
 ### E4 vs Hydra-T and Hydra-R (2026-11-16)
 - `analyze_e4_e5.py --arms hydraT hydraR` (box `930bbb5`, 16 Nov 09:29–15:36) → `/data/ugrip2026/journal/e4e5_results_hydra_20261116/`
   (`E4_vs_hydra{T,R}_<bb>/contrasts.json`). Same method as above (two-level bootstrap, B = 10,000, Holm across the 6 tasks).
