@@ -361,7 +361,27 @@ Exploratory Spearman (10 datasets, permutation p): gain over TaskLoRA-cls vs tra
   Qwen −0.022, p=0.10). The losses sit in the small datasets (bone_marrow, BUS-UCLM, retino, MedGemma neojaundice);
   large ones (CMMD, dental) are unchanged and iugc gains slightly. Classification datasets benefit from training
   together; splitting below the task level costs the small ones.
-- Hydra columns: rerun `analyze_e4_e5.py` with all five arms once Hydra holdout evals exist (fresh `--out`).
+- ~~Hydra columns: rerun `analyze_e4_e5.py` with all five arms once Hydra holdout evals exist (fresh `--out`).~~ Done 16 Nov: see "E4 vs Hydra" below.
+
+---
+
+### E4 vs Hydra-T and Hydra-R (2026-11-16)
+- `analyze_e4_e5.py --arms hydraT hydraR` (box `930bbb5`, 16 Nov 09:29–15:36) → `/data/ugrip2026/journal/e4e5_results_hydra_20261116/`
+  (`E4_vs_hydra{T,R}_<bb>/contrasts.json`). Same method as above (two-level bootstrap, B = 10,000, Holm across the 6 tasks).
+  E5 vs Shared/TaskLoRA-cls recomputed in the same run: identical to the table above.
+- **No task differs after Holm on either backbone.** E4 − Hydra (MAE: positive = E4 worse):
+
+| Task | Qwen − Hydra-T | Qwen − Hydra-R | MedGemma − Hydra-T | MedGemma − Hydra-R |
+|---|---:|---:|---:|---:|
+| Cls | −0.015 [−0.035, +0.006] p=0.83 | −0.014 [−0.038, +0.008] p=1.00 | −0.027 [−0.061, +0.008] p=0.57 | −0.008 [−0.038, +0.025] p=1.00 |
+| ML | −0.013 [−0.033, +0.008] p=1.00 | −0.000 [−0.019, +0.019] p=1.00 | −0.017 [−0.039, +0.004] p=0.57 | −0.010 [−0.031, +0.010] p=1.00 |
+| Det | −0.016 [−0.061, +0.025] p=1.00 | +0.007 [−0.037, +0.053] p=1.00 | −0.014 [−0.077, +0.054] p=1.00 | −0.009 [−0.078, +0.059] p=1.00 |
+| Count | +1.52 [−2.25, +5.39] p=1.00 | +0.59 [−3.74, +4.56] p=1.00 | +5.88 [−0.52, +13.19] p=0.52 | +3.85 [−3.16, +11.65] p=1.00 |
+| Reg | +0.78 [−0.48, +2.02] p=1.00 | +0.65 [−0.97, +2.12] p=1.00 | +0.32 [−1.27, +1.89] p=1.00 | −0.21 [−2.10, +1.68] p=1.00 |
+| Report | −0.002 [−0.015, +0.010] p=1.00 | −0.009 [−0.021, +0.003] p=0.99 | +0.006 [−0.005, +0.016] p=0.93 | +0.005 [−0.005, +0.015] p=1.00 |
+
+- No per-cell difference survives Holm. E5 is not compared with Hydra by this script (its references are Shared and
+  TaskLoRA-cls); descriptively both Hydra arms are above E5 on classification.
 
 ---
 
