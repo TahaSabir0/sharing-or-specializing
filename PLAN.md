@@ -9,6 +9,10 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-18: **E6 (predicted routing) dropped** (Taha). Not run (≈ 45 slot-h + routers). E1/E2 found no
+  specialized arm better than Shared even with the oracle route (paired bootstrap, LEDGER 2026-11-18), and a
+  predicted route can only add routing errors, so E6 cannot change the RQ1 answer. Paper: E6 sections removed,
+  oracle routing listed as a limitation (paper repo `c2b87c1`).
 - 2026-11-17: **E9-lite gets seeds 2026 and 42; GPU end date open** (Taha). GPU 1 access is extended with no
   fixed end. Same configs, decks and subset draw (20261009) as seed 1337, so E9-lite becomes 3 seeds × 5 fractions ×
   2 arms (the 3-seed E1 runs give 100%). 20 runs, 4 chains at once (`code/eval/jobs/e9/train_chain_{5..8}.txt`),
@@ -509,7 +513,7 @@ too (~1% in final loss); seeds cover it.
 - **Cost:** Qwen ≈ 30 per seed (about one cls TaskLoRA) + evals → ≈ 95; MedGemma ≈ 15.
   **≈ 110 slot-h.**
 
-#### E6. Predicted routing (RQ1 robustness)
+#### E6. Predicted routing (RQ1 robustness) — **dropped 2026-11-18, not run** (see changelog)
 - Every specialized arm needs a route at test time; E1–E5 use the oracle label. Here the label
   is predicted:
   - task route (TaskLoRA, Hydra-T, Reversed Hydra): the question-only GLiClass router;

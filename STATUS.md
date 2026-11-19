@@ -8,7 +8,10 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   from another on any task on either backbone after Holm (smallest 0.076); LEDGER 2026-11-18. **E4 vs Hydra** done
   16 Nov: no task differs (LEDGER E4/E5). Paper repo (`9e2fda6`): E1/E2 text now descriptive with CIs, contrast table
   in the appendix, per-dataset appendix table, E4 Hydra columns, E7/E8 sections, abstract/discussion/conclusion
-  drafted. Left for the paper: E9 (E9-lite seed 1337 done 17 Nov; seeds 42/2026 launched 18 Nov), E6 (not run).
+  drafted. Left for the paper: E9 (E9-lite seed 1337 done 17 Nov; seeds 42/2026 launched 18 Nov), related work.
+- **E6 dropped 18 Nov** (Taha; PLAN changelog): no specialized arm beats Shared even with the oracle route, so
+  predicted routing cannot change the answer. Paper `c2b87c1`: E6 removed, oracle route a limitation. **E9-lite
+  seeds 42/2026 are the last experiment.**
 - **E7 analysis done 14 Nov 10:52** (box `e89ac0b`): main test negative on both backbones (input similarity does
   not predict off-task transfer; LEDGER 2026-11-14 E7). First run was flawed (raw C incl. own-task cells; MedGemma
   undefined) and fixed (PLAN changelog 14 Nov). 15 Nov: standardized-feature check (same negative result; MedGemma
