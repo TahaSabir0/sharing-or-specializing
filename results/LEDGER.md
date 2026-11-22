@@ -863,3 +863,71 @@ Datasets where Shared > TaskLoRA: 1% 7/10, 5% 6/10, 10% 4/10, 25% 7/10, 50% 7/10
   10 datasets there. The 50% point is not a clean TaskLoRA win.
 - Both arms gain steadily with data; neither saturates by 50% (Shared 0.688, TaskLoRA 0.702 vs 0.729 / 0.733 at 100%).
 - No malformed answers at any fraction, so low-data scores reflect wrong labels, not format failures.
+
+## E3 format analysis — format lock-in in off-task transfer, both backbones, 3 seeds, holdout (2026-11-23)
+
+**Tests the Discussion's untested claim that negative off-task transfer comes from adapters answering in their own
+task's format. Plan: `results/format_analysis_plan.md` (Tausifa's protocol, revised; rules fixed before any
+lock-in rate, `656b644`).**
+
+- Inputs: the E3 predictions (`phase_b/e3_collected`, `e3_results/transfer.json`), E8 joint arms, Shared r48 run
+  dirs. CPU only. Code `62b6fe2` (`code/analysis/format_lockin.py`, `format_rules.py`, 34 unit tests), run on the box
+  from a frozen copy `phase_b/format_analysis/code_62b6fe2/` → `phase_b/format_analysis/out_B10000/`
+  (`format_tables.md` has every cell; `format_analysis.json`; panels per backbone). B = 10,000, two-level (seeds,
+  then questions stratified by dataset), seed 20261013. μ recomputed here equals Table VI in every cell.
+- F0 checks: every TaskLoRA answers its own task in its own format 100% (one MedGemma regression answer,
+  `A(105.92`); no real rule conflicts among 80k answers per backbone.
+- Deviations (plan, "Changes after the first lock-in run"): label fragments ("Endodontic Treatment") count as their
+  option; F7c canonicalises the base as well. Holm across targets not yet applied to the F7/F3 p-values below.
+
+**Definitions.** Lock-in = answer in the source task's format and not valid for the target, or a label from the
+source's training vocabulary. F7a = μ after replacing locked-in answers with the ZS-prompt base's answers (by
+construction it can only pull μ toward the base); effect = μ_F7a − μ. F3 = μ on the questions answered in the target
+format only (cells with < 30 questions or < 20% kept: descriptive).
+
+### Lock-in rate (%, mean over seeds; row = adapter, column = target)
+
+| Qwen | cls | ml | det | count | reg | report | | MedGemma | cls | ml | det | count | reg | report |
+|---|---:|---:|---:|---:|---:|---:|---|---|---:|---:|---:|---:|---:|---:|
+| cls | — | 0 | 0 | 0 | 0 | 33 | | cls | — | 0 | 21 | 0 | 4 | 3 |
+| ml | 0 | — | 0 | 0 | 0 | 35 | | ml | 2 | — | 1 | 0 | 4 | 66 |
+| det | 77 | 46 | — | 98 | 100 | 14 | | det | 94 | 68 | — | 96 | 97 | 90 |
+| count | 0 | 0 | 0 | — | 0 | 0 | | count | 7 | 40 | 7 | — | 0 | 59 |
+| reg | 0 | 0 | 23 | 56 | — | 2 | | reg | 83 | 93 | 51 | 72 | — | 98 |
+| report | 8 | 11 | 28 | 33 | 37 | — | | report | 83 | 98 | 100 | 100 | 96 | — |
+
+### Negative cells: μ, after the swap (F7a), and on well-formed answers (F3) [95% CI]
+
+| Backbone | Cell | Lock-in | μ (E3) | μ F7a | F3 μ_valid (kept) | Reading |
+|---|---|---:|---:|---:|---|---|
+| Qwen | det→count | 98% | −1.194 | +0.000 | — (0%) | format |
+| Qwen | det→reg | 100% | −1.279 | +0.000 | — (0%) | format |
+| Qwen | det→ml | 46% | −0.401 | −0.091 [−0.144, −0.033] | −0.033 [−0.088, +0.016] (42%) | mostly format |
+| Qwen | det→cls | 77% | −0.123 | −0.018 [−0.044, −0.003] | desc. (12%) | mostly format |
+| Qwen | report→ml | 11% | −0.128 | −0.072 [−0.125, −0.022] | −0.077 [−0.143, −0.022] (89%) | part format, part content |
+| Qwen | **cls→ml** | **0%** | **−0.397** | −0.397 | **−0.381 [−0.450, −0.316]** (97%) | **not format: one label where 2+ needed (38% of answers; 44% of questions have 2+)** |
+| Qwen | reg→ml | 0% | −0.076 | −0.076 | −0.075 [−0.140, −0.021] (100%) | content (under-cardinality 24%) |
+| Qwen | ml→cls | 0% | −0.033 | −0.033 | −0.032 [−0.055, −0.012] (99%) | content (μ +0.026 once both sides use letters) |
+| MedGemma | det→reg | 97% | −1.419 | −0.009 [−0.022, +0.000] | desc. (3%) | format |
+| MedGemma | report→ml | 98% | −0.275 | −0.002 [−0.005, −0.000] | desc. (2%) | format |
+| MedGemma | reg→ml | 93% | −0.260 | −0.004 [−0.017, +0.006] | desc. (2%) | format |
+| MedGemma | det→ml | 68% | −0.247 | −0.059 [−0.169, +0.003] | desc. (0%) | format |
+| MedGemma | **cls→reg** | **4%** | **−0.440** | −0.436 [−0.894, −0.118] | −0.526 [−1.227, −0.036] (68%) | **not format: wrong numbers in the right format** |
+
+- **Positive transfer survives on well-formed answers:** Qwen cls/count/reg/report→reg and reg→cls, MedGemma
+  count→cls/reg keep the same μ (CIs exclude 0). Qwen reg→count: lock-in (decimal counts, 56%) *helps*; swapping them
+  for the base's answers lowers μ (+0.123 → +0.027).
+- **Joint training (F6):** Shared, Hydra-T, Hydra-R and Shared r48 answer 0.0% of questions outside their own task's
+  format, every task, both backbones, 3 seeds.
+- **Base model (side finding):** ZS-prompt answers 44.6% (Qwen) and 53.3% (MedGemma) of classification questions as
+  "C. Moderate NPDR", which the scorer marks wrong; part of the zero-shot classification gap is format.
+- F2 (descriptive): Spearman ρ(lock-in, μ) = −0.38 (Qwen, 20 pairs), −0.66 (MedGemma, 15 pairs).
+- F4 gate (|effect| ≥ 0.05 in ≥ 3 cells): passed on both (Qwen 7/20, MedGemma 5/15). In the near-total lock-in
+  cells this is automatic (swap ≈ base). F4 not run yet: Taha's decision.
+
+### Reading
+- On MedGemma, and for the detection adapter on both backbones, negative transfer is mainly format lock-in.
+- Qwen's largest non-detection negative cell (cls→ml, −0.40) is not format: the classification adapter answers in a
+  valid format but keeps its one-label habit (under-cardinality). MedGemma cls→reg (−0.44) is wrong content.
+- Joint training removes format errors entirely, consistent with the question telling the model the format.
+- Wording for the paper: "associated with"; F7 is a counterfactual approximation, not a forced re-evaluation.

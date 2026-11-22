@@ -1,9 +1,15 @@
 # Status
 
-**Updated 2026-11-18.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
+**Updated 2026-11-23.** Plan: `PLAN.md` v2 (team and rules: §7). Numbers: `results/LEDGER.md`.
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **E3 format analysis done 23 Nov** (Tausifa's protocol after the 21 Nov meeting, revised; plan
+  `results/format_analysis_plan.md`; branch `format-analysis`, code `62b6fe2`; CPU on the box,
+  `phase_b/format_analysis/out_B10000/`; LEDGER 2026-11-23). Negative transfer is mainly format lock-in for the
+  detection adapter (both backbones) and on MedGemma; Qwen cls→ml (−0.40) is not format (one label where several
+  are needed); joint arms 0% wrong format. **Open: F4 (forced-format GPU re-run, gate passed) — Taha's call; paper
+  Discussion sentence to update.**
 - **E1/E2 paired bootstrap done 18 Nov 09:57** (box `5de7899`, `code/analysis/e1_e2_bootstrap.sh`): no arm differs
   from another on any task on either backbone after Holm (smallest 0.076); LEDGER 2026-11-18. **E4 vs Hydra** done
   16 Nov: no task differs (LEDGER E4/E5). Paper repo (`9e2fda6`): E1/E2 text now descriptive with CIs, contrast table
