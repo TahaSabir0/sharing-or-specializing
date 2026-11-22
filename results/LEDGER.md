@@ -879,8 +879,8 @@ lock-in rate, `656b644`).**
   `A(105.92`); no real rule conflicts among 80k answers per backbone.
 - Deviations (plan, "Changes after the first lock-in run"): label fragments ("Endodontic Treatment") count as their
   option; F7c canonicalises the base as well. Holm across the μ targets of each source (`format_paper.py`,
-  `format_analysis_holm.json`): every cell called significant below stays so except MedGemma report→ml swap
-  (Holm p 0.048) — all conclusions unchanged.
+  `format_analysis_holm.json`): every result whose CI excludes 0 stays significant except the Qwen report→reg
+  format effect (−0.031; Holm p 0.069). Conclusions unchanged.
 
 **Definitions.** Lock-in = answer in the source task's format and not valid for the target, or a label from the
 source's training vocabulary. F7a = μ after replacing locked-in answers with the ZS-prompt base's answers (by
