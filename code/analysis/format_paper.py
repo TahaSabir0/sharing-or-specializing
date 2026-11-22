@@ -44,8 +44,8 @@ def add_holm(result):
 
 
 def num(v, d=2):
-    if abs(v) < 0.5 * 10 ** -d:
-        return '0.00' if d == 2 else f'{0:.{d}f}'
+    if abs(v) < 0.5 * 10 ** -d:  # rounds to zero: keep the sign of a negative value
+        return ('$-$' if v < 0 else '') + f'{0:.{d}f}'
     s = f'{v:+.{d}f}'
     return s.replace('+', '$+$').replace('-', '$-$')
 
@@ -58,7 +58,8 @@ def ci(b):
 
 
 def star(b):
-    return '$^*$' if b and b.get('p_holm_targets') is not None and b['p_holm_targets'] < 0.05 else ''
+    """Zero-width star so starred and plain numbers stay aligned in right-aligned columns."""
+    return '\\rlap{$^*$}' if b and b.get('p_holm_targets') is not None and b['p_holm_targets'] < 0.05 else ''
 
 
 def lock_color(v):
@@ -105,32 +106,40 @@ def negative_table(result):
         cells = [(k, c) for k, c in b['cells'].items()
                  if 'mu' in c and c['mu']['mean'] is not None and c['mu']['mean'] < NEG_THRESHOLD]
         cells.sort(key=lambda kc: kc[1]['mu']['mean'])
-        lines.append(f'\\multicolumn{{7}}{{l}}{{\\textit{{{NAME[bb]}}}}} \\\\')
+        lines.append(f'\\multicolumn{{8}}{{l}}{{\\textit{{{NAME[bb]}}}}} \\\\')
         for k, c in cells:
             s, t = k.split('->')
             src = next(x for x in TASKS if SHORT[x] == s)
             tgt = next(x for x in TASKS if SHORT[x] == t)
-            under = f'{100 * c["under_cardinality"]["mean"]:.0f}' if 'under_cardinality' in c else '---'
+            under = f'{100 * c["under_cardinality"]["mean"]:.0f}' if 'under_cardinality' in c else ''
             f3 = c['f3']
             if 'mu_valid' in f3 and f3['mu_valid']['mean'] is not None and not f3['descriptive_only']:
-                f3s = f'{num(f3["mu_valid"]["mean"])} {ci(c.get("f3_bootstrap"))}{star(c.get("f3_bootstrap"))}'
+                b3 = c.get('f3_bootstrap')
+                f3s = f'{num(f3["mu_valid"]["mean"])}{star(b3)} & {{\\footnotesize {ci(b3)}}}'
             else:
-                f3s = '(too few)'
+                f3s = '--- & '
+            swap = f'{num(c["f7a_mu_swap_locked"]["mean"])}{star(c.get("f7a_bootstrap"))}'
             lines.append(f'{CAP[src]} $\\to$ {CAP[tgt]} & {100 * c["lock_in"]["mean"]:.0f} & {under} & '
-                         f'{num(c["mu"]["mean"])} & {num(c["f7a_mu_swap_locked"]["mean"])} {ci(c.get("f7a_bootstrap"))}{star(c.get("f7a_bootstrap"))} & '
-                         f'{f3s} & {100 * f3["pct_valid"]["mean"]:.0f} \\\\')
+                         f'{num(c["mu"]["mean"])} & {swap} & {f3s} & {100 * f3["pct_valid"]["mean"]:.0f} \\\\')
         lines.append('\\midrule' if bb == 'q35' else '')
     return '\n'.join([
         '\\begin{table*}[!t]',
-        '\\caption{Negative transfer cells ($\\mu<-0.05$) and how much of each is format. Lock-in and',
-        'under-cardinality (one label where the gold answer has two or more) in \\% of answers. Swap: $\\mu$ after',
-        'replacing locked-in answers with the zero-shot model\'s answers. Well-formed: $\\mu$ on the questions',
-        'answered in the target format only, with the share kept. 95\\% CIs from a two-level paired bootstrap',
-        '($B=10{,}000$); $^*$: differs from 0 after Holm correction across the targets of each adapter.}',
-        '\\label{tab:lockin_cells}', '\\centering', '\\small', '\\setlength{\\tabcolsep}{5pt}',
-        '\\begin{tabular}{lcccccc}', '\\toprule',
-        'Pair & Lock-in & Under-card. & $\\mu$ & $\\mu$ after swap & $\\mu$ on well-formed & Kept (\\%) \\\\',
-        '\\midrule', *[l for l in lines if l], '\\bottomrule', '\\end{tabular}', '\\end{table*}'])
+        '\\caption{Negative transfer cells ($\\mu<-0.05$) and how much of each is format (mean over three seeds).',
+        'Lock-in and under-cardinality in \\% of answers; $\\mu$ after the swap and on well-formed answers as defined',
+        'in Section~\\ref{sec:e3}, with the share of questions kept. $^*$: differs from 0 after Holm correction',
+        'across the targets of each adapter (two-level paired bootstrap, $B=10{,}000$).}',
+        '\\label{tab:lockin_cells}', '\\centering', '\\small', '\\setlength{\\tabcolsep}{6pt}',
+        '\\renewcommand{\\arraystretch}{1.1}',
+        '\\begin{tabular}{lrrrrr@{\\hspace{16pt}}lr}', '\\toprule',
+        ' & \\multicolumn{2}{c}{Answers (\\%)} & \\multicolumn{4}{c}{Transfer $\\mu$} & \\\\',
+        '\\cmidrule(lr){2-3}\\cmidrule(lr){4-7}',
+        'Pair & Lock-in & Under-card. & All & After swap & Well-formed & 95\\% CI & Kept (\\%) \\\\',
+        '\\midrule', *[l for l in lines if l], '\\bottomrule', '\\end{tabular}',
+        '',
+        '\\vspace{2pt}',
+        '\\parbox{\\textwidth}{\\footnotesize Under-card.: one label where the gold answer has two or more',
+        '(multi-label targets only). ---: fewer than 30 questions, or under 20\\%, answered in the target format.}',
+        '\\end{table*}'])
 
 
 def distribution_table(result):
