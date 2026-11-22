@@ -110,11 +110,27 @@ def parse_labels(answer, options):
     not an option. Splits on ';' first, then on ',' while re-joining consecutive parts so a label
     that itself contains commas ('Endodontic Treatment, Restorative Treatment, and Complications')
     is read as one label. Returns the distinct labels in order."""
+    return parse_labels_info(answer, options)[0]
+
+
+def parse_labels_info(answer, options):
+    """parse_labels plus the number of fragments used. A fragment is a comma-piece of an option that
+    itself contains commas ('Endodontic Treatment' of 'Endodontic Treatment, Restorative Treatment, and
+    Complications'): the scorer splits labels on commas too and credits it, so it counts as that
+    option [added 22 Nov after the first lock-in run; logged in the plan]."""
     options = set(options)
+    frag = {}
+    for o in options:
+        if ',' in o:
+            for piece in o.split(','):
+                piece = norm(piece)
+                if piece and piece not in options:
+                    frag.setdefault(piece, o)
     s = re.sub(r'\s+', ' ', str(answer)).strip()
     if not s:
-        return None
+        return None, 0
     labels = []
+    n_frag = 0
     for piece in s.split(';'):
         p = norm(piece)
         if not p:
@@ -132,9 +148,14 @@ def parse_labels(answer, options):
                     i = j
                     break
             else:
-                return None
+                if parts[i] in frag:
+                    labels.append(frag[parts[i]])
+                    n_frag += 1
+                    i += 1
+                    continue
+                return None, 0
     out = list(dict.fromkeys(labels))
-    return out or None
+    return (out or None), n_frag
 
 
 def match_class(answer, opts):
@@ -217,10 +238,11 @@ def classify(answer, task, question, dataset_vocab=(), source_vocab=frozenset(),
         if len(pieces) >= 2 and all(match_class(x, opts) for x in pieces):
             matches.append('label_set')
     elif task == 'multi-label classification':
-        labels = parse_labels(s, ml_options(question))
+        labels, n_frag = parse_labels_info(s, ml_options(question))
         if labels:
             matches.append('class_label' if len(labels) == 1 else 'label_set')
             detail['n_labels'] = len(labels)
+            detail['fragment'] = n_frag > 0
     kind = box_kind(s) if s else None
     if kind:
         matches.append('boxes')
@@ -270,6 +292,7 @@ def assess(answer, row, source, dataset_vocab=(), source_vocab=frozenset(), sour
         gold_n = gold_cardinality(row['answer'], row['question'])
         out['gold_multi'] = gold_n >= 2
         out['under_cardinality'] = fmt == 'class_label' and gold_n >= 2
+        out['fragment'] = bool(c.get('fragment')) and fmt in ('class_label', 'label_set')
     if target == 'regression':
         out['integer_on_regression'] = fmt == 'integer'
     if target == 'detection':

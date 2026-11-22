@@ -199,6 +199,16 @@ their letter instead of swapping.
     sentences; "unparseable" renamed "other"; non-canonical class label and flat-box sub-flags; F7b/F7c
     sensitivity; gate pinned to 3 cells.
 
+## Changes after the first lock-in run (22 Nov, logged deviations)
+1. **Label fragments.** 27% of the Qwen classification adapter's answers to multi-label questions were
+   "Endodontic Treatment", a comma-piece of the option "Endodontic Treatment, Restorative Treatment, and
+   Complications". The committed rule (`656b644`) filed them as "other". The scorer splits labels on
+   commas and credits the piece, so the rule now counts a fragment as that option (sub-flag `fragment`,
+   reported per cell). Lock-in rates are unchanged by this. Before the change, cls→ml validity was
+   70.0% (Qwen) and 74.3% (MedGemma); after it, 97.3% and 95.5%.
+2. **F7c canonicalises the base as well.** The ZS-prompt base gives non-canonical class labels too (44.6%
+   Qwen, 53.3% MedGemma), so mapping only the adapter's answers would be an unmatched comparison.
+
 ## F0 validation result (22 Nov, before any lock-in rate)
 - Diagonal: every TaskLoRA's own answers are in its own format, 100% on both backbones, except 1 MedGemma
   regression answer (`A(105.92`, s42).

@@ -79,6 +79,16 @@ def test_label_with_internal_commas_is_one_label():
     assert c['format'] == 'class_label' and c['n_labels'] == 1
 
 
+def test_fragment_of_comma_option_counts_as_that_option():
+    c = F.classify('Endodontic Treatment', 'multi-label classification', PERI_Q)
+    assert c['format'] == 'class_label' and c['fragment'] and c['n_labels'] == 1
+    c = F.classify('Endodontic Treatment, Restorative Treatment', 'multi-label classification', PERI_Q)
+    assert c['format'] == 'class_label' and c['n_labels'] == 1  # two pieces of one option
+    c = F.classify('Dental Caries; Endodontic Treatment', 'multi-label classification', PERI_Q)
+    assert c['format'] == 'label_set' and c['n_labels'] == 2
+    assert not F.classify('Dental Caries', 'multi-label classification', PERI_Q)['fragment']
+
+
 def test_label_set_on_classification_question():
     assert fmt('A, C', 'classification', CLS_Q) == 'label_set'
 
