@@ -100,46 +100,48 @@ def lockin_table(result):
 
 
 def negative_table(result):
+    """Single-column table in the style of the paper's other tables: the CI of the well-formed mu sits
+    under its value in small type (as in Table X), so no extra column and no staggering."""
+    short_name = {'q35': 'Qwen', 'mg15': 'MedGemma'}
     lines = []
     for bb in ('q35', 'mg15'):
         b = result['backbones'][bb]
         cells = [(k, c) for k, c in b['cells'].items()
                  if 'mu' in c and c['mu']['mean'] is not None and c['mu']['mean'] < NEG_THRESHOLD]
         cells.sort(key=lambda kc: kc[1]['mu']['mean'])
-        lines.append(f'\\multicolumn{{8}}{{l}}{{\\textit{{{NAME[bb]}}}}} \\\\')
+        lines.append(r'\multicolumn{7}{l}{\textit{' + short_name[bb] + r'}} \\')
         for k, c in cells:
             s, t = k.split('->')
             src = next(x for x in TASKS if SHORT[x] == s)
             tgt = next(x for x in TASKS if SHORT[x] == t)
             under = f'{100 * c["under_cardinality"]["mean"]:.0f}' if 'under_cardinality' in c else ''
             f3 = c['f3']
-            if 'mu_valid' in f3 and f3['mu_valid']['mean'] is not None and not f3['descriptive_only']:
-                b3 = c.get('f3_bootstrap')
-                f3s = f'{num(f3["mu_valid"]["mean"])}{star(b3)} & {{\\footnotesize {ci(b3)}}}'
-            else:
-                f3s = '--- & '
-            swap = f'{num(c["f7a_mu_swap_locked"]["mean"])}{star(c.get("f7a_bootstrap"))}'
-            lines.append(f'{CAP[src]} $\\to$ {CAP[tgt]} & {100 * c["lock_in"]["mean"]:.0f} & {under} & '
-                         f'{num(c["mu"]["mean"])} & {swap} & {f3s} & {100 * f3["pct_valid"]["mean"]:.0f} \\\\')
-        lines.append('\\midrule' if bb == 'q35' else '')
+            b3 = c.get('f3_bootstrap')
+            ok = 'mu_valid' in f3 and f3['mu_valid']['mean'] is not None and not f3['descriptive_only']
+            wf = num(f3['mu_valid']['mean']) + star(b3) if ok else '---'
+            swap = num(c['f7a_mu_swap_locked']['mean']) + star(c.get('f7a_bootstrap'))
+            cols = [CAP[src] + r'$\to$' + CAP[tgt], f'{100 * c["lock_in"]["mean"]:.0f}', under,
+                    num(c['mu']['mean']), swap, wf, f'{100 * f3["pct_valid"]["mean"]:.0f}']
+            lines.append(' & '.join(cols) + (r' \\[-3pt]' if ok else r' \\'))
+            if ok:  # CI tucked under its value in small type (as Table X)
+                lines.append(r' & & & & & {\scriptsize ' + ci(b3) + r'} & \\[1pt]')
+        if bb == 'q35':
+            lines.append(r'\midrule')
     return '\n'.join([
-        '\\begin{table*}[!t]',
-        '\\caption{Negative transfer cells ($\\mu<-0.05$) and how much of each is format (mean over three seeds).',
-        'Lock-in and under-cardinality in \\% of answers; $\\mu$ after the swap and on well-formed answers as defined',
-        'in Section~\\ref{sec:e3}, with the share of questions kept. $^*$: differs from 0 after Holm correction',
-        'across the targets of each adapter (two-level paired bootstrap, $B=10{,}000$).}',
-        '\\label{tab:lockin_cells}', '\\centering', '\\small', '\\setlength{\\tabcolsep}{6pt}',
-        '\\renewcommand{\\arraystretch}{1.1}',
-        '\\begin{tabular}{lrrrrr@{\\hspace{16pt}}lr}', '\\toprule',
-        ' & \\multicolumn{2}{c}{Answers (\\%)} & \\multicolumn{4}{c}{Transfer $\\mu$} & \\\\',
-        '\\cmidrule(lr){2-3}\\cmidrule(lr){4-7}',
-        'Pair & Lock-in & Under-card. & All & After swap & Well-formed & 95\\% CI & Kept (\\%) \\\\',
-        '\\midrule', *[l for l in lines if l], '\\bottomrule', '\\end{tabular}',
+        r'\begin{table}[!t]',
+        r'\caption{Negative transfer cells ($\mu<-0.05$) and how much is format: lock-in and',
+        r'under-cardinality (\% of answers), $\mu$ on all answers, after the swap, and on well-formed',
+        r'answers [95\% CI], and the share of questions kept (\%). Mean over three seeds; $^*$: differs from 0',
+        r'after Holm correction (two-level paired bootstrap).}',
+        r'\label{tab:lockin_cells}', r'\centering', r'\small', r'\setlength{\tabcolsep}{3.5pt}',
+        r'\begin{tabular}{lcccccc}', r'\toprule',
+        r'Pair & Lock & Under & $\mu$ & Swap & Well-formed & Kept \\',
+        r'\midrule', *lines, r'\bottomrule', r'\end{tabular}',
         '',
-        '\\vspace{2pt}',
-        '\\parbox{\\textwidth}{\\footnotesize Under-card.: one label where the gold answer has two or more',
-        '(multi-label targets only). ---: fewer than 30 questions, or under 20\\%, answered in the target format.}',
-        '\\end{table*}'])
+        r'\vspace{2pt}',
+        r'\parbox{\columnwidth}{\footnotesize Under: one label where the gold answer has two or more',
+        r'(multi-label targets). ---: under 30 questions or 20\% in the target format.}',
+        r'\end{table}'])
 
 
 def distribution_table(result):
