@@ -9,6 +9,15 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-24: **E9 epoch-checkpoint evals added (deviation from §1.7 "holdout touched once per finished arm")**
+  (Taha). Why: from 50% → 100% cls data TaskLoRA-cls gains +.027 BA but Shared +.051, so Shared moves from behind
+  (50%) to ahead (100%). Two readings: seed noise (s42 is TaskLoRA's lowest seed at both sizes) or overtraining of
+  the single-task adapter over 3 epochs, which the other tasks prevent in Shared (regularization). Dev cannot tell
+  them apart (dev is inside the training pool). Test: eval the saved epoch-1/2 adapters of the 100% (E1) and 50%
+  (E9) Shared and TaskLoRA-cls runs on the cls holdout slice (24 evals, `code/eval/jobs/e9/eval_chain_ckpt.txt`);
+  epoch 3 = existing predictions. **Analysis only:** no reported number is replaced by a checkpoint score and no
+  epoch is selected. Also E9 paired bootstrap (`code/analysis/e9_bootstrap.py`, same method as E1/E2, Holm across
+  the 6 fractions).
 - 2026-11-18: **E6 (predicted routing) dropped** (Taha). Not run (≈ 45 slot-h + routers). E1/E2 found no
   specialized arm better than Shared even with the oracle route (paired bootstrap, LEDGER 2026-11-18), and a
   predicted route can only add routing errors, so E6 cannot change the RQ1 answer. Paper: E6 sections removed,
