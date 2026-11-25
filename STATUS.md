@@ -31,8 +31,19 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 - **E9-lite seeds 2026 and 42 launched 18 Nov 08:49** (box `aa02845`; GPU end date now open, PLAN changelog 17 Nov):
   20 runs, 4 training chains (`code/eval/jobs/e9/train_chain_{5..8}.txt`, PIDs 3865484/85/86/88, logs
   `runs/chain_e9_{5..8}.log`, JOURNAL_DATA=data_e9) + 4 eval chains (cls slice; PIDs 3865490/91/94/95, logs
-  `runs/evalchain_e9_{5..8}.log`). Low fractions first. ETA (±15%): TaskLoRA 1/5% within hours; Shared 1% and 5%
-  ~20 Nov 04:00–06:00; all done **~24 Nov** box time. Then score (score_single), LEDGER 3-seed table, bootstrap.
+  `runs/evalchain_e9_{5..8}.log`). Low fractions first. **24 Nov 04:00: 19/20 trained, evaluated and scored**
+  (score_single → `metrics_holdout_noreport.json`, all rc=0, malformed none). `taskcls_cls50_s42` crashed 23 Nov
+  16:19 at step 599/2850 (dataloader `unable to allocate shared memory(shm)`, transient; /dev/shm 11% used later)
+  and hung on GPU 1 for ~11.5 h; killed it + chain 5 + eval chain 5, crashed dir kept as
+  `runs/j26_q35_taskcls_cls50_768_s42.crashed_20261123`. **Rerun launched 24 Nov 03:58** (same config, `aa02845`,
+  JOURNAL_DATA=data_e9): log `runs/chain_e9_5b.log`; eval queued behind it (`runs/eval_chain_e9_5b.txt`, log
+  `runs/evalchain_e9_5b.log`). **Rerun done 24 Nov 14:48 rc=0, eval 15:15 rc=0, scored: cls macro 0.678.
+  E9-lite all 30 runs scored.** 3-seed means Shared/TaskLoRA: 1% .502/.472, 5% .563/.539, 10% .581/.586,
+  25% .646/.639, 50% .686/.697. Shared ahead at 1/5% on every seed; 10–50% within seed noise. Next: LEDGER 3-seed
+  table + paired bootstrap. **Done 25 Nov (LEDGER 2026-11-25 E9-lite 3 seeds):** bootstrap: 1%/5% Shared ahead
+  on every seed, p 0.031/0.048 but Holm (6 fractions) 0.19/0.24; 10–100% no difference. Epoch-checkpoint check
+  (24 evals, PLAN changelog 24 Nov): every run improves every epoch, TaskLoRA as fast as Shared → no overtraining;
+  the 50%→100% flip is seed noise. **E9 complete; left: E9 into the paper repo.**
 - **E7 forward passes done 13 Nov 03:33** (164/164 features). Next (CPU): `phase_b.sh e7-analyze`, then E8.
 - **All Hydra holdout evals + CRIMSON done 12 Nov 18:48** (9/9 eval rc=0, 9/9 CRIMSON rc=0; metrics and
   crimson_metrics.json present for every run). Phase A complete on both backbones. **In LEDGER (2026-11-13 Hydra
