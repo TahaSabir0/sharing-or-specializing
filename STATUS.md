@@ -44,6 +44,11 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   on every seed, p 0.031/0.048 but Holm (6 fractions) 0.19/0.24; 10–100% no difference. Epoch-checkpoint check
   (24 evals, PLAN changelog 24 Nov): every run improves every epoch, TaskLoRA as fast as Shared → no overtraining;
   the 50%→100% flip is seed noise. **E9 complete and in the paper (paper repo, 25 Nov): Tables XI–XII, methods, results, abstract, discussion, conclusion; the planned mixed-effects interaction model was not fit (one target, two arms: per-fraction bootstrap contrasts instead, stated in the paper).**
+- **Paper, 25 Nov (Overleaf now synced to the paper repo; `git pull` before editing):** related work written
+  (5 subsections, 11 new bib entries: HydraLoRA, LoRAMoE, MoLE, MedQwen, Hexapus, adapters, Caruana, Standley,
+  PCGrad, Fifty, Shazeer MoE; check them); appendix Tables XIII–XIV (all training/decoding settings, adapted layers).
+  **Waiting on the team's data discussion:** appendix transfer matrices, full E7, malformed/truncation/omission
+  tables; related-work framing. **Taha's call:** detection-resize TODO (run it, or cut to a limitation).
 - **E7 forward passes done 13 Nov 03:33** (164/164 features). Next (CPU): `phase_b.sh e7-analyze`, then E8.
 - **All Hydra holdout evals + CRIMSON done 12 Nov 18:48** (9/9 eval rc=0, 9/9 CRIMSON rc=0; metrics and
   crimson_metrics.json present for every run). Phase A complete on both backbones. **In LEDGER (2026-11-13 Hydra
