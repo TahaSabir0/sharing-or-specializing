@@ -43,7 +43,7 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   table + paired bootstrap. **Done 25 Nov (LEDGER 2026-11-25 E9-lite 3 seeds):** bootstrap: 1%/5% Shared ahead
   on every seed, p 0.031/0.048 but Holm (6 fractions) 0.19/0.24; 10–100% no difference. Epoch-checkpoint check
   (24 evals, PLAN changelog 24 Nov): every run improves every epoch, TaskLoRA as fast as Shared → no overtraining;
-  the 50%→100% flip is seed noise. **E9 complete; left: E9 into the paper repo.**
+  the 50%→100% flip is seed noise. **E9 complete and in the paper (paper repo, 25 Nov): Tables XI–XII, methods, results, abstract, discussion, conclusion; the planned mixed-effects interaction model was not fit (one target, two arms: per-fraction bootstrap contrasts instead, stated in the paper).**
 - **E7 forward passes done 13 Nov 03:33** (164/164 features). Next (CPU): `phase_b.sh e7-analyze`, then E8.
 - **All Hydra holdout evals + CRIMSON done 12 Nov 18:48** (9/9 eval rc=0, 9/9 CRIMSON rc=0; metrics and
   crimson_metrics.json present for every run). Phase A complete on both backbones. **In LEDGER (2026-11-13 Hydra
