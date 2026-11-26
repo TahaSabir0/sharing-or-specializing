@@ -86,6 +86,9 @@ def test_ml_language_and_dedupe():
             assert len(set(labels)) == len(labels) and set(labels) <= set(opts)
         assert n_ended > 50
     assert FF.dedupe_labels('Nodule, Normal, Nodule', ', ') == 'Nodule, Normal'
+    opts, _ = FF.ml_options(CHEST)
+    assert FF.dedupe_labels('Nodule, Normal, Nodule, Pneum', ', ', opts) == 'Nodule, Normal'  # cut mid-label
+    assert FF.dedupe_labels('Nodule, Normal', ', ', opts) == 'Nodule, Normal'
     peri_last = 'Endodontic Treatment, Restorative Treatment, and Complications'
     assert FF.dedupe_labels(f'{peri_last}; Dental Caries; {peri_last}', '; ') == f'{peri_last}; Dental Caries'
 

@@ -211,7 +211,7 @@ def main():
                             cands = FF.ml_candidates(strs_index, opts, sep)
                             rec['forced_pattern'] = pattern
                         else:
-                            sep = None
+                            sep, opts = None, None
                             pattern = FF.COUNT_RE if task == 'counting' else FF.REG_RE
                             cands = num_cands
                         c = FF.RegexConstraint(pattern, cands, strs, eot)
@@ -222,7 +222,7 @@ def main():
                         if raw != c.text(body):
                             raise RuntimeError(f'decoded {raw!r} != constrained text {c.text(body)!r}')
                         complete = c.complete(raw)
-                        ans_text = FF.dedupe_labels(raw, sep) if sep else raw
+                        ans_text = FF.dedupe_labels(raw, sep, opts) if sep else raw
                         rec.update(raw_output=raw, Answer=parse_answer(ans_text, task), n_new_tokens=len(new),
                                    truncated=trunc, complete_match=complete, dead_end=c.dead_end,
                                    model_logprob_sum=sum(lps), model_logprob_mean=sum(lps) / max(len(lps), 1))

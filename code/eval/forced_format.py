@@ -51,10 +51,14 @@ def ml_regex(options, sep):
     return f'{alt}(?:{regex.escape(sep)}{alt})*'
 
 
-def dedupe_labels(text, sep):
-    """'A, B, A' -> 'A, B' (first occurrence kept, order kept)."""
+def dedupe_labels(text, sep, options=None):
+    """'A, B, A' -> 'A, B' (first occurrence kept, order kept). With `options`, a trailing piece that is not
+    a whole option (the answer hit max_new_tokens mid-label) is dropped."""
+    parts = text.split(sep)
+    if options is not None and parts and parts[-1] not in options:
+        parts = parts[:-1]
     out = []
-    for part in text.split(sep):
+    for part in parts:
         if part and part not in out:
             out.append(part)
     return sep.join(out)
