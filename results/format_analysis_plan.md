@@ -145,6 +145,40 @@ Sanity checks (report all three):
 Implementation note: forcing must be added to both harnesses (Qwen `eval_arm.py`, MedGemma
 `eval_harness.py`) and needs its own smoke test on dev-select before the holdout runs.
 
+## F4 v2. Forced decoding as run (Tausifa, 25 Nov; replaces the F4 scope above)
+**Cells.** All 14 negative-transfer cells of Table VIII (μ < −0.05), so there is no selection question.
+Qwen: Det→Reg, Det→Count, Det→ML, Cls→ML, Report→ML, Det→Cls, Reg→ML. MedGemma: Det→Reg, Cls→Reg,
+Report→ML, Reg→ML, Det→ML, Count→ML, Report→Reg.
+
+**Arms, same forcing for all.** The source TaskLoRA (3 seeds), the ZS-prompt base, and Shared (3 seeds, the
+reference) on the same targets. μ_forced = (adapter_forced − ZS_forced) / (perfect − ZS_forced).
+
+**Forcing** (`code/eval/forced_format.py`, harness `code/eval/forced_eval.py`, jobs `code/eval/jobs/f4/`):
+- Count: regex `\d{1,5}`; Reg: `\d{1,5}(\.\d{1,3})?`; max_new_tokens 12.
+- ML: `(o1|…)(SEP(o1|…))*` from the question's own options, SEP the question's own separator (`, ` chestdr;
+  `; ` periapical, whose last option contains commas). Duplicates removed afterwards; the number of labels is
+  the model's. max_new_tokens 64. If the cap cuts the last label, that partial label is dropped (seen in the
+  smoke: MedGemma ZS-prompt loops through the list); truncation is counted per cell.
+- Cls: no generation; each option is scored by log p(option + end-of-turn | prompt); the options are the
+  letters for lettered questions (the gold answers are letters) and, for CMMD, the answer texts as the question
+  writes them. **Primary: length-normalised** (mean per token); summed reported beside it. For lettered
+  questions both give the same choice (every option is one token + end-of-turn); they differ only on CMMD.
+- Regex enforcement without a new package (shared envs frozen; lm-format-enforcer not installed): a logits
+  processor allows token t when generated-text + text(t) is a prefix of the language (`regex` partial match);
+  end-of-turn (`<|im_end|>` Qwen, `<end_of_turn>` MedGemma) only on a complete match.
+- Unchanged: bare prompt (ZS-prompt system prompt for the base), image budget, greedy, thinking off (Qwen),
+  pinned stop tokens, batch 1.
+
+**Statistics.** Table VIII's two-level paired bootstrap (`format_lockin.boot_job`, B = 10,000) for μ_forced,
+and for the change μ_forced − μ (same resamples, each side against its own base). Holm across the forced targets
+of each source adapter per backbone (Table VIII's family restricted to the forced cells), plus Holm across all
+forced cells of a backbone as a sensitivity. Analysis: `code/analysis/forced_mu.py`.
+
+**Checks.** Before the holdout: dev-select smoke, 5 rows per dataset per cell, outputs read by hand. In the
+results: errors, truncation, incomplete answers, dead ends, scorer-unparseable answers, mean unconstrained
+log-prob of forced answers, and Shared forced vs unforced answer agreement (Shared is 0% wrong-format, so
+forcing should leave it nearly unchanged: a bug check).
+
 ## F5. Matched-prompt check (CPU) [changed: no GPU]
 The adapters are evaluated with the bare prompt but the E3 base is ZS-prompt. A matched comparison already
 exists: μ recomputed against ZS-bare (bare vs bare), whose sign flips are listed in the LEDGER's E3
