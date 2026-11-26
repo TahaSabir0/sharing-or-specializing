@@ -971,6 +971,12 @@ Cls: length-normalised option log-prob (summed gives the same to ±0.002).
   remaining −0.30 on MedGemma det→reg) and MedGemma's ML cells. The smaller deficits (|μ| ≲ 0.13: Qwen det→cls,
   report→ml, reg→ml; MedGemma cls→reg, report→reg, count→ml) do not change under forcing: real content loss, small.
   Qwen cls→ml is in between: forcing recovers two-thirds, −0.13 remains.
+- **Qwen cls→ml decomposed (CPU check, 27 Nov).** The forced gain is all periapical: on 191/315 questions the
+  cls adapter answers 'Endodontic Treatment', a fragment of the option 'Endodontic Treatment, Restorative Treatment,
+  and Complications' that the scorer credits only partly; forcing completes it (periapical F1 0.33 → 0.59, seeds
+  1337/2026/42: .331→.593, .322→.578, .264→.535). chestdr unchanged (1337 identical answers; ≤ +0.06 otherwise).
+  Labels per answer unchanged under forcing (1.0–1.2 vs gold 2.1). So two-thirds of the −0.40 is this fragment
+  (format), the remaining −0.13 the single-label habit (under-cardinality), which forcing cannot fix.
 - **Shared reference (forcing check).** Shared's forced answers equal its unforced ones on 96–100% of questions and
   its raw metric is unchanged on every target (e.g. Qwen cls BA 0.737 → 0.737), so forcing does not distort a model
   that already answers in format. Its μ falls on Qwen cls (+0.70 → +0.55) and MedGemma ML (+0.45 → +0.36) only
