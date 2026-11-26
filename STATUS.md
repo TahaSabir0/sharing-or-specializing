@@ -4,6 +4,13 @@
 Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
 
 ## Where we are
+- **F4 v2 forced decoding running (Tausifa's 25 Nov spec; plan `results/format_analysis_plan.md` §F4 v2, PLAN
+  changelog 25 Nov).** All 14 negative cells of Table VIII; source TaskLoRA + ZS-prompt + Shared, 3 seeds, holdout.
+  Branch `forced-decoding` (**not merged to main yet**); runs launched 26 Nov 05:21 box time from
+  `people/taha/repo` at `2742679` (3 chains, PIDs 2387239/40/41, logs `runs/evalchain_f4_s{1337,2026,42}.log`,
+  outputs `runs/f4/`). Smoke passed (`results/smoke/f4_forced_20261126.md`); analysis script checked on a mock
+  (reproduces Table VIII μ exactly). ETA ~26 Nov 11:00. Then: `git pull` the branch in `people/taha/repo` and
+  run `python code/analysis/forced_mu.py --out /data/ugrip2026/journal/phase_b/format_analysis/f4_B10000 --B 10000`.
 - **E3 format analysis done 23 Nov** (Tausifa's protocol after the 21 Nov meeting, revised; plan
   `results/format_analysis_plan.md`; branch `format-analysis`, code `62b6fe2`; CPU on the box,
   `phase_b/format_analysis/out_B10000/`; LEDGER 2026-11-23). Negative transfer is mainly format lock-in for the
