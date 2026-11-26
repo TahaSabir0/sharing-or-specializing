@@ -27,6 +27,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / 'eval'))
 sys.path.insert(0, str(HERE.parent / 'eval' / 'jobs' / 'f4'))
 import bootstrap as bs  # noqa: E402
+import forced_format as FF  # noqa: E402
 import format_lockin as FL  # noqa: E402
 from plan_f4 import CELLS  # noqa: E402
 from score_single import overflows  # noqa: E402
@@ -87,10 +88,10 @@ def checks(rows, target):
     if target in (FL.CNT, FL.REG):
         out['scorer_unparseable'] = sum(overflows(r['Answer']) or not str(r['Answer']).strip() for r in rows)
     if target == FL.ML:
-        out['mean_labels'] = float(np.mean([len([x for x in r['Answer'].replace(';', ',').split(',') if x.strip()])
+        out['mean_labels'] = float(np.mean([len([x for x in r['Answer'].split(FF.ml_options(r['Question'])[1]) if x.strip()])
                                             if r['Answer'] else 0 for r in rows]))
     if target == FL.CLS:
-        out['sum_vs_mean_disagree'] = sum(r.get('Answer_sum') != r['Answer'] for r in rows)
+        out['sum_vs_mean_disagree'] = sum(r.get('Answer_sum', r['Answer']) != r['Answer'] for r in rows)
     return out
 
 
