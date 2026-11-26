@@ -70,9 +70,12 @@ def cls_candidates(question, dataset_answers):
             want = chr(ord(want) + 1)
     if len(marks) >= 2:
         return marks
-    ql = question.lower()
-    found = sorted(a for a in set(dataset_answers)
-                   if re.search(r'(?<![a-z0-9])' + re.escape(a.lower()) + r'(?![a-z0-9])', ql))
+    # the option as the question writes it ('Luminal A', 'HER2-enriched'; the scorer lower-cases)
+    found = []
+    for a in sorted(set(dataset_answers)):
+        m = re.search(r'(?<![A-Za-z0-9])' + re.escape(a) + r'(?![A-Za-z0-9])', question, flags=re.I)
+        if m:
+            found.append(m.group(0))
     if len(found) < 2:
         raise ValueError(f'no options found in {question[:120]!r} (vocab {sorted(set(dataset_answers))})')
     return found

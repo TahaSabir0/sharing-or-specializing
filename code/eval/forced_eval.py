@@ -119,6 +119,7 @@ def main():
     ap.add_argument('--surface', required=True, choices=['holdout', 'devselect'])
     ap.add_argument('--tasks', required=True, help='comma list of short names: cls,ml,count,reg')
     ap.add_argument('--per_task', type=int, default=0)
+    ap.add_argument('--per_dataset', type=int, default=0, help='first N rows of each dataset (smoke)')
     ap.add_argument('--out_dir', required=True)
     a = ap.parse_args()
     if a.mode != 'zs' and a.protocol == 'prompt':
@@ -162,7 +163,7 @@ def main():
 
     meta = {'experiment': 'F4 v2 forced-format decoding', 'mode': a.mode, 'protocol': a.protocol if a.mode == 'zs' else None,
             'adapter': a.adapter, 'backbone': a.backbone, 'base_model': a.base_model, 'surface': a.surface,
-            'data': a.data, 'tasks': tasks, 'per_task': a.per_task, 'system_prompt': system,
+            'data': a.data, 'tasks': tasks, 'per_task': a.per_task, 'per_dataset': a.per_dataset, 'system_prompt': system,
             'constraints': {'counting': FF.COUNT_RE, 'regression': FF.REG_RE,
                             'multi-label classification': 'question options + own separator (per row)',
                             'classification': 'log p(option + end-of-turn); Answer = length-normalised, Answer_sum = summed'},
@@ -178,6 +179,9 @@ def main():
         rows = [r for r in rows_all if r['task'] == task]
         if a.per_task:
             rows = rows[:a.per_task]
+        if a.per_dataset:
+            seen = {}
+            rows = [r for r in rows if seen.setdefault(r['dataset'], []).append(1) or len(seen[r['dataset']]) <= a.per_dataset]
         ckpt = out_dir / f'{TASK_SHORT[task]}.jsonl'
         done = {json.loads(l)['id'] for l in open(ckpt) if l.strip()} if ckpt.exists() else set()
         todo = [r for r in rows if r['id'] not in done]
