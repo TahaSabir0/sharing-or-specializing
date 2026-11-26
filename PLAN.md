@@ -9,6 +9,15 @@ the research update of 14 Oct 2026 (`references/plan_updates/research_update_202
 the changes marked **(v2)**.
 
 **Changelog**
+- 2026-11-25: **F4 forced-format decoding run (format analysis, inference only), per Tausifa's 25 Nov spec**
+  (Taha; plan `results/format_analysis_plan.md` §F4 v2). All 14 negative-transfer cells of Table VIII
+  (μ < −0.05), forced for the source TaskLoRA, the ZS-prompt base and Shared, 3 seeds, holdout. Count `\d{1,5}`,
+  Reg `\d{1,5}(\.\d{1,3})?`, ML = the question's own options and separator (duplicates removed afterwards),
+  Cls = option log-probability. **Deviations from §1 (decoding only):** constrained greedy decoding, max_new_tokens
+  12 (numbers) / 64 (ML) instead of 512, cls by option scoring instead of generation. Everything else as §1
+  (prompts, image budget, greedy, EOS pinned, thinking off). Implemented without a new package (shared envs are
+  frozen): `code/eval/forced_format.py`, `code/eval/forced_eval.py`. Holdout touched by these arms only under
+  forcing; no unforced number is replaced.
 - 2026-11-24: **E9 epoch-checkpoint evals added (deviation from §1.7 "holdout touched once per finished arm")**
   (Taha). Why: from 50% → 100% cls data TaskLoRA-cls gains +.027 BA but Shared +.051, so Shared moves from behind
   (50%) to ahead (100%). Two readings: seed noise (s42 is TaskLoRA's lowest seed at both sizes) or overtraining of
