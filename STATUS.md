@@ -9,7 +9,9 @@ Runs: `results/RUNS.csv`. New teammates: `KICKSTART.md`.
   removes the large deficits (detection adapter on both backbones, MedGemma ML), which were format lock-in; the small
   ones (|μ| ≲ 0.13) stay: real but small content loss. Qwen cls→ml: two-thirds format, −0.13 left; MedGemma det→reg
   −0.30 left. Shared unchanged under forcing (bug check passed). Caveat: MedGemma ML often hits the 64-token cap.
-  **Next: send to Tausifa; update the paper's format section / Discussion sentence.**
+  Qwen cls→ml decomposed (periapical label fragment vs single-label habit; LEDGER). **Paper updated 27 Nov**
+  (paper repo): Table VIII Forced column (`format_paper.py --forced`), methods, results, discussion, limitation,
+  appendix checks table. **Next: Tausifa to review.**
 - **E3 format analysis done 23 Nov** (Tausifa's protocol after the 21 Nov meeting, revised; plan
   `results/format_analysis_plan.md`; branch `format-analysis`, code `62b6fe2`; CPU on the box,
   `phase_b/format_analysis/out_B10000/`; LEDGER 2026-11-23). Negative transfer is mainly format lock-in for the
