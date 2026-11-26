@@ -938,6 +938,49 @@ format only (cells with < 30 questions or < 20% kept: descriptive).
 
 ----
 
+## F4 — forced-format decoding on the 14 negative-transfer cells, both backbones, 3 seeds, holdout (2026-11-27)
+
+Tausifa's 25 Nov spec; plan `results/format_analysis_plan.md` §F4 v2; PLAN changelog 2026-11-25 (decoding
+deviation). Code `2742679` (runs, 38 configs, all rc=0, 26 Nov 05:21–12:28, `runs/f4/`), analysis `03fd179`
+(`code/analysis/forced_mu.py`, B = 10,000; `phase_b/format_analysis/f4_B10000/`; full table
+`results/format_analysis_f4_forced.md`). Source TaskLoRA, ZS-prompt base and Shared all forced identically.
+μ_forced = (adapter_forced − ZS_forced)/(perfect − ZS_forced). Holm across the forced targets of each source.
+Cls: length-normalised option log-prob (summed gives the same to ±0.002).
+
+| cell | μ (Table VIII) | μ_forced [95% CI] | change μ_forced − μ [95% CI] | reading |
+|---|---:|---:|---:|---|
+| Qwen det→reg | −1.279 | +0.057 [−0.010, +0.124] | +1.337* [+1.010, +1.645] | all format |
+| Qwen det→count | −1.194 | −0.158 [−1.660, +0.314] | +1.036 [−0.340, +2.023] | format on 2 seeds (+0.27, +0.14); seed 42 −0.88 (MAE 195 vs ZS 104) |
+| Qwen det→ml | −0.401 | −0.023 [−0.057, +0.009] | +0.378* [+0.331, +0.430] | all format |
+| Qwen cls→ml | −0.397 | −0.130* [−0.187, −0.080] | +0.266* [+0.223, +0.315] | two-thirds format, content loss remains |
+| Qwen report→ml | −0.128 | −0.069* [−0.111, −0.028] | +0.059 [−0.003, +0.152] | content |
+| Qwen det→cls | −0.123 | −0.089* [−0.160, −0.025] | +0.033 [−0.029, +0.099] | content |
+| Qwen reg→ml | −0.076 | −0.090* [−0.158, −0.033] | −0.015* [−0.026, −0.004] | content |
+| MedGemma det→reg | −1.419 | −0.302* [−0.441, −0.153] | +1.117* [+0.910, +1.336] | mostly format, content loss remains |
+| MedGemma cls→reg | −0.440 | −0.481* [−0.953, −0.158] | −0.041 [−0.139, +0.056] | content |
+| MedGemma report→ml | −0.275 | −0.051* [−0.085, −0.020] | +0.224* [+0.181, +0.267] | mostly format |
+| MedGemma reg→ml | −0.260 | +0.037* [+0.015, +0.064] | +0.298* [+0.247, +0.349] | all format (slightly positive forced) |
+| MedGemma det→ml | −0.247 | −0.035 [−0.098, +0.021] | +0.212* [+0.098, +0.306] | all format |
+| MedGemma count→ml | −0.081 | −0.038* [−0.075, −0.005] | +0.042 [−0.085, +0.184] | small, content |
+| MedGemma report→reg | −0.056 | −0.082* [−0.154, −0.012] | −0.026 [−0.100, +0.049] | content |
+
+\* Holm p < 0.05. Reading: "format" = forcing removes the deficit (change significant, μ_forced not below 0);
+"content" = μ_forced still below 0 and the change not significant.
+
+- **Summary.** Forcing removes most or all of the large deficits: the detection adapter on both backbones (except a
+  remaining −0.30 on MedGemma det→reg) and MedGemma's ML cells. The smaller deficits (|μ| ≲ 0.13: Qwen det→cls,
+  report→ml, reg→ml; MedGemma cls→reg, report→reg, count→ml) do not change under forcing: real content loss, small.
+  Qwen cls→ml is in between: forcing recovers two-thirds, −0.13 remains.
+- **Shared reference (forcing check).** Shared's forced answers equal its unforced ones on 96–100% of questions and
+  its raw metric is unchanged on every target (e.g. Qwen cls BA 0.737 → 0.737), so forcing does not distort a model
+  that already answers in format. Its μ falls on Qwen cls (+0.70 → +0.55) and MedGemma ML (+0.45 → +0.36) only
+  because forcing raises the ZS baseline (the base's non-canonical class labels and long label lists are fixed),
+  which every μ_forced is measured against.
+- **Caveat: MedGemma ML hits the 64-token cap.** Under forcing MedGemma keeps listing labels: ZS-prompt 393/703
+  truncated (mean 10.6 labels after de-duplication), adapters 244–850 of 2109 (3 seeds); Qwen 0–92. The cut-off last
+  label is dropped; the cap applies to adapter and base alike, but MedGemma ML μ_forced depends on it.
+- Checks: 0 errors and 0 dead ends in all 38 runs; every count/reg answer parses with the scorer.
+
 ## E9-lite — 3 seeds, paired bootstrap, and epoch-checkpoint check, Qwen3.5-9B, cls target, holdout (2026-11-25)
 
 **Seeds 2026 and 42 added to the 2026-11-17 seed-1337 section (same configs, decks, subset draw 20261009); 100% =
